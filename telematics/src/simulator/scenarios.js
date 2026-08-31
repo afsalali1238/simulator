@@ -1,0 +1,475 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// src/simulator/scenarios.js — the scenario ENGINE (Module 9).
+//
+// phases.js supplies the vocabulary (what is the machine doing this tick?).
+// This file turns a named, declarative scenario into concrete Teltonika AVL
+// records: it walks the phase plan, advances the GPS track, ticks the engine
+// hour-meter, and assembles the IO elements. device.js then puts those records
+// on the wire as genuine Codec 8/8E bytes.
+//
+// Why a registry and not one flat loop: the simulator is the TEST BENCH for
+// everything downstream (the ledger, the rules engine, D1, soak tests). Those
+// need to replay a *named, deterministic* story — above all the D1 handover, the
+// single moment that makes invariant 6 provable end-to-end.
+//
+// Three rules this file obeys:
+//
+//   • ALIGNED WITH THE SEED. Every track dials in with an IMEI from
+//     store/seed-data.js and its timestamps sit inside (or deliberately
+//     straddle) the seeded assignment windows. Nothing here forks the fixtures.
+//
+//   • ABSENCE IS NOT ZERO (invariant 3). A signal with no reading is `null` and
+//     its IO element is OMITTED, exactly as a real unit behaves when the sensor
+//     or CAN adapter isn't there. Never `0` to mean "unknown".
+//
+//   • DETERMINISTIC. Seeded PRNG only — no Math.random, no Date.now. The same
+//     scenario + seed produces byte-identical records every run, so tests pin
+//     exact values.
+//
+// A note on engine hours and what the simulator is allowed to claim: IO ID 200
+// is a STAND-IN for real CAN engine hours (open decision D1, owned by
+// protocol-engineer). `emitEngine` here means only "this unit has a CAN adapter
+// fitted and is reporting a counter" — it is NOT a claim that the value is
+// billable ECU truth. Whether a reading becomes billable engine data is decided
+// downstream by decode/normalize.js from the *asset's* `hasEngineData`
+// (invariant 9), and whether it can back an invoice is the ledger's gate
+// (invariant 5, Module 5, human-led). The `handover` scenario leans on exactly
+// that split: after the handover the device keeps reporting its counter, and the
+// system must still produce no engine data for Generator Y.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { IO } from '../config.js';
+import { DEVICES } from '../store/seed-data.js';
+import { PHASES, runPhasePlan, makeRng, advance, distanceMeters } from './phases.js';
+
+const D1 = DEVICES[0].imei; // 356307042441013 — FMC130, changes hands mid-2025
+const D2 = DEVICES[1].imei; // 356307042441099 — FMC920, unassigned (yard)
+
+/**
+ * The seeded handover instant: D1 leaves Excavator X (Tenant A, CAN) and joins
+ * Generator Y (Tenant B, no CAN program). Mirrors ASSIGNMENTS in seed-data.js —
+ * the most important timestamp in the test bench.
+ */
+export const HANDOVER_TS_MS = Date.parse('2025-06-01T00:00:00Z');
+
+/**
+ * A work site used by the geofence scenario. Exported so a test (and later the
+ * P3 rules engine) can assert crossings against the same circle the track was
+ * generated from, instead of hard-coding coordinates twice.
+ */
+export const SITE_JEBEL_ALI = {
+  name: 'Jebel Ali yard',
+  lat: 25.0157,
+  lon: 55.0611,
+  radiusM: 400,
+};
+
+// Dozr's own yard, where the unassigned D2 sits.
+const DOZR_YARD = { lat: 25.1279, lon: 55.2265 };
+
+// ── IO assembly ──────────────────────────────────────────────────────────────
+/**
+ * Assemble the IO element array for one record. A signal that is `null` or
+ * `undefined` is OMITTED — that absence is how the simulator models "no
+ * reading", which is what exercises the decoder's NULL-vs-zero handling
+ * (invariant 3). Do not "tidy" an omission into a 0.
+ */
+export function buildIo({
+  ignition,
+  movement,
+  engineSeconds,
+  gnssStatus,
+  externalVoltageMv,
+  batteryPct,
+  unplug,
+}) {
+  const io = [];
+  if (ignition != null) io.push({ id: IO.IGNITION, size: 1, value: ignition ? 1 : 0 });
+  if (movement != null) io.push({ id: IO.MOVEMENT, size: 1, value: movement ? 1 : 0 });
+  if (gnssStatus != null) io.push({ id: IO.GNSS_STATUS, size: 1, value: gnssStatus });
+  if (engineSeconds != null) io.push({ id: IO.ENGINE_HOURS_S, size: 4, value: engineSeconds });
+  if (externalVoltageMv != null) {
+    io.push({ id: IO.EXTERNAL_VOLTAGE_MV, size: 2, value: Math.round(externalVoltageMv) });
+  }
+  if (batteryPct != null) {
+    io.push({ id: IO.BATTERY_LEVEL_PCT, size: 1, value: Math.round(batteryPct) });
+  }
+  if (unplug != null) io.push({ id: IO.UNPLUG_DETECTED, size: 1, value: unplug ? 1 : 0 });
+  return io;
+}
+
+// ── Legacy single-session generator (kept for the demo and existing tests) ────
+/**
+ * The original one-note generator: ignition wired on, a mechanical idle blip
+ * every 10th tick, an engine meter that only climbs. Superseded by the named
+ * scenarios below, but kept byte-for-byte identical because `npm run demo` and
+ * test/ingestion.test.js pin its output. New work should use buildScenario().
+ */
+export function makeScenario({
+  startTsMs = Date.parse('2025-03-01T06:00:00Z'), // inside D1 -> Excavator X (Tenant A)
+  stepMs = 1000,
+  lat0 = 25.2048, // Dubai
+  lon0 = 55.2708,
+  engineSeconds0 = 3600, // machine starts life with 1h on the meter
+} = {}) {
+  let engineSeconds = engineSeconds0;
+  return function step(i) {
+    const ignition = true;
+    const movement = i % 10 !== 0; // idle on every 10th tick
+    if (ignition) engineSeconds += Math.round(stepMs / 1000);
+    const speed = movement ? 18 + (i % 6) : 0;
+    return {
+      timestampMs: startTsMs + i * stepMs,
+      priority: 0,
+      gps: {
+        lat: lat0 + i * 0.00012,
+        lon: lon0 + i * 0.00009,
+        altitude: 10,
+        angle: (i * 15) % 360,
+        satellites: 9,
+        speed,
+      },
+      eventIoId: IO.IGNITION,
+      io: buildIo({ ignition, movement, engineSeconds }),
+    };
+  };
+}
+
+// ── Reusable phase plans ─────────────────────────────────────────────────────
+// A believable working day, in ticks. At the default 60s step that is a ~2h
+// compressed shift; the shape (not the wall-clock length) is what matters.
+const DAY_PLAN = [
+  { phase: 'off', ticks: 2 },
+  { phase: 'startup', ticks: 3 },
+  { phase: 'travel', ticks: 8, opts: { speedKmh: 42 } },
+  { phase: 'work', ticks: 14, opts: { dutyCycle: 3 } },
+  { phase: 'idle', ticks: 5 },
+  { phase: 'work', ticks: 8, opts: { dutyCycle: 4 } },
+  { phase: 'travel', ticks: 6, opts: { speedKmh: 36 } },
+  { phase: 'shutdown', ticks: 2 },
+];
+
+// A short shift — used either side of the handover so the boundary is the point
+// of the scenario rather than the volume of data.
+const SHORT_SHIFT = [
+  { phase: 'startup', ticks: 2 },
+  { phase: 'work', ticks: 6, opts: { dutyCycle: 3 } },
+  { phase: 'idle', ticks: 2 },
+  { phase: 'shutdown', ticks: 1 },
+];
+
+// ── The scenario registry ────────────────────────────────────────────────────
+// A track = one device's stream. `emitEngine` = a CAN adapter is fitted and the
+// unit reports its engine-second counter (see the header note — this is NOT a
+// claim of billable truth). `power` = emit external-voltage/battery IO, which
+// only the tamper scenario needs.
+export const SCENARIOS = {
+  'day-cycle': {
+    description:
+      'One believable working day for D1 on Excavator X (Tenant A, CAN): off → ' +
+      'startup → travel → work → idle → work → travel → shutdown.',
+    proves: ['engine hours accrue only while the engine runs', 'state transitions'],
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X',
+        startTsIso: '2025-03-03T05:00:00Z', // 09:00 local, inside the Tenant A window
+        stepMs: 60_000,
+        origin: { lat: 25.2048, lon: 55.2708 },
+        heading0: 70,
+        engineSeconds0: 3600,
+        emitEngine: true,
+        plan: DAY_PLAN,
+      },
+    ],
+  },
+
+  'after-hours': {
+    description:
+      'D1 on Excavator X started up and worked late in the evening (local time) — ' +
+      'the data an after-hours-ignition rule should fire on. The rule itself is P3; ' +
+      'this scenario only produces the evidence.',
+    proves: ['ignition outside working hours is visible in the record stream'],
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X (after hours)',
+        startTsIso: '2025-03-05T19:30:00Z', // 23:30 Gulf Standard Time
+        stepMs: 60_000,
+        origin: { lat: 25.2048, lon: 55.2708 },
+        heading0: 120,
+        engineSeconds0: 18_000,
+        emitEngine: true,
+        plan: [
+          { phase: 'startup', ticks: 2 },
+          { phase: 'work', ticks: 10, opts: { dutyCycle: 3 } },
+          { phase: 'idle', ticks: 3 },
+          { phase: 'shutdown', ticks: 1 },
+        ],
+      },
+    ],
+  },
+
+  // ── The one that matters most ──────────────────────────────────────────────
+  handover: {
+    description:
+      'THE D1 story. One physical device, two shifts straddling the seeded ' +
+      'handover instant 2025-06-01T00:00:00Z: before it, Excavator X / Tenant A ' +
+      '(CAN supported); after it, Generator Y / Tenant B (no CAN program). The ' +
+      'device keeps reporting its engine counter across the boundary on purpose — ' +
+      'the system must still produce NO engine data for Generator Y.',
+    proves: [
+      'invariant 6 — records attribute by their own timestamp, not "as of now"',
+      'invariant 9 — a non-CAN asset yields position + ignition only, even though the device still reports IO 200',
+    ],
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X (before handover, Tenant A)',
+        // 11 ticks × 60s ending at 23:59:00Z on 31 May — the last record lands
+        // one minute before the handover.
+        startTsIso: '2025-05-31T23:49:00Z',
+        stepMs: 60_000,
+        origin: { lat: 25.2048, lon: 55.2708 },
+        heading0: 45,
+        engineSeconds0: 250_000,
+        emitEngine: true,
+        plan: SHORT_SHIFT,
+      },
+      {
+        imei: D1,
+        label: 'D1 / Generator Y (after handover, Tenant B)',
+        // First record at 00:01:00Z on 1 June — one minute after the handover.
+        startTsIso: '2025-06-01T00:01:00Z',
+        stepMs: 60_000,
+        origin: { lat: 24.47, lon: 54.37 }, // moved to an Abu Dhabi site
+        heading0: 200,
+        // The unit carries its own accumulated counter over to the new machine.
+        // Reporting it is realistic AND is the point: nothing downstream may
+        // turn it into engine data for an asset with no CAN program.
+        engineSeconds0: 253_000,
+        emitEngine: true,
+        plan: SHORT_SHIFT,
+      },
+    ],
+  },
+
+  'yard-idle': {
+    description:
+      'THE D2 story. The unassigned FMC920 sitting in Dozr\'s yard: it reports ' +
+      'position and ignition, no CAN adapter is fitted, so no engine IO is sent ' +
+      'at all. Scoped to the owner tenant because no assignment covers it.',
+    proves: [
+      'invariant 7 — an unassigned device falls back to its owner tenant',
+      'invariant 9 — position + ignition only, no engine data',
+      'invariant 3 — the engine signal is ABSENT, not zero',
+    ],
+    tracks: [
+      {
+        imei: D2,
+        label: 'D2 / unassigned (Dozr yard)',
+        startTsIso: '2025-03-03T05:00:00Z',
+        stepMs: 60_000,
+        origin: DOZR_YARD,
+        heading0: 0,
+        engineSeconds0: 0,
+        emitEngine: false, // no CAN adapter → the IO element is omitted entirely
+        plan: [
+          { phase: 'off', ticks: 6 },
+          { phase: 'startup', ticks: 2 }, // someone turns the key to shuffle it
+          { phase: 'idle', ticks: 3 },
+          { phase: 'shutdown', ticks: 3 },
+        ],
+      },
+    ],
+  },
+
+  'geofence-cross': {
+    description:
+      'D1 drives out of the Jebel Ali site boundary and back in again — the track ' +
+      'a geofence exit/enter rule needs. The circle is exported as SITE_JEBEL_ALI ' +
+      'so a test asserts crossings against the same geometry the track was built from.',
+    proves: ['a position stream that leaves and re-enters a named site'],
+    site: SITE_JEBEL_ALI,
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X (leaves and re-enters site)',
+        startTsIso: '2025-04-10T05:00:00Z',
+        stepMs: 60_000,
+        origin: { lat: SITE_JEBEL_ALI.lat, lon: SITE_JEBEL_ALI.lon },
+        heading0: 90,
+        engineSeconds0: 120_000,
+        emitEngine: true,
+        plan: [
+          { phase: 'work', ticks: 4, opts: { dutyCycle: 4 } }, // inside
+          { phase: 'travel', ticks: 6, opts: { speedKmh: 50 } }, // out through the fence
+          { phase: 'idle', ticks: 2 }, // parked outside
+          { phase: 'travel', ticks: 6, opts: { speedKmh: 50 } }, // back in (heading flips)
+          { phase: 'work', ticks: 3, opts: { dutyCycle: 3 } }, // inside again
+        ],
+        // Turn the vehicle around after the outbound leg so it drives back to
+        // the site instead of away from it. Applied by tick index.
+        headingFlipAtTick: 12,
+      },
+    ],
+  },
+
+  tamper: {
+    description:
+      'D1 is working normally, then the harness is pulled: external voltage ' +
+      'collapses, the unit falls back to its internal battery, and it stops being ' +
+      'able to see the key at all. Ignition becomes NULL (unknown) — not false — ' +
+      'because "I cannot read the bus" is not "the key is off" (invariant 3).',
+    proves: [
+      'invariant 3 — a lost signal is null, never 0/false',
+      'the power-cut pattern a tamper/unplug rule fires on (rule itself is P3)',
+    ],
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X (unplugged mid-shift)',
+        startTsIso: '2025-04-15T06:00:00Z',
+        stepMs: 60_000,
+        origin: { lat: 25.2048, lon: 55.2708 },
+        heading0: 15,
+        engineSeconds0: 130_000,
+        emitEngine: true,
+        power: true, // emit external-voltage + battery IO
+        plan: [
+          { phase: 'startup', ticks: 2 },
+          { phase: 'work', ticks: 6, opts: { dutyCycle: 3 } },
+          { phase: 'unplugged', ticks: 5, opts: { batteryPct: 100, drainPctPerTick: 8 } },
+        ],
+      },
+    ],
+  },
+};
+
+export const SCENARIO_NAMES = Object.keys(SCENARIOS);
+export const DEFAULT_SCENARIO = 'day-cycle';
+
+// ── Materialisation ──────────────────────────────────────────────────────────
+const NOMINAL_SUPPLY_MV = 27_400; // a 24V machine, engine running
+const GNSS_FIX = 1; // Teltonika GNSS status: 1 = fix
+
+/**
+ * Walk one track's phase plan and produce its AVL records.
+ * Pure and deterministic: same track + same seed => identical records.
+ */
+function materializeTrack(track, { seed, stepMs, limit }) {
+  const rng = makeRng(`${seed}:${track.imei}:${track.startTsIso}`);
+  const signals = runPhasePlan(track.plan, rng);
+  const step = stepMs ?? track.stepMs ?? 60_000;
+  const startTsMs = Date.parse(track.startTsIso);
+  const stepSeconds = Math.round(step / 1000);
+
+  let engineSeconds = track.engineSeconds0 ?? 0;
+  let heading = track.heading0 ?? 0;
+  let pos = { ...track.origin };
+
+  const records = [];
+  const take = limit && limit > 0 ? Math.min(limit, signals.length) : signals.length;
+
+  for (let i = 0; i < take; i++) {
+    const s = signals[i];
+
+    // The hour-meter advances only while the engine actually turns, and never
+    // goes backwards — the defining property of an hour-meter.
+    if (s.engineRunning) engineSeconds += stepSeconds;
+
+    if (track.headingFlipAtTick != null && i === track.headingFlipAtTick) heading += 180;
+    heading = (heading + (s.headingDelta ?? 0) + 360) % 360;
+
+    if (s.movement === true && s.speedKmh > 0) {
+      pos = advance(pos, { speedKmh: s.speedKmh, stepMs: step, headingDeg: heading });
+    }
+
+    // Engine counter: reported only when a CAN adapter is fitted AND the unit
+    // can read the bus (key on). Otherwise the element is omitted — absence,
+    // not zero (invariant 3).
+    const canRead = track.emitEngine === true && s.ignition === true;
+    const engineIo = canRead ? engineSeconds : null;
+
+    // Power/tamper IO only where a scenario asks for it, so the ordinary
+    // scenarios stay minimal and easy to pin in tests.
+    const wantPower = track.power === true || s.externalVoltageMv != null;
+    const externalVoltageMv = !wantPower
+      ? null
+      : s.externalVoltageMv != null
+        ? s.externalVoltageMv
+        : s.engineRunning
+          ? NOMINAL_SUPPLY_MV
+          : 24_600;
+    const batteryPct = !wantPower ? null : (s.batteryPct ?? 100);
+
+    records.push({
+      timestampMs: startTsMs + i * step,
+      priority: s.unplugEvent ? 1 : 0, // a real unit raises priority on an event
+      gps: {
+        lat: pos.lat,
+        lon: pos.lon,
+        altitude: 10,
+        angle: Math.round(heading),
+        satellites: s.ignition == null ? 0 : 9,
+        speed: Math.max(0, Math.round(s.speedKmh ?? 0)),
+      },
+      eventIoId: s.unplugEvent ? IO.UNPLUG_DETECTED : IO.IGNITION,
+      io: buildIo({
+        ignition: s.ignition,
+        movement: s.movement,
+        engineSeconds: engineIo,
+        gnssStatus: s.ignition == null ? null : GNSS_FIX,
+        externalVoltageMv,
+        batteryPct,
+        unplug: s.unplugEvent ? true : null,
+      }),
+      // Not encoded on the wire — a debugging/testing annotation only.
+      _phase: s.phase,
+    });
+  }
+
+  return {
+    imei: track.imei,
+    label: track.label,
+    records,
+  };
+}
+
+/**
+ * Build a named scenario into concrete per-device record streams.
+ *
+ * @param name          a key of SCENARIOS
+ * @param opts.seed     PRNG seed (default: the scenario name → reproducible)
+ * @param opts.stepMs   override the per-tick interval for every track
+ * @param opts.records  cap records per track (0/absent = the whole plan)
+ * @returns { name, description, proves, site?, tracks: [{ imei, label, records }] }
+ */
+export function buildScenario(name = DEFAULT_SCENARIO, opts = {}) {
+  const def = SCENARIOS[name];
+  if (!def) {
+    throw new Error(
+      `unknown scenario "${name}" — known scenarios: ${SCENARIO_NAMES.join(', ')}`,
+    );
+  }
+  const seed = opts.seed ?? name;
+  return {
+    name,
+    description: def.description,
+    proves: def.proves ?? [],
+    site: def.site,
+    tracks: def.tracks.map((t) =>
+      materializeTrack(t, { seed, stepMs: opts.stepMs, limit: opts.records }),
+    ),
+  };
+}
+
+/** Flatten a built scenario to one chronological list — handy in tests. */
+export function scenarioRecords(built) {
+  return built.tracks
+    .flatMap((t) => t.records.map((r) => ({ imei: t.imei, ...r })))
+    .sort((a, b) => a.timestampMs - b.timestampMs);
+}
+
+/** Distance helper re-exported so geofence tests import from one place. */
+export { distanceMeters, PHASES };

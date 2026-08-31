@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dozr GPS &amp; Telematics — A Leader's Field Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+    --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+    --green:#1F9A6D; --error:#D64545;
+    --r-btn:10px; --r-card:16px; --r-pill:999px;
+    --maxw:820px;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--canvas); color:var(--ink);
+    font-family:"Hanken Grotesk",system-ui,sans-serif;
+    font-size:17px; line-height:1.62; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:56px 24px 96px;}
+  .eyebrow{
+    font-family:"Space Mono",monospace; font-size:12px; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--slate);
+  }
+  h1,h2,h3{font-family:"Space Grotesk",sans-serif; line-height:1.15; letter-spacing:-.01em;}
+  h1{font-size:40px; font-weight:700; margin:10px 0 12px;}
+  h2{font-size:26px; font-weight:600; margin:0 0 6px;}
+  h3{font-size:19px; font-weight:600; margin:26px 0 6px;}
+  p{margin:0 0 16px;}
+  a{color:var(--ink); text-underline-offset:3px;}
+  .lede{font-size:19px; color:var(--ink); max-width:62ch;}
+  .meta{
+    font-family:"Space Mono",monospace; font-size:12.5px; color:var(--slate);
+    margin-top:18px; padding-top:16px; border-top:1px solid var(--line);
+  }
+  .rule{height:4px; width:56px; background:var(--yellow); border-radius:var(--r-pill); margin:28px 0;}
+
+  /* cards & callouts */
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:var(--r-card); padding:24px 26px; margin:20px 0;}
+  .northstar{
+    background:var(--yellow-tint); border:1px solid var(--yellow-dark); border-left:5px solid var(--yellow);
+    border-radius:var(--r-card); padding:22px 26px; margin:22px 0;
+  }
+  .northstar .eyebrow{color:var(--yellow-dark);}
+  .northstar .big{font-family:"Space Grotesk",sans-serif; font-size:21px; font-weight:600; margin:6px 0 0; line-height:1.35;}
+  .note{border:1px dashed var(--line); border-radius:var(--r-card); padding:18px 22px; background:#fff; margin:20px 0;}
+  .note .eyebrow{color:var(--slate);}
+
+  section{margin-top:44px; scroll-margin-top:24px;}
+  .sec-head{display:flex; align-items:baseline; gap:12px;}
+  .sec-num{font-family:"Space Mono",monospace; font-size:13px; color:var(--yellow-dark); font-weight:700;}
+
+  /* roadmap checklist */
+  .road{list-style:none; padding:0; margin:14px 0 0;}
+  .road li{
+    display:flex; gap:14px; align-items:flex-start; padding:13px 16px; margin:8px 0;
+    background:var(--surface); border:1px solid var(--line); border-radius:12px;
+  }
+  .tick{
+    flex:0 0 auto; width:22px; height:22px; border-radius:var(--r-pill);
+    display:grid; place-items:center; font-size:12px; font-weight:700; margin-top:2px;
+    font-family:"Space Mono",monospace;
+  }
+  .tick.done{background:var(--green); color:#fff;}
+  .tick.next{background:var(--yellow); color:var(--ink);}
+  .tick.soon{background:var(--canvas); color:var(--slate); border:1px solid var(--line);}
+  .road .t{font-family:"Space Grotesk",sans-serif; font-weight:600;}
+  .road .d{color:var(--slate); font-size:15px;}
+  .badge{font-family:"Space Mono",monospace; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; padding:2px 9px; border-radius:var(--r-pill); margin-left:8px; vertical-align:middle;}
+  .badge.done{background:var(--green); color:#fff;}
+  .badge.next{background:var(--yellow-tint); color:var(--yellow-dark);}
+
+  /* layer diagram */
+  .layers{display:flex; flex-wrap:wrap; gap:10px; align-items:stretch; margin:20px 0 6px;}
+  .layer{
+    flex:1 1 150px; background:var(--surface); border:1px solid var(--line);
+    border-radius:14px; padding:16px 16px 18px; position:relative;
+  }
+  .layer .n{font-family:"Space Mono",monospace; font-size:11px; color:var(--slate);}
+  .layer .role{
+    display:inline-block; font-family:"Space Mono",monospace; font-size:10.5px; letter-spacing:.12em;
+    text-transform:uppercase; background:var(--ink); color:#fff; padding:2px 9px; border-radius:var(--r-pill); margin:4px 0 8px;
+  }
+  .layer h4{font-family:"Space Grotesk",sans-serif; font-size:16px; margin:0 0 6px;}
+  .layer p{font-size:13.5px; color:var(--slate); margin:0;}
+  .arrow{align-self:center; font-family:"Space Mono",monospace; color:var(--yellow-dark); font-weight:700; font-size:18px;}
+  @media(max-width:640px){ .arrow{transform:rotate(90deg);} }
+
+  /* ordered journey */
+  ol.journey{padding-left:0; counter-reset:step; list-style:none; margin:14px 0;}
+  ol.journey li{position:relative; padding:6px 0 16px 44px; border-left:2px solid var(--line); margin-left:12px;}
+  ol.journey li:last-child{border-left-color:transparent;}
+  ol.journey li::before{
+    counter-increment:step; content:counter(step);
+    position:absolute; left:-14px; top:0; width:28px; height:28px; border-radius:var(--r-pill);
+    background:var(--ink); color:#fff; font-family:"Space Mono",monospace; font-size:13px; font-weight:700;
+    display:grid; place-items:center;
+  }
+  ol.journey li b{font-weight:600;}
+
+  /* glossary */
+  dl{margin:12px 0;}
+  dl div{padding:14px 0; border-bottom:1px solid var(--line); display:grid; grid-template-columns:190px 1fr; gap:18px;}
+  dl div:last-child{border-bottom:none;}
+  dt{font-family:"Space Mono",monospace; font-size:13.5px; font-weight:700; color:var(--ink);}
+  dd{margin:0; color:var(--ink); font-size:15.5px;}
+  @media(max-width:600px){ dl div{grid-template-columns:1fr; gap:4px;} }
+
+  /* power questions */
+  .q{background:var(--ink); color:#fff; border-radius:var(--r-card); padding:22px 26px; margin:20px 0;}
+  .q .eyebrow{color:var(--yellow);}
+  .q ul{margin:12px 0 0; padding-left:20px;}
+  .q li{margin:9px 0;}
+  .q em{color:#fff; font-style:normal; font-weight:600;}
+
+  .kicker{font-family:"Space Mono",monospace; font-size:12px; color:var(--slate); text-transform:uppercase; letter-spacing:.12em;}
+  strong{font-weight:700;}
+  .footer{margin-top:64px; padding-top:20px; border-top:1px solid var(--line); font-family:"Space Mono",monospace; font-size:12px; color:var(--slate);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Dozr · GPS &amp; Telematics</div>
+    <h1>A Leader's Field Guide</h1>
+    <p class="lede">Everything you need to understand — and lead — the Dozr GPS build, in plain language. Written to be read from zero, and to make you the sharpest person in the room when you talk to your team.</p>
+    <div class="meta">For: afzl (project lead) &nbsp;·&nbsp; Started: 2026-08-31 &nbsp;·&nbsp; Living document — grows one chapter at a time</div>
+  </header>
+
+  <div class="note">
+    <div class="eyebrow">How to use this</div>
+    <p style="margin:8px 0 0;">Read one chapter, then go look at the matching real doc in <span class="kicker" style="text-transform:none;">03_Engineering/</span> (the PRD, the build handbook, the expert review). This guide gives you the mental model; those give you the detail. You don't need to memorise anything — you need to be able to <em>explain the picture</em> and <em>ask the right question</em>. Each chapter ends with the words your team will use and the questions that make you sound like you've done this before.</p>
+  </div>
+
+  <!-- ROADMAP -->
+  <section id="roadmap">
+    <div class="sec-head"><span class="sec-num">MAP</span><h2>The learning path</h2></div>
+    <p style="color:var(--slate); margin-top:6px;">We build your understanding layer by layer, following the data from the machine to the invoice. Here's the full path and where we are.</p>
+    <ul class="road">
+      <li><span class="tick done">✓</span><div><span class="t">1 · The Big Picture</span><span class="badge done">You are here</span><div class="d">How the whole system fits together, end to end. The four layers, and why this exists.</div></div></li>
+      <li><span class="tick next">2</span><div><span class="t">2 · The Device</span><span class="badge next">Up next</span><div class="d">What a Teltonika box actually is, what it senses, how it's wired and powered, what can go wrong.</div></div></li>
+      <li><span class="tick soon">3</span><div><span class="t">3 · The Network</span><div class="d">SIMs, cellular data, coverage, buffering when signal drops, and what it costs.</div></div></li>
+      <li><span class="tick soon">4</span><div><span class="t">4 · The Backend &amp; the Cloud</span><div class="d">Servers, databases, Traccar, Supabase — and the big AWS "build vs. buy" and hosting decisions.</div></div></li>
+      <li><span class="tick soon">5</span><div><span class="t">5 · The Data &amp; the Rules</span><div class="d">What comes off the machine, and the nine invariants that keep a billing number honest.</div></div></li>
+      <li><span class="tick soon">6</span><div><span class="t">6 · The Product &amp; the Money</span><div class="d">The nine dashboard screens, how utilisation becomes an invoice, the two jobs it serves.</div></div></li>
+      <li><span class="tick soon">7</span><div><span class="t">7 · Leading the Build</span><div class="d">Team shape, the phased plan, what to buy vs. build, and how to run it as the lead.</div></div></li>
+    </ul>
+  </section>
+
+  <div class="rule"></div>
+
+  <!-- CHAPTER 1 -->
+  <section id="ch1">
+    <div class="sec-head"><span class="sec-num">CH. 1</span><h2>The Big Picture</h2></div>
+    <p style="color:var(--slate); margin-top:6px;">Build one mental model, then hang everything off it.</p>
+
+    <h3>Start with the "why" — it changes everything</h3>
+    <p>Most people assume a GPS system exists to show <strong>dots moving on a map</strong>. For Dozr, that's not the point. The reason this system exists is:</p>
+
+    <div class="northstar">
+      <div class="eyebrow">The north star</div>
+      <p class="big">It produces a billing-grade utilisation number that survives a dispute — not a map with dots on it.</p>
+    </div>
+
+    <p>Picture the argument the system has to win. You rent an excavator to a contractor for a month, then invoice: <em>"It ran 143 hours — here's the bill."</em> The contractor says, <em>"No it didn't, it sat idle half the time."</em> Your system's job is to produce a record so trustworthy that the customer pays — and that would hold up if it ever reached a lawyer. The live map, the alerts, the fuel charts are all bonuses sitting on top of that one hard number. This is why the "boring" parts (never losing data, never counting twice) matter more than the flashy map.</p>
+
+    <h3>What "telematics" even means</h3>
+    <p>The word is just <em>telecommunications</em> + <em>informatics</em> — "machine information, sent from far away." Two levels:</p>
+    <p><strong>GPS tracking</strong> answers one question: <em>where is it?</em> &nbsp;<strong>Telematics</strong> answers two: <em>where is it,</em> <strong>and</strong> <em>what is it doing?</em> — engine on or off, hours run, fuel level, moving or still, being towed away. Dozr does the second one, and that "what is it doing" is where the money is, because <strong>hours run is what you bill</strong>.</p>
+
+    <h3>The system in four layers</h3>
+    <p>Imagine strapping a screenless smartphone to an excavator — one that does a single job: report on the machine. That "phone," and everything behind it, breaks into four layers. Data flows left to right.</p>
+
+    <div class="layers">
+      <div class="layer">
+        <div class="n">Layer 1</div><span class="role">Senses</span>
+        <h4>The Device</h4>
+        <p>The Teltonika box bolted to the machine. GPS chip + SIM card + small computer, wired into the engine. Knows where it is and what it's doing.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="layer">
+        <div class="n">Layer 2</div><span class="role">Pipe</span>
+        <h4>The Network</h4>
+        <p>The SIM sends tiny messages over 4G — the same towers your phone uses. No signal, no send: it stores and waits.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="layer">
+        <div class="n">Layer 3</div><span class="role">Brain</span>
+        <h4>The Cloud / Backend</h4>
+        <p>An always-on computer that catches messages, decodes them, stores the history, and does the math. Most cost and risk live here.</p>
+      </div>
+      <div class="arrow">→</div>
+      <div class="layer">
+        <div class="n">Layer 4</div><span class="role">Face</span>
+        <h4>The Application</h4>
+        <p>Your <b>fleet-v2</b> dashboard (9 screens) — and the invoice. The layer people see, and the layer that makes money.</p>
+      </div>
+    </div>
+    <p class="kicker" style="text-align:center; text-transform:none; margin-top:4px;">Device = senses &nbsp;·&nbsp; Network = pipe &nbsp;·&nbsp; Cloud = brain &nbsp;·&nbsp; App = face</p>
+
+    <h3>Watch one "ping" travel the whole way</h3>
+    <p>A single location report — the industry calls it a <em>ping</em> or a <em>record</em> — from an excavator on a Dubai site to your screen:</p>
+    <ol class="journey">
+      <li>The excavator's engine turns on. The Teltonika box notices ignition went off→on and grabs its GPS position, the time, and "engine running."</li>
+      <li>It bundles that into a small message — in Teltonika's own language, called <b>Codec 8</b> — and sends it out through the SIM over 4G.</li>
+      <li>The message crosses the cellular network and the internet and arrives at your backend.</li>
+      <li>The backend decodes it and <b>writes the record safely to the database <em>before</em> it says "got it" (an "ACK").</b> This order is sacred: the device deletes its only copy the instant it hears "got it," so ACK-before-save means the data is gone forever. <span class="kicker" style="text-transform:none;">(Invariant #1 in your docs — now you know why.)</span></li>
+      <li>If the box never hears "got it" (signal dropped), it re-sends later — so the backend must recognise "I've seen this exact record before" and not count it twice. Double-counted hours = an overbill you'll lose in a dispute.</li>
+      <li>The record lands in the database. The dashboard reads from there: the dot updates, the hours tick up, and that number rolls toward the month-end invoice.</li>
+    </ol>
+    <p>That sequence <em>is</em> the system. Every feature is a variation on it.</p>
+
+    <h3>Where AWS actually fits</h3>
+    <p><strong>AWS (Amazon Web Services)</strong> is just Amazon renting you always-on computers in their data centers instead of you buying and babysitting your own. Layer 3 (and often Layer 4) has to run <em>somewhere</em> 24/7 — AWS is one place to run it.</p>
+    <div class="note">
+      <div class="eyebrow">The nuance to walk in with</div>
+      <p style="margin:8px 0 0;">"Using AWS" can mean two different things. <strong>One</strong> is simply <em>renting the computers</em> — and AWS has a data-center region <em>in the UAE</em> (<span class="kicker" style="text-transform:none;">me-central-1</span>), which matters if your data must legally stay in-country. <strong>The other</strong> is building on AWS's specialised <em>"IoT" products</em> (services named things like IoT Core) that promise to catch the device data for you. Your team's current recommendation deliberately <strong>avoids</strong> those heavy IoT products for the pilot and uses a lean, ready-made open-source tool called <strong>Traccar</strong> instead — it already speaks Teltonika on day one and is far less to build and run.</p>
+      <p style="margin:12px 0 0;">So both can be true: you might <strong>host on AWS (in Dubai) but not build on AWS's IoT machinery.</strong> This is a real decision you own — logged as <span class="kicker" style="text-transform:none;">D3</span> in the PRD — not settled fact.</p>
+    </div>
+
+    <h3>The two jobs this serves</h3>
+    <p><strong>Utilisation / billing</strong> — <em>how much did the machine actually run?</em> The money job: rental invoices, "is this asset earning its keep," ROI. &nbsp;<strong>Logistics / movement</strong> — <em>where is it, is it on the right site, did it leave the yard, when will this load arrive?</em> The operations job — and the one that tends to get under-served in specs, so keep an eye on it as the lead.</p>
+
+    <h3>The words your team will use</h3>
+    <dl>
+      <div><dt>Telematics</dt><dd>Location <em>plus</em> what the machine is doing (engine, hours, fuel). More than "GPS tracking."</dd></div>
+      <div><dt>Ping / record</dt><dd>One report from a device: position, time, and status at a moment.</dd></div>
+      <div><dt>Teltonika</dt><dd>The brand of GPS/telematics device Dozr uses. The box on the machine.</dd></div>
+      <div><dt>Codec 8 / 8E</dt><dd>The "language" (data format) Teltonika devices speak when they send records.</dd></div>
+      <div><dt>ACK</dt><dd>The backend's "got it" reply. Must come only <em>after</em> the record is safely saved.</dd></div>
+      <div><dt>CAN bus</dt><dd>The machine's internal network the device can tap to read true engine data (like real engine hours).</dd></div>
+      <div><dt>Utilisation</dt><dd>How much a machine was actually used — the number you bill on.</dd></div>
+      <div><dt>Traccar</dt><dd>Ready-made open-source software that catches Teltonika data. The "buy, don't build" option for the pilot.</dd></div>
+      <div><dt>Supabase</dt><dd>The toolkit for the app layer (login, database, security, APIs). Already used by Dozr's other products.</dd></div>
+      <div><dt>fleet-v2</dt><dd>Your existing dashboard — 9 finished screens on mock data, waiting to be fed real data.</dd></div>
+      <div><dt>me-central-1</dt><dd>AWS's UAE data-center region — relevant if data must stay in-country.</dd></div>
+    </dl>
+
+    <div class="q">
+      <div class="eyebrow">Questions that make you sound sharp</div>
+      <ul>
+        <li>"When we say <em>using AWS</em> — do we mean hosting what we build, or building on AWS's IoT services? Those are different bills and different amounts of work."</li>
+        <li>"Where does a record get <em>durably saved</em> before we ACK the device? Walk me through what happens if the server dies mid-stream."</li>
+        <li>"How do we stop a re-sent buffer from <em>double-counting</em> hours?"</li>
+        <li>"For the pilot, what does <em>Traccar</em> give us for free, and what's the first thing that would force us off it?"</li>
+        <li>"Are we serving <em>logistics/movement</em> as seriously as <em>utilisation/billing</em>, or is that under-built right now?"</li>
+      </ul>
+    </div>
+
+    <div class="card" style="background:var(--yellow-tint); border-color:var(--yellow-dark);">
+      <div class="eyebrow" style="color:var(--yellow-dark);">Chapter 1 — you can now</div>
+      <p style="margin:8px 0 0;">Explain the four layers, trace one ping from an excavator to an invoice, and say clearly what "using AWS" does and doesn't mean. That's more than most people who <em>commission</em> these systems understand.</p>
+    </div>
+  </section>
+
+  <div class="footer">
+    Dozr GPS &amp; Telematics — Leader's Field Guide &nbsp;·&nbsp; Ch.1 of 7 &nbsp;·&nbsp; Living document &nbsp;·&nbsp; Grounded in 03_Engineering/ (PRD, Build Handbook, Expert Build Review) &nbsp;·&nbsp; Next: Ch.2 The Device
+  </div>
+
+</div>
+</body>
+</html>

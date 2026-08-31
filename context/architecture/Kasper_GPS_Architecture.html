@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasper GPS Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="shell">
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Engineering reference</div>
+  <nav>
+    <a href="#s0"><b>00</b>Scope &amp; status</a>
+    <a href="#s1"><b>01</b>What the system does</a>
+    <a href="#s2"><b>02</b>Forcing constraints</a>
+    <a href="#s3"><b>03</b>System overview</a>
+    <div class="grp">The stack</div>
+    <a href="#s4"><b>04</b>Hardware</a>
+    <a href="#s5"><b>05</b>Protocol &amp; connectivity</a>
+    <a href="#s6"><b>06</b>Ingestion — the options</a>
+    <a href="#s7"><b>07</b>Processing</a>
+    <a href="#s8"><b>08</b>Storage tiers</a>
+    <a href="#s9"><b>09</b>Data model &amp; tenancy</a>
+    <a href="#s10"><b>10</b>Fleet dashboard &amp; API</a>
+    <a href="#s11"><b>11</b>Alerts &amp; delivery</a>
+    <div class="grp">Cross-cutting</div>
+    <a href="#s12"><b>12</b>Security &amp; evidence</a>
+    <a href="#s13"><b>13</b>Sizing</a>
+    <a href="#s14"><b>14</b>Failure modes</a>
+    <div class="grp">Execution</div>
+    <a href="#s15"><b>15</b>Rollout &amp; cutover</a>
+    <a href="#s16"><b>16</b>Build sequence</a>
+    <a href="#s17"><b>17</b>Timeline &amp; phasing</a>
+    <a href="#s18"><b>18</b>Open decisions</a>
+    <a href="#s19"><b>19</b>Glossary</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal engineering · shared reference</div>
+  <h1>Kasper GPS Architecture</h1>
+  <p>The GPS stack end to end: Teltonika FMC130 hardware on the machine, the ingestion path that terminates it, and the store that turns position and engine hours into a utilisation record which still holds up months later. Scoped to what comes off the machine and how far it travels; everything downstream of the API is out of scope.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>Scope and status</h2>
+  <p>This covers one layer: how position and engine data gets off an excavator, into a store, and back out as a live map, an alert, and a utilisation record. Where this data is consumed by other systems, only the contract it is consumed through appears here. Analytics over accumulated history is a later piece of work and is deliberately not scoped here.</p>
+
+  <div class="note">
+    <h4>How to use this document</h4>
+    <p><strong>This is a reference, not a source of truth.</strong></p>
+    <p>The primary sources are the Teltonika documentation and the device's own configuration, the SUDO and AWS threads, and decisions the team actually takes. Anything here marked <span class="pill open">Open</span> is unresolved — treat it as a question to answer, not a position to build on. Where a number appears, it is an order-of-magnitude estimate for reasoning about shape, not a figure to plan or quote from.</p>
+    <p>Three labels are used throughout, and they mean different things. <span class="pill ref">Reference</span> is device or protocol behaviour taken from Teltonika&#39;s documentation — not ours to decide, but still worth verifying against the firmware we actually receive. <span class="pill prop">Proposed</span> is a position this document argues for, which needs the tech team&#39;s agreement before anything is built on it. <span class="pill open">Open</span> is genuinely unresolved, with no position taken.</p>
+    <p>Nothing here is marked settled, because nothing here has been through the team yet. Read it, argue with it, and tell me where it is wrong — that is more useful than agreement.</p>
+  </div>
+
+  <h4>What this document proposes</h4>
+  <ul>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>Five capabilities, in dependency order.</strong> Locate, reconstruct, detect, attribute, evidence — and the last two are what the design is actually for. Section 01.</li>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>Adopt an existing GPS server for the pilot</strong> — Traccar as the reference implementation — with a purpose-built gateway once engine hours are relied on outside the team. Section 06.</li>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>Pooled multi-tenancy with dated assignment.</strong> One deployment, row-level isolation, tenancy resolved at the record&#39;s own timestamp. Section 09.</li>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>Our own telemetry contract, not the terminator&#39;s.</strong> No surface reads an ingestion tool&#39;s own REST shapes directly. Section 06.3.</li>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>WhatsApp is a first-class delivery channel</strong>, not a later integration.</li>
+    <li><span class="pill prop">Proposed</span> &nbsp;<strong>Immobiliser stays out of scope.</strong> A prior call, and the right one — section 12 sets out what would have to be true before it is reconsidered.</li>
+  </ul>
+
+  <h4>Open, and blocking</h4>
+  <ul>
+    <li><span class="pill open">Open</span> &nbsp;<strong>CAN program numbers</strong> for the actual fleet's makes, models and years. This decides which assets can carry a utilisation contract at all, and it is the question the evidence capability rests on. Section 04.</li>
+    <li><span class="pill open">Open</span> &nbsp;<strong>Reporting interval.</strong> 10 s versus 30 s is roughly a 3× swing on SIM data and storage. Section 13.</li>
+    <li><span class="pill open">Open</span> &nbsp;<strong>Hosting and region.</strong> DigitalOcean, AWS me-central-1 or AWS me-south-1 — three answers currently in three documents. Section 15.</li>
+  </ul>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>What the system does</h2>
+  <p>Five capabilities, in dependency order. Each one is only as good as the one above it, which is why the document is ordered the way it is rather than by component.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Capability</th><th>What it requires</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Locate</td><td>A device reporting position on a schedule, and a store that can answer "where is asset X now"</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Reconstruct</td><td>History retained in time order and queryable by asset over a window — route playback, trips, stops</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Detect</td><td>Rules evaluated against the stream, plus a scheduled sweep for the conditions defined by absence</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Attribute</td><td>Every record resolvable to one asset and one tenant <em>at the record's own timestamp</em> — section 09</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Evidence</td><td>ECU engine hours, durably acknowledged, immutably stored, and sealed into a period that can be reproduced later — section 12</td><td><span class="pill mvp">Pilot</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <h4>Evidence is the one that constrains the design</h4>
+    <p>Locate, reconstruct and detect are satisfied by any competent tracking stack. <strong>Attribute and evidence are not</strong>, and they are what the awkward parts of this architecture exist for: acknowledge-after-durability, an immutable cold tier, dated assignment windows, and a sealed utilisation period. Engine hours are used as contractual evidence for how long a machine ran on a site, so a record that is merely <em>probably</em> right is not useful — it has to be attributable and reproducible months later.</p>
+    <p>Everything else follows from that. If a proposal makes locate cheaper at the expense of attribute or evidence, it is solving the wrong problem.</p>
+  </div>
+
+  <div class="note">
+    <h4>Not every asset can do all five</h4>
+    <p>An asset produces ECU engine hours only when the CAN adapter is fitted <em>and</em> its make, model and year have a supported program number. An FMC130 missing either one still delivers locate, reconstruct and detect — it simply stops short of evidence, and it stops short silently. Section 04 draws the decision; section 09 enforces it.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>The constraints that shape everything</h2>
+  <p>Every non-obvious decision downstream traces to one of these. If a proposal conflicts with one, the proposal is wrong.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>C1 · Engine hours are evidence</h4>
+      <p>ECU-sourced hours are the input to the utilisation record for a hire period, and that record is relied on afterwards by people who were not there. The record path therefore has to be defensible, not merely available.</p>
+      <p><em>Forces:</em> acknowledge-after-durability, an immutable cold tier, dated assignment history, and integrity enforced at ingress rather than only in storage.</p>
+    </div>
+    <div class="card">
+      <h4>C2 · Cellular bandwidth is the scarce resource</h4>
+      <p>Every record crosses a metered mobile link. Reporting interval, record size and how aggressively the device batches are the levers that decide data volume — a 10-second interval moves roughly three times the data of a 30-second one, for the same fleet.</p>
+      <p><em>Forces:</em> the interval is an explicit decision, not a default; adaptive reporting (dense while moving, sparse while stationary) is the obvious optimisation; and the pipeline should never require a round trip per record.</p>
+    </div>
+    <div class="card">
+      <h4>C3 · The device speaks binary TCP</h4>
+      <p>Codec 8/8E over raw TCP with an IMEI handshake and a 4-byte record-count ACK. The session is stateful across the whole exchange.</p>
+      <p><em>Forces:</em> a stateful socket server, adopted or written. No managed MQTT broker can sit at the edge, and no IoT service can terminate these devices directly.</p>
+    </div>
+    <div class="card">
+      <h4>C4 · Identity is an IMEI in cleartext</h4>
+      <p>No client certificate, no cryptographic credential. Anyone who reaches the listener can present a valid IMEI and inject records we would then bill against.</p>
+      <p><em>Forces:</em> network-layer control as the primary defence — private APN first, allow-listing second. A tamper-evident ledger downstream does not fix this.</p>
+    </div>
+    <div class="card">
+      <h4>C5 · Tenants are numerous and assets move between them</h4>
+      <p>Tenants range from five assets to two hundred, and an excavator works for one tenant this quarter and another next. Tenancy is therefore a property of a time window, not of a row.</p>
+      <p><em>Forces:</em> one shared deployment with row-level isolation; ownership as a dated assignment record, not a foreign key on the asset.</p>
+    </div>
+    <div class="card">
+      <h4>C6 · Ingest is bursty and out of order</h4>
+      <p>Sites have patchy coverage — equipment moves behind structures, into basements, near interference. Devices buffer to flash and replay on reconnect.</p>
+      <p><em>Forces:</em> idempotency on record identity not delivery, a store that accepts historical writes without penalty, and <strong>gaps flagged as unknown rather than inferred as idle</strong> — an accuracy control, not a UX nicety.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>System overview</h2>
+  <figure class="fig">
+<svg viewBox="0 0 1030 425" role="img" aria-label="Data flow from Teltonika devices through ingestion, processing and storage to the fleet surfaces, with a boundary marking where device-specific code ends">
+<defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="a1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<text x="85" y="32" class="dg-k" text-anchor="middle">DEVICES</text>
+<text x="300" y="32" class="dg-k" text-anchor="middle">INGESTION</text>
+<text x="515" y="32" class="dg-k" text-anchor="middle">PROCESSING</text>
+<text x="730" y="32" class="dg-k" text-anchor="middle">STORAGE</text>
+<text x="945" y="32" class="dg-k" text-anchor="middle">SURFACES</text>
+<rect x="10" y="140" width="150" height="140" rx="10" class="dg-box"/>
+<rect x="225" y="140" width="150" height="140" rx="10" class="dg-box"/>
+<rect x="440" y="55" width="150" height="310" rx="10" class="dg-box"/>
+<rect x="655" y="55" width="150" height="310" rx="10" class="dg-box"/>
+<rect x="870" y="140" width="150" height="140" rx="10" class="dg-box"/>
+<text x="26" y="188" class="dg-t">FMC130</text>
+<text x="26" y="204" class="dg-s">+ ALL-CAN300</text>
+<line x1="24" y1="218" x2="146" y2="218" class="dg-ld"/>
+<text x="26" y="238" class="dg-s">position · ignition</text>
+<text x="26" y="252" class="dg-s">engine hours · fuel · faults</text>
+<text x="300" y="158" class="dg-s" text-anchor="middle">one of these — §06</text>
+<rect x="237" y="166" width="126" height="52" rx="8" class="dg-box"/>
+<text x="249" y="184" class="dg-t">Adopt</text>
+<text x="249" y="197" class="dg-s">open-source server</text>
+<text x="249" y="209" class="dg-s">ref: Traccar</text>
+<rect x="237" y="228" width="126" height="44" rx="8" class="dg-box"/>
+<text x="249" y="246" class="dg-t">Build</text>
+<text x="249" y="260" class="dg-s">protocol gateway</text>
+<text x="454" y="84" class="dg-t">Normaliser</text>
+<text x="454" y="97" class="dg-s">one record shape</text>
+<text x="454" y="124" class="dg-t">Enricher</text>
+<text x="454" y="137" class="dg-s">asset · window</text>
+<text x="454" y="164" class="dg-t">State projector</text>
+<text x="454" y="177" class="dg-s">current per asset</text>
+<text x="454" y="204" class="dg-t">Trip builder</text>
+<text x="454" y="217" class="dg-s">ignition + movement</text>
+<text x="454" y="244" class="dg-acct">Utilisation ledger</text>
+<text x="454" y="257" class="dg-s">ECU hour deltas</text>
+<text x="454" y="284" class="dg-t">Rules engine</text>
+<text x="454" y="297" class="dg-s">geofence · speed · fuel</text>
+<text x="454" y="324" class="dg-t">Archiver</text>
+<text x="454" y="337" class="dg-s">raw + decoded</text>
+<text x="669" y="100" class="dg-t">Hot · state</text>
+<text x="669" y="113" class="dg-s">one row per asset</text>
+<text x="669" y="170" class="dg-t">Warm · history</text>
+<text x="669" y="183" class="dg-s">range by asset</text>
+<text x="669" y="240" class="dg-acct">Cold · evidence</text>
+<text x="669" y="253" class="dg-s">immutable · 7 yr</text>
+<text x="669" y="310" class="dg-t">Relational</text>
+<text x="669" y="323" class="dg-s">assets · assignments</text>
+<text x="884" y="170" class="dg-t">Fleet dashboard</text>
+<text x="884" y="198" class="dg-t">Tracking page</text>
+<text x="884" y="226" class="dg-acct">Utilisation record</text>
+<text x="884" y="254" class="dg-t">Alerts → WhatsApp</text>
+<line x1="160" y1="212" x2="220" y2="212" class="dg-l" marker-end="url(#a1)"/>
+<text x="192" y="203" class="dg-e" text-anchor="middle">Codec 8E</text>
+<line x1="375" y1="212" x2="435" y2="212" class="dg-la" marker-end="url(#a1a)"/>
+<text x="405" y="236" class="dg-acc" text-anchor="middle">one shape</text>
+<line x1="590" y1="212" x2="650" y2="212" class="dg-l" marker-end="url(#a1)"/>
+<text x="622" y="203" class="dg-e" text-anchor="middle">persist</text>
+<line x1="805" y1="212" x2="865" y2="212" class="dg-l" marker-end="url(#a1)"/>
+<text x="837" y="203" class="dg-e" text-anchor="middle">read</text>
+<line x1="407" y1="45" x2="407" y2="392" class="dg-ld"/>
+<text x="200" y="410" class="dg-s" text-anchor="middle">left of this line, everything knows Teltonika</text>
+<text x="700" y="410" class="dg-s" text-anchor="middle">right of it, nothing does</text>
+</svg>
+<figcaption>The one boundary that makes the ingestion choice reversible. Left of the dashed line, components are specific to the device and to whatever terminates its TCP connection — an adopted server or one we build, undecided either way. Right of it, everything consumes a single normalised record and is unaffected by which was chosen. Break this rule once and changing that terminator becomes a rewrite rather than a component swap.</figcaption>
+</figure>
+
+  <div class="note">
+    <h4>Reading the diagram</h4>
+    <p>Two things it is worth being precise about. <strong>The processing column is not a service per box</strong> — those are seven consumers of one stream, and at pilot scale several of them are functions in the same process. Draw them separately because they fail, replay and scale separately, not because they deploy separately.</p>
+    <p>And <strong>the surfaces column reads, it never writes.</strong> Nothing on the right-hand side can put a record into the telemetry path. That is what keeps a dashboard deploy from being able to corrupt evidence.</p>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Hardware</h2>
+
+  <div class="note ok">
+    <h4>FMC130 + ALL-CAN300 is the device this design assumes</h4>
+    <p>The FMC130 with an ALL-CAN300 on the CAN bus is what produces ECU engine hours, and engine hours are what the evidence capability rests on. The suggestion is to design, size and test against this combination. Note that it is a combination: the tracker alone gives position and ignition, and the adapter is what turns it into an equipment-monitoring device.</p>
+  </div>
+
+  <h3>4.1 The device</h3>
+  <div class="tw"><table>
+    <thead><tr><th>&nbsp;</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Fleet role</td><td>Excavators, cranes, generators, boom lifts, backhoes, forklifts — every asset that goes out on a hire contract</td></tr>
+      <tr><td class="k">ECU access</td><td>ALL-CAN300 on the CAN bus, J1939 decoded, handed to the FMC130 over a two-wire serial link</td></tr>
+      <tr><td class="k">Reports</td><td>Position, speed, ignition, movement, <strong>engine hours</strong>, fuel level, RPM, fault codes, external and battery voltage, accelerometer</td></tr>
+      <tr><td class="k">Offline buffer</td><td class="num">~422,000 records</td></tr>
+      <tr><td class="k">Transport</td><td>TCP or UDP only. Codec 8 / 8E. No native MQTT, no HTTPS.</td></tr>
+      <tr><td class="k">TLS</td><td>TLS 1.1/1.2 from firmware 03.27.02. Server certificate implementation is on us. DTLS incomplete.</td></tr>
+      <tr><td class="k">Firmware</td><td>Teltonika FOTA Web — a separate control plane, with a ±2.5 min check-in randomiser</td></tr>
+      <tr><td class="k">Procurement</td><td>Stocked by UAE distributors, lead time 3–5 days. The CAN adapter is ordered separately and must match the machine.</td></tr>
+      <tr><td class="k">Install</td><td>Licensed auto-electrician, per machine, plus a site visit to reach the machine. <strong>This is the pilot's critical path, not the software.</strong></td></tr>
+    </tbody>
+  </table></div>
+
+<figure class="fig">
+<svg viewBox="0 0 800 328" role="img" aria-label="Decision flow determining whether an installed FMC130 can produce ECU engine hours, based on whether the CAN adapter is fitted and whether the machine has a supported program number">
+<defs><marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="a2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="10" y="128" width="140" height="56" rx="10" class="dg-box"/>
+<text x="80" y="152" class="dg-t" text-anchor="middle">FMC130 installed</text>
+<text x="80" y="168" class="dg-s" text-anchor="middle">on a machine</text>
+<line x1="150" y1="156" x2="180" y2="156" class="dg-l" marker-end="url(#a2)"/>
+<polygon points="185,156 275,108 365,156 275,204" class="dg-box"/>
+<text x="275" y="151" class="dg-t" text-anchor="middle">CAN adapter fitted</text>
+<text x="275" y="167" class="dg-t" text-anchor="middle">and wired correctly?</text>
+<text x="275" y="96" class="dg-s" text-anchor="middle">install-time</text>
+<line x1="365" y1="156" x2="428" y2="156" class="dg-l" marker-end="url(#a2)"/>
+<text x="396" y="148" class="dg-e" text-anchor="middle">yes</text>
+<polygon points="432,156 532,108 632,156 532,204" class="dg-box"/>
+<text x="532" y="151" class="dg-t" text-anchor="middle">Machine has a</text>
+<text x="532" y="167" class="dg-t" text-anchor="middle">program number?</text>
+<text x="532" y="96" class="dg-s" text-anchor="middle">make · model · year</text>
+<line x1="632" y1="156" x2="662" y2="156" class="dg-la" marker-end="url(#a2a)"/>
+<text x="647" y="148" class="dg-acc" text-anchor="middle">yes</text>
+<rect x="666" y="120" width="118" height="72" rx="10" class="dg-hi"/>
+<text x="725" y="144" class="dg-acct" text-anchor="middle">ECU hours</text>
+<text x="725" y="161" class="dg-acc" text-anchor="middle">evidence path</text>
+<text x="725" y="176" class="dg-acc" text-anchor="middle">open to this asset</text>
+<polyline points="275,204 275,266 322,266" class="dg-l" marker-end="url(#a2)"/>
+<text x="289" y="228" class="dg-e">no</text>
+<polyline points="532,204 532,266 490,266" class="dg-l" marker-end="url(#a2)"/>
+<text x="546" y="228" class="dg-e">no</text>
+<rect x="326" y="242" width="160" height="48" rx="10" class="dg-box"/>
+<text x="406" y="262" class="dg-t" text-anchor="middle">Position · ignition</text>
+<text x="406" y="278" class="dg-s" text-anchor="middle">locate · reconstruct · detect</text>
+<text x="406" y="312" class="dg-err" text-anchor="middle">neither branch announces itself — both look like a working device</text>
+</svg>
+<figcaption>Two gates, failing the same way. One is an installation question answered by an auto-electrician on site; the other is a fleet-composition question answered by Teltonika before anyone is dispatched. A machine that fails either still reports position and ignition perfectly, which is exactly why the failure is invisible — nothing looks broken, the engine block is simply null. Verify engine hours are arriving before signing off an install.</figcaption>
+</figure>
+
+  <h3>4.2 The CAN adapter and its per-model dependency</h3>
+  <p>The ALL-CAN300 taps the machine's CAN H and CAN L pair, listens for the values we care about, and hands decoded data to the FMC130 over a separate two-wire serial link. It reads; it never controls. Two consequences the architecture has to carry:</p>
+  <ul>
+    <li><strong>What it can read depends on the exact make, model and year</strong>, and requires a Teltonika program number for that machine. This must be checked against the real fleet list before installs are scheduled — a mixed yard cannot be assumed uniform. <strong>An FMC130 on a machine with no supported program number reports position and ignition and nothing more</strong> — no engine hours, no fuel level, no fault codes, and therefore no utilisation record. The device is working; the machine simply will not tell it anything. This is invisible until the data arrives, which is why the fleet list has to be checked against Teltonika before installs are booked, not after.</li>
+    <li><strong>CAN H and CAN L must never be swapped.</strong> Named here because it is the most common install error and it presents as "the device works but there is no engine data", which sends people looking in the software.</li>
+  </ul>
+
+  <h4>Commissioning sequence</h4>
+  <p>SIM and backup battery while unpowered → bench pre-configuration (server address, protocol, APN, program number) → mount with sky view → power, ignition sense, ground → CAN adapter into the bus and into the tracker → <strong>power on and verify data arriving on our server before the install is called complete.</strong> The last step is the one that gets skipped, and it converts a five-minute fix into a second site visit.</p>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Protocol and connectivity</h2>
+  <p>The device's behaviour is fixed whatever terminates the connection, so this section describes the protocol as the device presents it. Two of the properties below — rejecting an unknown IMEI at the handshake, and acknowledging only after a durable write — are things the <em>server</em> chooses to do. A purpose-built gateway would guarantee both by construction; on an adopted server neither is confirmed (D5). Read them as the target behaviour, not as an in-force guarantee of the pilot.</p>
+
+  <h3>The session</h3>
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b class="dev">DEVICE →</b>Opens a TCP connection to the configured host and port.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b class="dev">DEVICE →</b>Sends its IMEI: two length bytes <code>0x000F</code> then 15 ASCII bytes.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b class="srv">← SERVER</b>Replies <code>0x01</code> to accept or <code>0x00</code> to reject. <strong>The protocol offers an authorisation point here</strong> — an unknown or decommissioned IMEI can be refused before it transmits a single record. Whether an adopted server rejects at this moment or only after accepting data is D5, and it decides whether the baseline ingress control exists on path A at all.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b class="dev">DEVICE →</b>Sends the AVL packet: preamble, data length, codec ID <code>0x08</code> or <code>0x8E</code>, record count, records, repeated count, CRC-16/IBM.</div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b class="srv">SERVER</b>Validates the CRC and that the two counts match. On mismatch: drop, no ACK, increment a metric. The device resends.</div></div>
+    <div class="step"><div class="n">6</div><div class="b"><b class="srv">← SERVER</b>Replies with a 4-byte record count. Setting ACK Type to AVL would make this acknowledgement an <em>application</em> decision we control rather than a network-layer one — TCP/IP mode would acknowledge on receipt, before anything is persisted, and remove the choice entirely. Setting AVL makes acknowledge-after-durability <em>possible</em>; the server has to actually do it, which a purpose-built gateway does by construction and an adopted server may not (D5).</div></div>
+    <div class="step"><div class="n">7</div><div class="b"><b class="dev">DEVICE</b>Clears those records from flash. Holds the link for Open Link Timeout, then closes.</div></div>
+  </div>
+
+<figure class="fig">
+<svg viewBox="0 0 830 450" role="img" aria-label="Sequence of a Teltonika Codec 8E session across device, server, registry and store, showing that the acknowledgement follows the durable write">
+<defs><marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="a3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="30" y="12" width="120" height="32" rx="8" class="dg-box"/>
+<text x="90" y="33" class="dg-t" text-anchor="middle">Device</text>
+<line x1="90" y1="44" x2="90" y2="438" class="dg-life"/>
+<rect x="270" y="12" width="120" height="32" rx="8" class="dg-box"/>
+<text x="330" y="33" class="dg-t" text-anchor="middle">Server</text>
+<line x1="330" y1="44" x2="330" y2="438" class="dg-life"/>
+<rect x="470" y="12" width="120" height="32" rx="8" class="dg-box"/>
+<text x="530" y="33" class="dg-t" text-anchor="middle">Registry</text>
+<line x1="530" y1="44" x2="530" y2="438" class="dg-life"/>
+<rect x="640" y="12" width="120" height="32" rx="8" class="dg-box"/>
+<text x="700" y="33" class="dg-t" text-anchor="middle">Store</text>
+<line x1="700" y1="44" x2="700" y2="438" class="dg-life"/>
+<line x1="90" y1="76" x2="330" y2="76" class="dg-l" marker-end="url(#a3)"/><text x="210.0" y="69" class="dg-e" text-anchor="middle">TCP connect</text>
+<line x1="90" y1="110" x2="330" y2="110" class="dg-l" marker-end="url(#a3)"/><text x="210.0" y="103" class="dg-e" text-anchor="middle">IMEI · 0x000F + 15 ASCII bytes</text>
+<line x1="330" y1="144" x2="530" y2="144" class="dg-l" marker-end="url(#a3)"/><text x="430.0" y="137" class="dg-e" text-anchor="middle">lookup</text>
+<line x1="530" y1="172" x2="330" y2="172" class="dg-ld" marker-end="url(#a3)"/><text x="430.0" y="165" class="dg-e" text-anchor="middle">known / decommissioned</text>
+<line x1="330" y1="206" x2="90" y2="206" class="dg-la" marker-end="url(#a3a)"/><text x="210.0" y="199" class="dg-acc" text-anchor="middle">0x01 accept · 0x00 reject</text>
+<text x="210" y="222" class="dg-s" text-anchor="middle">authorisation point — unconfirmed on an adopted server (D5)</text>
+<line x1="90" y1="254" x2="330" y2="254" class="dg-l" marker-end="url(#a3)"/><text x="210.0" y="247" class="dg-e" text-anchor="middle">AVL packet · 0x8E · n records</text>
+<polyline points="330,272 392,272 392,296 336,296" class="dg-l" marker-end="url(#a3)"/>
+<text x="400" y="288" class="dg-e">CRC-16 · count match</text>
+<line x1="330" y1="326" x2="700" y2="326" class="dg-l" marker-end="url(#a3)"/><text x="515.0" y="319" class="dg-e" text-anchor="middle">write records</text>
+<line x1="700" y1="356" x2="330" y2="356" class="dg-ld" marker-end="url(#a3)"/><text x="515.0" y="349" class="dg-e" text-anchor="middle">durable</text>
+<line x1="330" y1="392" x2="90" y2="392" class="dg-la" marker-end="url(#a3a)"/><text x="210.0" y="385" class="dg-acc" text-anchor="middle">4-byte record count</text>
+<polyline points="90,410 34,410 34,432 84,432" class="dg-l" marker-end="url(#a3)"/>
+<text x="100" y="428" class="dg-e">clear flash</text>
+<polyline points="778,312 786,312 786,400 778,400" class="dg-la"/>
+<text x="0" y="0" class="dg-acc" transform="translate(800,356) rotate(90)" text-anchor="middle">target: durable before ACK</text>
+</svg>
+<figcaption>The bracket on the right is the target, and the whole integrity argument. The device deletes its only copy of a record the moment it receives the 4-byte count, so that acknowledgement must not be sent until the write has been confirmed. Setting ACK Type to AVL is what puts that acknowledgement under application control rather than the TCP layer; the server still has to choose to wait. A purpose-built gateway would guarantee that by construction. Whether an adopted server does — and whether it rejects an unknown IMEI at step 5 rather than after — is unverified (D5), so read this sequence as the behaviour to design for rather than the behaviour in place.</figcaption>
+</figure>
+
+  <h3>Device settings this design depends on</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Setting</th><th>Suggested value</th><th>Consequence upstream</th></tr></thead>
+    <tbody>
+      <tr><td class="k">ACK Type</td><td>AVL</td><td>Puts the acknowledgement under application control, which is what makes acknowledge-after-durability possible at all. Proposed, and the one device setting worth arguing about — C1. Whether the server then honours it is section 06.</td></tr>
+      <tr><td class="k">Reporting interval</td><td><span class="pill open">Decide</span> 10 s or 30 s</td><td>Roughly 3× on SIM data, storage and message volume. Must be a deliberate choice, not a default nobody picked. Consider 10 s while moving and 30–60 s while stationary.</td></tr>
+      <tr><td class="k">Open Link Timeout</td><td><span class="pill open">Confirm</span></td><td>Persistent versus short-lived connections. Changes ingestion sizing; barely changes the sizing at our scale (section 13).</td></tr>
+      <tr><td class="k">Network Ping Timeout</td><td>&lt; Open Link Timeout, and &lt; any load balancer idle timeout</td><td>Otherwise sessions are torn down mid-transaction.</td></tr>
+      <tr><td class="k">Server Response Timeout</td><td>Above p99 server ACK latency</td><td>Slower ACKs produce full packet resends. This is the origin of duplicate traffic.</td></tr>
+      <tr><td class="k">Sort by</td><td>Oldest</td><td>Backlog replays chronologically, keeping trip and engine-hour reconstruction simple. Cost: live position lags until the backlog drains.</td></tr>
+      <tr><td class="k">Second server</td><td>Duplicate, during cutover</td><td>Records clear only when both servers confirm — a lossless parallel run. Section 15.</td></tr>
+      <tr><td class="k">Backoff</td><td>Default</td><td>0, 1, 1, 2, 2, 4, 6, 8, 10 min then holds. Devices do not reconnect in lockstep, which flattens the post-outage burst.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note warn">
+    <h4>Never merge GNSS-estimated fuel with ECU fuel</h4>
+    <p>AVL IDs 12 and 13 are GNSS-derived fuel estimates available on every device without CAN. ECU fuel arrives via adapter-specific CAN parameters. Separate columns, explicit source discriminator, all the way to the report. An estimate presented as a reading is a credibility loss that does not get recovered once noticed.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Ingestion — options and a suggestion</h2>
+  <p>Three ingestion designs are proposed across our own documents — one adopting an existing open-source server, two building our own. They are not compatible with each other, and until the team picks one, vendor conversations are being had against different assumptions. This section lays out the comparison and offers a suggestion; the choice is not made here.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>&nbsp;</th><th>A · Adopt a GPS server</th><th>B · Bridge to a managed IoT service</th><th>C · Build a protocol gateway</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Proposed in</td><td>Engineering briefing; ROADMAP Fleet Phase 3</td><td>Telematics Technology Report</td><td>SUDO pack; this document, first draft</td></tr>
+      <tr><td class="k">Path</td><td>Device → GPS server → Postgres/Timescale → our API</td><td>Device → custom bridge → IoT Core (MQTT) → Rules → Lambda → TimescaleDB</td><td>Device → NLB → Fargate gateway → Kinesis → hot/warm/cold</td></tr>
+      <tr><td class="k">Codec 8E parsing</td><td>Already solved and field-tested</td><td>We build and maintain it</td><td>We build and maintain it</td></tr>
+      <tr><td class="k">Time to first real data</td><td><strong>Days</strong></td><td>Months</td><td>Months</td></tr>
+      <tr><td class="k">Components to operate</td><td><strong>Two</strong> — one server, one database</td><td>Bridge, broker, rules, function, store</td><td>Balancer, task fleet, stream, three stores</td></tr>
+      <tr><td class="k">Failure surface</td><td>Single node — simple to reason about, single point of failure</td><td>Distributed across managed services we do not control</td><td>Distributed, but every hop is ours to instrument</td></tr>
+      <tr><td class="k">Acknowledgement control</td><td><strong>Weakest</strong> — the server decides when to ACK; making it wait on our write means modifying it</td><td>Medium — the bridge controls the ACK, but the record then crosses a broker we do not own</td><td><strong>Strongest</strong> — acknowledge-after-durability by construction, which is the whole reason the design exists</td></tr>
+      <tr><td class="k">Tenancy model</td><td>Whatever the adopted server models, which is not dated assignment. Work around it in our schema.</td><td>Ours</td><td>Ours</td></tr>
+      <tr><td class="k">Lock-in</td><td>Open source, self-hosted. Escapable.</td><td>Broker-specific rules and Shadow semantics</td><td>None beyond ordinary primitives</td></tr>
+    </tbody>
+  </table></div>
+
+<figure class="fig">
+<svg viewBox="0 0 900 292" role="img" aria-label="Side-by-side comparison of two ingestion paths — adopting an existing GPS server, or building a protocol gateway — between the same device and the same store">
+<defs><marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="a4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="10" y="118" width="120" height="64" rx="10" class="dg-box"/>
+<text x="70" y="145" class="dg-t" text-anchor="middle">FMC130</text>
+<text x="70" y="161" class="dg-s" text-anchor="middle">Codec 8E</text>
+<text x="70" y="174" class="dg-s" text-anchor="middle">raw TCP</text>
+<rect x="742" y="118" width="140" height="64" rx="10" class="dg-box"/>
+<text x="812" y="145" class="dg-t" text-anchor="middle">Our store</text>
+<text x="812" y="161" class="dg-s" text-anchor="middle">our contract</text>
+<text x="812" y="174" class="dg-s" text-anchor="middle">unchanged either way</text>
+<polyline points="130,150 158,150 158,70 186,70" class="dg-la" marker-end="url(#a4a)"/>
+<text x="146" y="46" class="dg-acc" text-anchor="middle">A</text>
+<text x="265" y="34" class="dg-acc" text-anchor="middle">suggested starting point — §6.1</text>
+<rect x="190" y="44" width="150" height="52" rx="10" class="dg-hi"/>
+<text x="265" y="64" class="dg-acct" text-anchor="middle">Adopted GPS server</text>
+<text x="265" y="79" class="dg-acc" text-anchor="middle">parses Codec 8E · ref: Traccar</text>
+<line x1="340" y1="70" x2="394" y2="70" class="dg-la" marker-end="url(#a4a)"/>
+<rect x="398" y="44" width="140" height="52" rx="10" class="dg-box"/>
+<text x="468" y="66" class="dg-t" text-anchor="middle">Normaliser</text>
+<text x="468" y="82" class="dg-s" text-anchor="middle">ours</text>
+<polyline points="538,70 690,70 690,140 738,140" class="dg-l" marker-end="url(#a4)"/>
+<text x="265" y="114" class="dg-err" text-anchor="middle">ACK timing not ours — D5</text>
+<text x="602" y="62" class="dg-s" text-anchor="middle">2 components to operate</text>
+<polyline points="130,150 158,150 158,228 186,228" class="dg-l" marker-end="url(#a4)"/>
+<text x="146" y="252" class="dg-e" text-anchor="middle">C</text>
+<rect x="190" y="202" width="110" height="52" rx="10" class="dg-box"/>
+<text x="245.0" y="233" class="dg-t" text-anchor="middle">Balancer</text>
+<rect x="320" y="202" width="124" height="52" rx="10" class="dg-box"/>
+<text x="382.0" y="226" class="dg-t" text-anchor="middle">Gateway</text>
+<text x="382.0" y="242" class="dg-acc" text-anchor="middle">ACK after write</text>
+<line x1="300" y1="228" x2="316" y2="228" class="dg-l" marker-end="url(#a4)"/>
+<rect x="464" y="202" width="110" height="52" rx="10" class="dg-box"/>
+<text x="519.0" y="233" class="dg-t" text-anchor="middle">Stream</text>
+<line x1="444" y1="228" x2="460" y2="228" class="dg-l" marker-end="url(#a4)"/>
+<rect x="594" y="202" width="124" height="52" rx="10" class="dg-box"/>
+<text x="656.0" y="233" class="dg-t" text-anchor="middle">Consumers</text>
+<line x1="574" y1="228" x2="590" y2="228" class="dg-l" marker-end="url(#a4)"/>
+<polyline points="718,228 730,228 730,160 738,160" class="dg-l" marker-end="url(#a4)"/>
+<text x="454" y="278" class="dg-s" text-anchor="middle">4 components to operate · Codec 8E parser is ours to write and maintain</text>
+</svg>
+<figcaption>Same device, same store — the choice is only about the middle, and the shading marks a suggestion rather than a decision. Path A adopts a tested Codec 8E parser — Traccar being the reference implementation of one — and gives up control of when the acknowledgement is sent. Path C writes that parser itself and gets the acknowledgement back, along with three more components to operate. Path B is not drawn because it is path C with a managed broker inserted after the gateway: the same parser to write, plus a hop we do not control.</figcaption>
+</figure>
+
+  <h3>6.1 The reference implementation</h3>
+  <p>Before it is a candidate to run, an existing open-source GPS server is a <strong>reference implementation</strong> — and the one to read is <strong>Traccar</strong>. Its value is not that we might deploy it. It is that <strong>it already does, in production, everything our ingestion tier would have to do</strong> — terminate the TCP connection, complete the IMEI handshake, validate CRC-16/IBM, parse Codec 8 and 8E, emit the acknowledgement, and keep a device registry. That makes it a working specification of the problem, and the honest benchmark for anything we build instead: if a proposed gateway does not do what it already does, it is not finished.</p>
+  <p>Use it that way first, whichever path is chosen. Read its protocol handling, run it against a real unit, and let it tell us what the devices actually do rather than what the documentation says they do. Whether an adopted server then stays in the architecture is a separate question, and the team&#39;s to answer.</p>
+
+  <div class="note">
+    <h4>A suggested starting point — to confirm, amend or reject</h4>
+    <p><strong>Path A for the pilot,</strong> on three technical grounds. Codec 8/8E parsing is the one part of this system already solved and field-tested by someone else, and reimplementing it buys nothing we can name. The pilot&#39;s real unknowns are physical — part numbers, CAN program numbers, wiring, SIM behaviour, buffer limits — and this path reaches real device traffic in days, which is when those unknowns start answering themselves. And a two-component system is one engineer can hold in their head while debugging a machine 40 kilometres away.</p>
+    <p><strong>Path C once engine hours are relied on outside the team.</strong> Its justification is acknowledge-after-durability and an ingress control we own — real requirements, but ones that bite at the point where the figure leaves the team. If that point arrives before the pilot ends, the order above is wrong and C should come first.</p>
+    <p><strong>Path B looks weakest,</strong> and this is the part of the suggestion to argue with hardest if you disagree. It needs the same custom bridge as C — the devices still cannot speak MQTT — and then routes the record through a broker we do not control, landing between A and C on acknowledgement control while carrying more moving parts than either. A managed IoT service earns its place when devices speak its protocol natively and you want its registry, shadow state and remote job execution; none of that applies to devices speaking Codec 8E over raw TCP whose firmware is managed by Teltonika&#39;s own FOTA service.</p>
+    <p><strong>What would change this:</strong> a firmware release with native MQTT (which would make B credible and A unnecessary), a requirement for the evidence path from day one (which promotes C), or the adopted server turning out to acknowledge before persisting in a way we cannot patch (D5).</p>
+  </div>
+
+  <h3>6.2 What an adopted server would and would not give us</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Gives</th><th>Does not give</th></tr></thead>
+    <tbody>
+      <tr><td>Codec 8/8E parsing, tested against real firmware</td><td>Acknowledge-after-durability we control</td></tr>
+      <tr><td>Device registry and a REST API</td><td>Dated asset-to-tenant assignment</td></tr>
+      <tr><td>Geofences, basic events, trip and stop detection</td><td>Utilisation periods, sealing, evidence manifests</td></tr>
+      <tr><td>Support for other protocols if we ever add a second vendor</td><td>WhatsApp delivery, our alert semantics, quiet hours</td></tr>
+      <tr><td>A working system in days</td><td>Row-level isolation matching our tenancy model</td></tr>
+    </tbody>
+  </table></div>
+  <p>Measured against Traccar, since it is the reference. Read the right-hand column as the build backlog rather than as an argument against adopting — everything in it is ours to build regardless of which path terminates the socket. Read the left-hand column as the list to verify against a real device before adopting anything.</p>
+
+  <h3>6.3 The rule that keeps this reversible</h3>
+  <p><strong>Nothing above L3 ever reads the terminator&#39;s own shape.</strong> A thin normaliser pulls from whatever terminates the socket and writes the Kasper telemetry contract; the dashboard, the rules engine and the ledger consume only that. If this rule holds, swapping that terminator is a change to one component. If it is broken even once — a dashboard screen reading the terminator's own JSON directly because it was quicker — the migration becomes a rewrite, and it will not happen.</p>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Processing</h2>
+
+  <h3>The telemetry contract</h3>
+  <pre><code>{
+  "dedup_id":    "sha256(imei | ts_ms | payload_hash)",
+  "device_id":   "uuid",             // our id, not the vendor's
+  "imei":        "356307042441013",
+  "asset_id":    "uuid | null",      // resolved by the enricher
+  "ts_ms":       1755660000000,      // device time — NOT arrival time
+  "received_ms": 1755660003411,      // the two differ on replay
+  "gnss":        { "lat":…, "lon":…, "speed_kmh":22, "angle":…,
+                   "sats":9, "accuracy_m":8 },
+  "io":          { "ignition":1, "movement":1, "odometer_m":184203,
+                   "ext_voltage":27.9 },
+  "engine":      { "hours":4182.5, "rpm":1450, "fuel_level_pct":61 },
+  "engine_source":"ecu",             // "ecu" | null — never inferred
+  "fuel_source": "ecu",              // "ecu" | "gnss_estimate" | null
+  "codec":       "8E"
+}</code></pre>
+  <p>An asset whose make, model and year have no supported CAN program number populates <code>gnss</code> and <code>io</code> but leaves <code>engine</code> null, and its <code>fuel_source</code> is <code>gnss_estimate</code> at best. <strong>Null means "not measured", and it must never be rendered as zero.</strong> An asset showing 0.0 engine hours because its adapter is unsupported looks identical to an asset that genuinely did not run — and only one of those can support a utilisation record.</p>
+
+  <h4>Consumers</h4>
+  <div class="tw"><table>
+    <thead><tr><th>Consumer</th><th>Responsibility</th><th>Phase</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Normaliser</td><td>Pulls from whatever terminates the socket, emits the contract above, computes <code>dedup_id</code></td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Enricher</td><td>Resolves IMEI → device → asset → active assignment <em>at</em> <code>ts_ms</code></td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">State projector</td><td>One current-state row per asset: position, status, last seen, online/offline</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Trip builder</td><td>Segments on ignition and movement transitions; rebuilds open trips rather than appending blindly</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Utilisation ledger</td><td>Engine-hour deltas and idle time against the assignment window. The certificate's source.</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Rules engine</td><td>Geofence, over-speed, harsh event, fuel drop, tamper, service-due, device health</td><td><span class="pill mvp">Pilot</span></td></tr>
+      <tr><td class="k">Archiver</td><td>Batches raw and decoded records to immutable storage</td><td><span class="pill mvp">Pilot</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note warn">
+    <h4>Out-of-order arrival is normal traffic, not an error path</h4>
+    <p>After a four-hour outage a device replays thousands of records with timestamps hours old, interleaved with live ones. Trip building, engine-hour accumulation and geofence evaluation must all be functions of <code>ts_ms</code> and must produce the same answer regardless of arrival order. A consumer that assumes monotonic time will be quietly wrong for exactly the periods a dispute asks about.</p>
+    <p><strong>And do not alert from stale records.</strong> A geofence exit reconstructed from a six-hour-old record must not reach anyone's phone. Rules check <code>received_ms − ts_ms</code> against a staleness threshold and route stale evaluations to the log.</p>
+  </div>
+
+  <div class="note">
+    <h4>Idempotency is on record identity, not delivery</h4>
+    <p>A device that does not get its ACK in time resends the identical packet, possibly minutes later on a different connection. <code>dedup_id</code> is computed from device-side content only — never from arrival time or connection — so every copy collapses to one. Each consumer must be idempotent on it independently, because consumers replay separately.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Storage tiers</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Tier</th><th>Holds</th><th>Access pattern</th><th>Retention</th><th>Pilot</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Hot</td><td>One row per asset — last position, status, ignition, last seen, active assignment</td><td>Point read per asset; per-tenant scan for the live map</td><td>Current only</td><td>A table in the same Postgres</td></tr>
+      <tr><td class="k">Warm</td><td>Full telemetry history</td><td>Range query by asset over a date window — playback, reports, trips</td><td>13–24 months online</td><td>TimescaleDB hypertable</td></tr>
+      <tr><td class="k">Cold</td><td>Raw frames and decoded records, partitioned by date and source</td><td>Rare — disputes and audits</td><td>7 years, immutable</td><td>Object storage with versioning + lock</td></tr>
+      <tr><td class="k">Relational</td><td>Assets, devices, assignments, sites, geofences, rules, trips, utilisation periods, alerts, audit</td><td>Transactional, joined, permission-filtered</td><td>Indefinite</td><td>Postgres</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Start with one database</h3>
+  <p>At pilot scale the hot/warm/relational split is <strong>three tables in one Postgres</strong>, with the warm one a TimescaleDB hypertable. That is not a compromise — TimescaleDB is Postgres, it handles late-arriving writes without penalty (which C6 requires), and collapsing three stores into one removes most of the operational surface at the stage where there is one operator. Split them out when a query pattern actually fights another, not on principle.</p>
+  <p>The exception is <strong>cold storage, which is separate from day one.</strong> It is the evidence tier, its whole value is that it cannot be modified by the same credentials that run the application, and retrofitting immutability onto records already written is not possible.</p>
+
+  <h3>Batch the warm writes</h3>
+  <p>Accumulate records per asset over a short window before persisting — one row per asset per minute holding six 10-second records. It cuts write volume roughly 6×, keeps per-write metering questions off the critical path, and lets the underlying store change later without touching consumers. Build it regardless of which store wins.</p>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Data model and tenancy</h2>
+  <p>Pooled multi-tenancy, row-level isolation, cost scaling with devices rather than customers (C5). A fully isolated deployment remains possible for an operator that contractually requires it, but it is an exception to be justified case by case, not the default shape.</p>
+
+  <h3>Two independently dated relationships</h3>
+  <pre><code>devices            (device_id PK, imei, model, firmware, iccid,
+                    status, commissioned_at,
+                    can_adapter bool)     -- fitted and verified at commissioning
+assets             (asset_id PK, type, make, model, year, serial,
+                    owner_vendor_id,
+                    can_program_no NULL)  -- null = machine exposes no ECU data
+
+device_assignments   -- which box is on which machine
+  (device_id, asset_id, from_ts, to_ts NULL, installed_by, notes)
+
+asset_assignments    -- whose machine it is, and when
+  (asset_id, tenant_id, project_id, site_id, from_ts, to_ts NULL,
+   contract_ref, basis)  -- 'utilisation' requires ECU capability</code></pre>
+  <p>A device moves to a different machine when it fails or the machine is sold. A machine changes hands every time it is re-hired. Different schedules, so telemetry resolves through <strong>both</strong> windows to answer "whose engine hours are these, on which asset".</p>
+
+  <div class="note">
+    <h4>Capability is the pair, not the device</h4>
+    <p>An asset produces ECU engine hours only when the assigned device has <code>can_adapter</code> true <em>and</em> the asset has a supported <code>can_program_no</code>. Neither field alone is sufficient, and neither is a property of the other — one is set when an electrician finishes an install, the other when Teltonika confirms a program for that make, model and year. Derive the capability from the pair and enforce it: <strong>an assignment with <code>basis = 'utilisation'</code> should not be openable on an asset that cannot source ECU hours.</strong> A constraint here costs an hour; finding out later means going back to the machine.</p>
+  </div>
+
+  <pre><code>-- a tenant sees a record only if the asset was theirs when it was produced
+SELECT t.*
+FROM   telemetry t
+JOIN   device_assignments da ON da.device_id = t.device_id
+       AND t.ts >= da.from_ts AND t.ts &lt; COALESCE(da.to_ts, 'infinity')
+JOIN   asset_assignments  aa ON aa.asset_id  = da.asset_id
+       AND t.ts >= aa.from_ts AND t.ts &lt; COALESCE(aa.to_ts, 'infinity')
+WHERE  aa.tenant_id = :caller_tenant;</code></pre>
+
+<figure class="fig">
+<svg viewBox="0 0 880 285" role="img" aria-label="Timeline showing device-to-asset and asset-to-tenant assignment windows, and how three records at different times resolve to different tenants or to none">
+<defs><marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<text x="12" y="30" class="dg-k">RESOLVING A RECORD TO A TENANT</text>
+<text x="12" y="82" class="dg-s">device_assignments</text>
+<text x="12" y="136" class="dg-s">asset_assignments</text>
+<text x="12" y="196" class="dg-s">records</text>
+<rect x="190" y="62" width="470" height="30" rx="6" class="dg-box"/>
+<text x="204" y="82" class="dg-t">device D on asset A</text>
+<text x="648" y="56" class="dg-s" text-anchor="end">device removed</text>
+<rect x="190" y="116" width="210" height="30" rx="6" class="dg-box"/>
+<text x="204" y="136" class="dg-t">tenant X</text>
+<rect x="404" y="116" width="376" height="30" rx="6" class="dg-box"/>
+<text x="418" y="136" class="dg-t">tenant Y</text>
+<line x1="300" y1="62" x2="300" y2="188" class="dg-ld"/>
+<circle cx="300" cy="192" r="5" class="dg-ah"/>
+<text x="300" y="216" class="dg-acc" text-anchor="middle">tenant X</text>
+<line x1="520" y1="62" x2="520" y2="188" class="dg-ld"/>
+<circle cx="520" cy="192" r="5" class="dg-ah"/>
+<text x="520" y="216" class="dg-acc" text-anchor="middle">tenant Y</text>
+<line x1="720" y1="62" x2="720" y2="188" class="dg-ld"/>
+<circle cx="720" cy="192" r="5" class="dg-ah"/>
+<text x="720" y="216" class="dg-err" text-anchor="middle">unattributable</text>
+<text x="720" y="230" class="dg-s" text-anchor="middle">device gone — visible to us only</text>
+<line x1="190" y1="252" x2="856" y2="252" class="dg-l" marker-end="url(#a5)"/>
+<line x1="190" y1="247" x2="190" y2="257" class="dg-l"/>
+<text x="190" y="272" class="dg-s" text-anchor="middle">t0</text>
+<line x1="400" y1="247" x2="400" y2="257" class="dg-l"/>
+<text x="400" y="272" class="dg-s" text-anchor="middle">t1</text>
+<line x1="660" y1="247" x2="660" y2="257" class="dg-l"/>
+<text x="660" y="272" class="dg-s" text-anchor="middle">t2</text>
+<text x="856" y="272" class="dg-s" text-anchor="end">ts_ms — the record’s own timestamp, not its arrival time</text>
+</svg>
+<figcaption>Two windows, dated independently, resolved at the record’s own timestamp. The middle record belongs to tenant Y even though tenant X held the asset when the device was installed; the right-hand one belongs to nobody, because the device was moved to another machine at t2 and is still reporting. This is why authorisation cannot read a tenant_id stamped at ingest: records arrive late and assignments get corrected after the fact, so the stamp can be stale where the window cannot.</figcaption>
+</figure>
+
+  <div class="note warn">
+    <h4>Authorisation never reads the stamped tenant_id</h4>
+    <p>A denormalised <code>tenant_id</code> on telemetry is fine as a query hint. It cannot be the basis of a permission decision, because records arrive late and assignments get corrected retrospectively when paperwork catches up with the yard — so a replayed record can carry a stamp that was simply wrong. Every permission decision resolves through the assignment window at <code>ts</code>. Get this wrong and one client sees another's utilisation, which is the worst failure this platform can have.</p>
+  </div>
+
+  <h3>Roles</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Role</th><th>Sees</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Client master</td><td>All assets on hire to them, across projects and sites, for the periods that were theirs</td></tr>
+      <tr><td class="k">Client site user</td><td>Only assets on their assigned sites</td></tr>
+      <tr><td class="k">Vendor</td><td>Only assets they own — across every tenant that has held them, and for the whole period, not just the current one.</td></tr>
+      <tr><td class="k">Kasper ops</td><td>Everything, for operations</td></tr>
+      <tr><td class="k">Kasper admin</td><td>Everything, with every cross-tenant access written to the audit log</td></tr>
+    </tbody>
+  </table></div>
+  <p>Enforce as Postgres row-level security, not application <code>WHERE</code> clauses. RLS fails closed; a forgotten clause on a new endpoint fails open.</p>
+  <p><strong>Note the asymmetry between vendor and client scope.</strong> A vendor sees their asset's whole life; a client sees only their hire window. Both read the same table through different policies, and the vendor policy is the wider one — worth stating because it is counter-intuitive and easy to implement backwards.</p>
+
+  <h3>The utilisation period</h3>
+  <pre><code>utilisation_periods
+  (period_id PK, asset_id, asset_assignment_id, contract_ref,
+   start_ts, end_ts,
+   engine_hours_start, engine_hours_end, engine_hours_delta,
+   idle_hours, distance_km, gap_minutes_unknown,
+   source,             -- 'ecu' only; a period without an ECU source is not evidence
+   evidence_ref,       -- immutable object version + SHA-256
+   sealed_at, sealed_by)</code></pre>
+  <p><code>gap_minutes_unknown</code> is not decoration. It is the explicit record of time the system could not observe, and it appears on the certificate. Understating usage because a device was offline is a trust problem far more expensive than the disclosure.</p>
+  <p>Once a hire period closes and the certificate is issued, the row is sealed and immutable. Corrections are new rows referencing the old one, never updates.</p>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Fleet dashboard and API</h2>
+  <p>Seven screens already exist as a working prototype, running on mock data shaped to the telemetry contract. The build is wiring them to real data, not designing them.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Screen</th><th>Reads</th><th>Depends on</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Fleet Map</td><td>Hot state, per-asset detail panel, active alerts</td><td>State projector, rules engine</td></tr>
+      <tr><td class="k">Fuel</td><td>Level and rate per asset, theft and refuel events</td><td>CAN fuel, or clearly-labelled GNSS estimate</td></tr>
+      <tr><td class="k">Maintenance</td><td>Service schedule, overdue / due-soon / on-schedule</td><td>Engine-hour thresholds</td></tr>
+      <tr><td class="k">Geofences</td><td>Zone manager, polygon and circle draw, entry/exit log</td><td>Site geometry, rules engine</td></tr>
+      <tr><td class="k">Utilisation</td><td>Working vs idle vs off, 7-day trend</td><td>Utilisation ledger</td></tr>
+      <tr><td class="k">Cost &amp; ROI</td><td>Derived figures over utilisation and fuel</td><td>Ledger, plus per-asset inputs supplied outside this system</td></tr>
+      <tr><td class="k">Reports</td><td>Six report types, PDF/CSV, WhatsApp and email delivery</td><td>Ledger, trips, alerts</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Surfaces beyond the internal dashboard</h3>
+  <ul>
+    <li><strong>Client tracking page</strong> — one asset or one job, live position and verified arrival. Reads the same contract as the internal dashboard through a client-scoped policy, so it is a permission scope rather than a separate build. The link is a live location feed: signed, expiring, single-job tokens, revoked when the job closes.</li>
+    <li><strong>Owner-scoped view</strong> — an asset owner seeing only their own assets, across every tenant that has held them. Architecturally this is a permission scope over the screens above rather than a new surface: same contract, same queries, different predicate (section 09). Whenever it ships, the predicate should exist and be tested from the start — retrofitting a scope is how cross-tenant leaks happen.</li>
+    <li><strong>Utilisation certificate</strong> — the document the whole stack exists to produce. Renders from the sealed period, so a reissue six months later is byte-identical.</li>
+  </ul>
+
+  <h4>API shape</h4>
+  <p>One internal telemetry API over the contract, permission-filtered by the section 09 predicate: current state per asset or tenant, history for an asset over a window, trips, utilisation for a period, alerts, device health. Public customer API and webhooks are P2 — but design the internal one as though it will be published, because it will be.</p>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>Alerts and delivery</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Rule</th><th>Evaluation</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Geofence entry / exit</td><td>Stateful — needs previous inside/outside per asset per fence</td><td>Drives verified arrival on a job</td></tr>
+      <tr><td class="k">Auto-geofence theft</td><td>Stateful; radius set on ignition-off</td><td>The headline feature for equipment left on site</td></tr>
+      <tr><td class="k">Unauthorised movement</td><td>Movement with ignition off — tow detection</td><td>Stateless per record</td></tr>
+      <tr><td class="k">Over-speed</td><td>Threshold with a dwell period</td><td>Dwell suppresses single-sample GNSS spikes</td></tr>
+      <tr><td class="k">Harsh event</td><td>Device-detected, pass-through</td><td>Accelerometer</td></tr>
+      <tr><td class="k">Fuel drop</td><td>Windowed delta</td><td>Must distinguish theft from refuelling</td></tr>
+      <tr><td class="k">Service due</td><td>Engine-hour threshold crossing</td><td>Depends on the ledger, so it inherits the ledger&#39;s gaps — a threshold crossed during an unobserved period fires late</td></tr>
+      <tr><td class="k">Device health</td><td><strong>Absence-based</strong> — scheduled sweep over <code>last_seen</code></td><td>Cannot be triggered by an arriving record. Easy to forget until a stolen machine goes dark and nobody is told.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Delivery rules</h4>
+  <ul>
+    <li>One row per fired alert; one row per channel attempt with provider message ID and status. Retries are per attempt — a WhatsApp failure must never re-send the email.</li>
+    <li><strong>Suppress before delivering.</strong> A device replaying an outage backlog can regenerate hundreds of historical crossings. Deduplicate on rule + asset + event window, and drop anything past the staleness threshold.</li>
+    <li>WhatsApp template approval has lead time. Draft and submit during build, not at pilot launch.</li>
+    <li>Carry <code>acknowledged_at</code> and <code>acknowledged_by</code> from day one even though acknowledgement is P2. Adding columns is easy; backfilling meaning is not.</li>
+  </ul>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Security and evidence integrity</h2>
+
+  <h3>12.1 Device authentication — the honest position</h3>
+  <p>Codec 8 identifies a device by IMEI, in cleartext, with no client certificate. Anyone who can reach the listener can present a valid IMEI and inject records we would then bill against. This cannot be solved downstream — a perfect tamper-evident ledger of unauthenticated inputs proves only that we faithfully recorded whatever someone sent. <strong>The control sits at ingress.</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th>Control</th><th>Strength</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Private APN into our network</td><td><strong>Strongest</strong></td><td>The listener is never publicly reachable — removes the surface rather than defending it. Feasibility with Etisalat/e&amp; and du at pilot scale is <span class="pill open">open</span> and is a carrier question, not an AWS one. Pursue directly.</td></tr>
+      <tr><td class="k">Carrier IP allow-list</td><td>Good</td><td>Cuts the internet down to the carrier's NAT ranges. Ranges change; needs a maintenance owner.</td></tr>
+      <tr><td class="k">IMEI allow-list at handshake</td><td>Baseline</td><td>Blocks unknown devices, not spoofed known ones. Necessary, not sufficient. An adopted server will have a device registry — Traccar does — but whether it rejects at the handshake or after accepting data is unverified (D5), and the answer decides whether this control exists on path A at all.</td></tr>
+      <tr><td class="k">IMEI-to-source-IP binding</td><td>Moderate</td><td>Detection signal rather than a gate — carrier NAT makes it noisy.</td></tr>
+      <tr><td class="k">TLS 1.2</td><td>Transport only</td><td>From firmware 03.27.02, server-authenticated. Whether the device offers a client certificate is <span class="pill open">open</span> with Teltonika.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Recommendation:</strong> pilot on carrier allow-listing plus IMEI allow-list plus TLS; pursue private APN as the target state. Record which controls were in force for each period — if a dispute turns on data integrity, we need to state what applied at the time.</p>
+
+  <h3>12.2 Shared tracking links are credentials</h3>
+  <p>A client tracking link is a live location feed for whoever holds it. Signed, expiring, single-job tokens; revoked when the job closes. An unsigned or permanent link is a standing exposure of the tenant's site activity and the owner's asset movements to anyone the link reaches.</p>
+
+  <h3>12.3 The evidence chain</h3>
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b class="srv">INGRESS</b>Records accepted only from an allow-listed IMEI over TLS from an expected range, rejected at the handshake. Controls actually in force for each period are logged — which matters because on path A this step is weaker than described until D5 is answered.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b class="srv">DURABILITY</b>Nothing acknowledged until durably stored. A gap in our data is a device-buffer replay, never a silent loss.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b class="srv">IMMUTABILITY</b>Raw and decoded records land in object storage under a retention lock. Not alterable by anyone, including us.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b class="srv">SEALING</b>A daily manifest of per-object hashes, record counts and the previous day's manifest hash — a hash chain, signed. A retrospective edit breaks the chain from that day forward.</div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b class="srv">TIME ANCHOR</b>Signing establishes integrity and origin, not time. A trusted time anchor on the manifest is what lets us say the record predates the dispute. <span class="pill open">Open</span>.</div></div>
+    <div class="step"><div class="n">6</div><div class="b"><b class="srv">ATTRIBUTION</b>The utilisation period resolves through both dated windows — one client, one contract, one period.</div></div>
+    <div class="step"><div class="n">7</div><div class="b"><b class="srv">SEAL</b>The period is sealed with a pointer to a specific immutable object version. Corrections are new rows.</div></div>
+  </div>
+  <p><strong>Note honestly:</strong> steps 1 and 2 are weaker under an adopted server than under a purpose-built gateway. That is the cost of path A as proposed, and it is arguable precisely while this is a monitoring capability rather than an evidence one — if the team disagrees about when that line is crossed, the ordering in section 06 changes. The trigger to migrate is not a device count — it is <strong>the first utilisation record issued from this data to anyone outside the team.</strong></p>
+
+  <h3>12.4 Other controls</h3>
+  <ul>
+    <li>Row-level security as the tenancy boundary; admin cross-tenant access always audited.</li>
+    <li>Encryption at rest on every store; TLS on every hop including internal.</li>
+    <li>Separate signing key for evidence, with usage restricted to the sealing service.</li>
+    <li><strong>Immobiliser stays excluded.</strong> Technically a digital-output write; commercially a liability. Before it is ever considered: legal review, a hard interlock preventing activation while an asset is in motion, two-person authorisation, and its own audit trail. Not "just another command".</li>
+  </ul>
+</section>
+
+<section id="s13">
+  <h2><i>13</i>Sizing</h2>
+  <h4>Traffic model</h4>
+  <p>Per instrumented asset: roughly 9 hours ignition-on per day at one record every 10 seconds, plus low-rate heartbeats when off, plus event records. About <strong>3,500 records per device per day</strong>. At 30-second reporting it is closer to 1,300 — the reason the interval decision matters.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Fleet</th><th class="num">Records/day</th><th class="num">Avg rec/s</th><th class="num">Peak rec/s</th><th class="num">Decoded/day</th><th class="num">Concurrent sockets</th></tr></thead>
+    <tbody>
+      <tr><td class="k">10 <span class="pill mvp">pilot</span></td><td class="num">35 K</td><td class="num">&lt;1</td><td class="num">~3</td><td class="num">~10 MB</td><td class="num">≤10</td></tr>
+      <tr><td class="k">100</td><td class="num">350 K</td><td class="num">4</td><td class="num">~20</td><td class="num">~105 MB</td><td class="num">≤100</td></tr>
+      <tr><td class="k">1,000</td><td class="num">3.5 M</td><td class="num">40</td><td class="num">~200</td><td class="num">~1.0 GB</td><td class="num">≤1,000</td></tr>
+      <tr><td class="k">5,000</td><td class="num">17.5 M</td><td class="num">203</td><td class="num">~1,000</td><td class="num">~5.3 GB</td><td class="num">≤5,000</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>The burst case</h4>
+  <p>Not steady state — a carrier or site outage of several hours followed by mass reconnection. At 1,000 devices with a four-hour gap, roughly <strong>1.4 million buffered records</strong> drain on reconnect. Two mitigations are already in the design: the device backoff schedule spreads reconnection rather than synchronising it, and the flash buffer means slow draining costs time, not data. Size to drain a four-hour backlog inside about thirty minutes and let backpressure hold the rest on the devices.</p>
+
+  <div class="note">
+    <h4>One socket server covers the whole realistic range</h4>
+    <p>At 1,000 devices this is 40 records per second — a workload a single modest VM handles without difficulty, which is why the terminator is not where the scaling problem lives. The scaling pressure at these volumes is on the <em>database</em> and the dashboard's query patterns, not the socket server. Plan capacity there first; nobody has ever been surprised by a socket server at 40 rps, and plenty of people have been surprised by an unindexed range query over a telemetry table.</p>
+  </div>
+</section>
+
+<section id="s14">
+  <h2><i>14</i>Failure modes</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Failure</th><th>Effect</th><th>Detection</th><th>Response</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Connectivity gap read as idle</td><td><strong>Utilisation certificate understates usage</strong></td><td><code>gap_minutes_unknown</code> per period</td><td>Flag gaps explicitly, never infer idle. Show the gap on the certificate.</td></tr>
+      <tr><td class="k">Server slower than Server Response Timeout</td><td>Every packet resent; traffic multiplies</td><td>ACK latency p99; duplicate rate</td><td>Keep business logic out of the ingestion path; alarm well below the device timeout</td></tr>
+      <tr><td class="k">Store throttled or full</td><td>Cannot acknowledge</td><td>Write errors; ACK latency</td><td>Backpressure — devices buffer to flash. Never drop to keep up.</td></tr>
+      <tr><td class="k">CAN program number missing</td><td>Position but no engine hours; asset cannot carry a utilisation contract</td><td>Null rate on <code>engine.hours</code> per asset</td><td>Check the fleet list before install. Mark such assets as position-only in the product, not as "0 hours".</td></tr>
+      <tr><td class="k">Hire asset with no ECU path</td><td>Machine goes out on a utilisation basis with no adapter fitted or no program number — discovered only when the record is needed</td><td>Constraint rejects the assignment at creation; a periodic sweep catches assignments predating the constraint</td><td>Enforce at write time rather than reporting after the fact — by the time the record is needed it is too late to instrument the machine</td></tr>
+      <tr><td class="k">CAN H / L swapped at install</td><td>Device online, no engine data — looks like a software bug</td><td>Device reporting but engine block persistently null from first power-on</td><td>Verify data on our server before signing off the install</td></tr>
+      <tr><td class="k">Clock skew on device</td><td>Implausible timestamps corrupt trips and hour deltas</td><td>Bounds check <code>ts_ms</code> against <code>received_ms</code></td><td>Quarantine to a review queue — never silently discard, never silently trust</td></tr>
+      <tr><td class="k">Spoofed IMEI</td><td>Fabricated records enter the evidence path</td><td>IMEI from unexpected source; two sources one IMEI; impossible position jumps</td><td>Section 12 ingress controls; quarantine rather than accept</td></tr>
+      <tr><td class="k">Assignment gap or overlap</td><td>Telemetry attributable to nobody, or to two tenants</td><td>Exclusion constraint plus a daily reconciliation sweep</td><td>Constraint on overlapping windows per asset; unassigned periods visible to Kasper only</td></tr>
+      <tr><td class="k">Device removed, still transmitting</td><td>Records attributed to a machine it is no longer on</td><td>Position diverges from the asset's known site</td><td>Close the device assignment window at removal, and decommission in the registry so the device is refused at connect (see D5 for whether that holds on path A)</td></tr>
+      <tr><td class="k">SIM suspended for non-payment</td><td>Whole fleet silently offline</td><td>Fleet-wide last-seen alarm, not per-device</td><td>Named because a per-device alert storm hides the actual cause</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s15">
+  <h2><i>15</i>Rollout and cutover</h2>
+
+  <h3>15.1 Hosting</h3>
+  <p>Three answers currently exist across our documents: a self-hosted droplet, AWS me-south-1 (Bahrain), and AWS me-central-1 (UAE). <strong>Decide once and correct the others.</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th>Option</th><th>For</th><th>Against</th></tr></thead>
+    <tbody>
+      <tr><td class="k">DigitalOcean</td><td>Cheapest by a wide margin; simplest; matches path A</td><td>No UAE region; data residency story is weak for government and port clients</td></tr>
+      <tr><td class="k">AWS me-central-1</td><td><strong>In-country data residency</strong>, which some clients require contractually</td><td>Newer region — confirm every service the design needs is actually available</td></tr>
+      <tr><td class="k">AWS me-south-1</td><td>Older, more complete service coverage</td><td>Bahrain, not UAE. Answers the latency question nobody asked and loses the residency one that will be asked.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Recommendation:</strong> confirm feature availability in me-central-1 and default there, accepting a higher cost than DigitalOcean for a residency answer that closes enterprise deals. Fall back to me-south-1 only if something the design genuinely needs is absent. Whichever is chosen, <strong>reach the ingestion endpoint by a stable domain name, never a raw IP</strong> — an IP change means reconfiguring every device in the field, some of them bolted inside a machine on a site.</p>
+
+  <h3>15.2 Parallel run</h3>
+  <p>Teltonika's second-server setting in <strong>Duplicate</strong> mode sends every record to both servers and clears device storage only when both confirm. That gives a genuinely lossless migration between ingestion paths, in either direction, whenever the team decides to move.</p>
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b class="srv">SHADOW</b>New path configured as second server. Receives real traffic, acknowledges, drives nothing customer-facing.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b class="srv">RECONCILE</b>Daily comparison of record counts, engine-hour deltas and trip boundaries. Divergence is a bug in the new path until proven otherwise. Run for a full reporting cycle, not a week.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b class="srv">CUTOVER</b>Surfaces read from the new path; the old one keeps ingesting as the safety net.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b class="srv">RETIRE</b>Swap server order, then decommission.</div></div>
+  </div>
+<figure class="fig">
+<svg viewBox="0 0 840 282" role="img" aria-label="Parallel-run topology: the device fleet sends to both the existing and new ingestion paths, which feed a daily reconciliation">
+<defs><marker id="a6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="a6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="10" y="96" width="140" height="60" rx="10" class="dg-box"/>
+<text x="80" y="120" class="dg-t" text-anchor="middle">Device fleet</text>
+<text x="80" y="137" class="dg-s" text-anchor="middle">2nd server = Duplicate</text>
+<polyline points="150,126 182,126 182,58 226,58" class="dg-l" marker-end="url(#a6)"/>
+<polyline points="150,126 182,126 182,194 226,194" class="dg-la" marker-end="url(#a6a)"/>
+<rect x="230" y="32" width="170" height="52" rx="10" class="dg-box"/>
+<text x="315" y="54" class="dg-t" text-anchor="middle">Existing path</text>
+<text x="315" y="70" class="dg-s" text-anchor="middle">still authoritative</text>
+<rect x="230" y="168" width="170" height="52" rx="10" class="dg-hi"/>
+<text x="315" y="190" class="dg-acct" text-anchor="middle">New path</text>
+<text x="315" y="206" class="dg-acc" text-anchor="middle">shadow — drives nothing</text>
+<polyline points="400,58 452,58 452,110 490,110" class="dg-l" marker-end="url(#a6)"/>
+<polyline points="400,194 452,194 452,142 490,142" class="dg-l" marker-end="url(#a6)"/>
+<rect x="494" y="96" width="150" height="60" rx="10" class="dg-box"/>
+<text x="569" y="120" class="dg-t" text-anchor="middle">Daily reconcile</text>
+<text x="569" y="137" class="dg-s" text-anchor="middle">counts · hours · trips</text>
+<line x1="644" y1="126" x2="682" y2="126" class="dg-l" marker-end="url(#a6)"/>
+<rect x="686" y="96" width="140" height="60" rx="10" class="dg-box"/>
+<text x="756" y="120" class="dg-t" text-anchor="middle">Divergence =</text>
+<text x="756" y="137" class="dg-t" text-anchor="middle">bug in the new path</text>
+<text x="182" y="256" class="dg-err">Trap: flash clears only when BOTH confirm — so the slower or less available endpoint</text>
+<text x="182" y="270" class="dg-err">governs buffer depth across the entire fleet, on either side of the migration.</text>
+</svg>
+<figcaption>Teltonika’s Duplicate mode gives a genuinely lossless parallel run: every record goes to both servers and is deleted from the device only when both acknowledge. That property is also the trap — during the run, an outage on either endpoint fills flash across the whole fleet. Monitor buffer depth on both sides and keep a one-step rollback to single-server ready before starting.</figcaption>
+</figure>
+
+  <div class="note warn">
+    <h4>The Duplicate-mode trap</h4>
+    <p>Because records clear only when <em>both</em> servers confirm, the slower or less available endpoint governs every device's buffer. During parallel run an outage on either side fills flash across the whole fleet. Monitor buffer depth on both, and have a one-step rollback to single-server ready before starting.</p>
+  </div>
+
+  <h3>15.3 Pilot rollout</h3>
+  <p>Start with roughly 10 FMC130 units and their CAN adapters, on machines rather than trucks. <strong>Pilot on machines that go out on hire</strong>, because engine hours and the utilisation record are the thing being proven. Instrumenting whatever is nearest exercises locate and detect and never touches the evidence path at all.</p>
+  <p>The sequence that matters is not the software one: <strong>confirm CAN program numbers against the real fleet list → pick the pilot machines from the assets that have one → order FMC130s and adapters → activate SIMs → book the auto-electrician → install and verify engine hours arriving on our server.</strong> Every one of those has a lead time, and none is unblocked by writing more code. Run the software build in parallel against a traffic generator; the Codec 8/8E frame format is fully specified, so valid test packets can be constructed without hardware.</p>
+</section>
+
+<section id="s16">
+  <h2><i>16</i>Build sequence</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Phase</th><th class="num">Weeks</th><th>Deliverable</th><th>Done when</th></tr></thead>
+    <tbody>
+      <tr><td class="k">P0 · Contract</td><td class="num">1–2</td><td>The telemetry contract and the normaliser, with a traffic generator producing valid Codec 8E frames against it</td><td>Generated frames decode into the contract with sources set correctly, and no surface above L3 references an ingestion-specific shape</td></tr>
+      <tr><td class="k">P1 · Ingestion</td><td class="num">2–3</td><td>The chosen terminator stood up, device registry, normaliser writing the contract into our store, cold archive</td><td>A real test unit&#39;s data reaches the store, is archived immutably, and nothing above L3 knows which terminator produced it</td></tr>
+      <tr><td class="k">P2 · Model</td><td class="num">2–3</td><td>Assets, devices, both assignment tables, RLS policies, enricher, state projector</td><td>A record resolves to exactly one tenant at its own timestamp; a cross-tenant query returns nothing</td></tr>
+      <tr><td class="k">P3 · Surfaces</td><td class="num">3–5</td><td>Seven Fleet screens on live data; client tracking upgraded; geofences and rules; WhatsApp delivery</td><td>A real geofence crossing reaches a real phone, and a site user sees only their assets</td></tr>
+      <tr><td class="k">P4 · Ledger</td><td class="num">2–3</td><td>Utilisation ledger, periods, gap accounting, sealing and manifest chain, certificate render</td><td>A hire period produces a sealed certificate that resolves to an immutable object version and discloses its gaps</td></tr>
+      <tr><td class="k">P5 · Pilot</td><td class="num">4</td><td>10 devices installed and verified; owner-scope predicate exercised; ops runbook</td><td>A full cycle reconciles, with differences explained rather than explained away</td></tr>
+      <tr><td class="k">P6 · Scale</td><td class="num">2–4</td><td>Custom gateway if engine hours now bill; burst hardening; reporting-interval tuning against real data volumes</td><td>Parallel run reconciles for a full reporting cycle</td></tr>
+    </tbody>
+  </table></div>
+  <p>Durations are ranges for one engineer on that phase, and several overlap — section 17 shows how they fit together and what else has to be happening alongside. P0 is deliberately first and deliberately unglamorous. It costs little, ships no visible feature, and is the thing that makes every later phase — including changing the terminator — a contained change rather than a rewrite.</p>
+</section>
+
+<section id="s17">
+  <h2><i>17</i>Timeline and phasing</h2>
+  <p>A preliminary shape for the initial release, offered so the team has something concrete to correct. Durations are ranges in weeks relative to a start, not calendar dates, and they assume the open items in section 18 are answered rather than waited on.</p>
+
+<figure class="fig">
+<svg viewBox="0 0 1010 366" role="img" aria-label="Preliminary schedule showing a software track and a field track running in parallel, both gating a fixed observation period">
+<defs><marker id="a7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<line x1="160" y1="50" x2="980" y2="50" class="dg-ld"/>
+<line x1="160" y1="46" x2="160" y2="54" class="dg-ld"/>
+<text x="160" y="38" class="dg-s" text-anchor="middle">w0</text>
+<line x1="242" y1="46" x2="242" y2="54" class="dg-ld"/>
+<text x="242" y="38" class="dg-s" text-anchor="middle">w2</text>
+<line x1="324" y1="46" x2="324" y2="54" class="dg-ld"/>
+<text x="324" y="38" class="dg-s" text-anchor="middle">w4</text>
+<line x1="406" y1="46" x2="406" y2="54" class="dg-ld"/>
+<text x="406" y="38" class="dg-s" text-anchor="middle">w6</text>
+<line x1="488" y1="46" x2="488" y2="54" class="dg-ld"/>
+<text x="488" y="38" class="dg-s" text-anchor="middle">w8</text>
+<line x1="570" y1="46" x2="570" y2="54" class="dg-ld"/>
+<text x="570" y="38" class="dg-s" text-anchor="middle">w10</text>
+<line x1="652" y1="46" x2="652" y2="54" class="dg-ld"/>
+<text x="652" y="38" class="dg-s" text-anchor="middle">w12</text>
+<line x1="734" y1="46" x2="734" y2="54" class="dg-ld"/>
+<text x="734" y="38" class="dg-s" text-anchor="middle">w14</text>
+<line x1="816" y1="46" x2="816" y2="54" class="dg-ld"/>
+<text x="816" y="38" class="dg-s" text-anchor="middle">w16</text>
+<line x1="898" y1="46" x2="898" y2="54" class="dg-ld"/>
+<text x="898" y="38" class="dg-s" text-anchor="middle">w18</text>
+<line x1="980" y1="46" x2="980" y2="54" class="dg-ld"/>
+<text x="980" y="38" class="dg-s" text-anchor="middle">w20</text>
+<text x="8" y="70" class="dg-k">SOFTWARE</text>
+<rect x="160" y="78" width="82" height="16" rx="5" class="dg-box"/>
+<text x="152" y="86" class="dg-t" text-anchor="end">P0 Contract</text>
+<text x="152" y="97" class="dg-s" text-anchor="end">record shape + generator</text>
+<rect x="242" y="104" width="123" height="16" rx="5" class="dg-box"/>
+<text x="152" y="112" class="dg-t" text-anchor="end">P1 Ingestion</text>
+<text x="152" y="123" class="dg-s" text-anchor="end">terminator, registry, archive</text>
+<rect x="324" y="130" width="123" height="16" rx="5" class="dg-box"/>
+<text x="152" y="138" class="dg-t" text-anchor="end">P2 Model</text>
+<text x="152" y="149" class="dg-s" text-anchor="end">assignments, RLS, enrich</text>
+<rect x="406" y="156" width="205" height="16" rx="5" class="dg-box"/>
+<text x="152" y="164" class="dg-t" text-anchor="end">P3 Surfaces</text>
+<text x="152" y="175" class="dg-s" text-anchor="end">screens, rules, delivery</text>
+<rect x="570" y="182" width="123" height="16" rx="5" class="dg-box"/>
+<text x="152" y="190" class="dg-t" text-anchor="end">P4 Ledger</text>
+<text x="152" y="201" class="dg-s" text-anchor="end">periods, sealing, record</text>
+<text x="8" y="222" class="dg-k">FIELD</text>
+<rect x="160" y="230" width="123" height="16" rx="5" class="dg-box"/>
+<text x="152" y="238" class="dg-t" text-anchor="end">D1 Program numbers</text>
+<text x="152" y="249" class="dg-s" text-anchor="end">Teltonika, per machine</text>
+<rect x="283" y="256" width="82" height="16" rx="5" class="dg-box"/>
+<text x="152" y="264" class="dg-t" text-anchor="end">Procure + SIM</text>
+<text x="152" y="275" class="dg-s" text-anchor="end">units, adapters, M2M</text>
+<rect x="406" y="282" width="82" height="16" rx="5" class="dg-box"/>
+<text x="152" y="290" class="dg-t" text-anchor="end">Schedule + install</text>
+<text x="152" y="301" class="dg-s" text-anchor="end">electrician, verify on site</text>
+<text x="8" y="322" class="dg-k">PILOT</text>
+<rect x="693" y="330" width="164" height="16" rx="5" class="dg-hi"/>
+<text x="152" y="338" class="dg-t" text-anchor="end">P5 Observation</text>
+<text x="152" y="349" class="dg-s" text-anchor="end">reconcile a full cycle</text>
+<text x="867" y="342" class="dg-acc">fixed — elapsed time, not effort</text>
+<polyline points="488,290 529,290 529,338 689,338" class="dg-ld" marker-end="url(#a7)"/>
+<polyline points="693,190 734,190 734,338 689,338" class="dg-ld" marker-end="url(#a7)"/>
+<text x="537" y="316" class="dg-s">devices live and reporting</text>
+</svg>
+<figcaption>Two tracks, one gate. The field track starts at week zero and is not a follow-on to the software build — it is the track with external lead times on it, so it sets the earliest date at which anything can be validated. The observation period is elapsed time rather than effort: adding people does not shorten it, and it cannot begin until devices are installed and the ledger exists. Week numbers are relative to a start, not calendar dates.</figcaption>
+</figure>
+
+  <h3>17.1 Two tracks, and only one of them is engineering</h3>
+  <p>The instinct is to schedule this as a software project with a hardware step at the end. That gets the dependency backwards. <strong>The field track has the external lead times on it</strong> — a vendor answering a question, a distributor shipping, a carrier activating SIMs, a licensed electrician having a free day — and none of those shorten because the software is ready early. Start both at week zero.</p>
+  <p>The useful consequence: once devices are installed and reporting, the remaining software phases develop against real traffic rather than a generator. That is worth more than it sounds. Almost every surprise in a telematics build comes from what the devices actually send, not from what the pipeline does with it.</p>
+
+  <h3>17.2 What the shape adds up to</h3>
+  <p><strong>Roughly 13–17 weeks of build, plus four weeks of observation</strong> — call it four to five months to a validated pilot, with about a month of that being elapsed time nobody can compress. P6 sits outside the initial release deliberately: hardening against traffic patterns that have not been measured yet is guesswork.</p>
+
+  <h3>17.3 Staffing</h3>
+  <p>Expressed as roles and effort rather than headcount, because several of these are fractions of a person and one of them is not an engineer at all.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Role</th><th>Owns</th><th class="num">Effort</th><th>Shape</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Backend / integration</td><td>Terminator, normaliser, consumers, ledger, sealing — the spine of P0–P4</td><td class="num">~14 wk</td><td>Full-time throughout. The one role that cannot be part-time.</td></tr>
+      <tr><td class="k">Frontend</td><td>Wiring the seven screens and the tracking view to live data</td><td class="num">~6 wk</td><td>Concentrated in P3. Idle before P2 exists.</td></tr>
+      <tr><td class="k">Infrastructure</td><td>Hosting, TLS and certificates, backups and a tested restore, logging</td><td class="num">~3 wk</td><td>Spikes at P1 and again before P5. Not continuous.</td></tr>
+      <tr><td class="k">Field coordinator</td><td>Program numbers, procurement, SIM activation, electrician scheduling, install verification</td><td class="num">~6 wk</td><td>Part-time from week zero. <strong>Most commonly unstaffed, and the usual cause of a slipped pilot.</strong></td></tr>
+      <tr><td class="k">Auto-electrician</td><td>Physical installation, per machine</td><td class="num">per unit</td><td>Contracted, booked ahead. Availability is the constraint, not cost.</td></tr>
+      <tr><td class="k">Tech lead</td><td>The section 18 decisions, review, vendor threads</td><td class="num">~4 wk</td><td>Spread thin across the whole run. Front-loaded on D1 and D5.</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>About 33 person-weeks, and a minimum viable team of two engineers plus a part-time coordinator</strong> — one backend full-time, one frontend at roughly half, coordination alongside. That lands close to the schedule above.</p>
+
+  <div class="note warn">
+    <h4>What one engineer alone looks like</h4>
+    <p>Sequential rather than parallel, so the build stretches to roughly seven to nine months — and the failure mode is not slowness. It is that the field track quietly stops, because the same person is deep in a parser when the distributor needs a purchase decision and the electrician needs a date. <strong>If only one engineer is available, the coordinator role still has to belong to someone else</strong>, even if that someone is not technical. It is the cheapest schedule insurance available here.</p>
+  </div>
+
+  <h3>17.4 What moves these dates</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Driver</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td class="k">D1 answered late</td><td>Nothing can be ordered, so the field track slips one-for-one and the pilot date moves with it. This is the single largest schedule risk.</td></tr>
+      <tr><td class="k">Part of the fleet has no program number</td><td>Not a delay — a scope change. Fewer machines can be pilot candidates, and one of them may need substituting.</td></tr>
+      <tr><td class="k">Firmware below 03.27.02 on delivery</td><td>Adds a firmware pass before installation. Days, not weeks, but it lands squarely on the critical path.</td></tr>
+      <tr><td class="k">Messaging template approval</td><td>External review with its own lead time. Submit during P2, not when P3 needs it.</td></tr>
+      <tr><td class="k">Path C chosen instead of A</td><td>Adds roughly 4–6 weeks to P1 for the parser and terminator, and more infrastructure effort. Section 06.</td></tr>
+      <tr><td class="k">Adding engineers mid-build</td><td>Helps in P3, where screens parallelise. Does not help in P0–P1, and does not touch P5 at all.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <h4>The one date worth defending</h4>
+    <p>Everything above can be argued with except the shape of P5. A pilot that reports "it worked" after a week has demonstrated that devices transmit — which was never in doubt. <strong>The full cycle is what surfaces the failures that matter</strong>: a machine that goes quiet for a weekend, an assignment that changes mid-period, a gap that has to be disclosed rather than smoothed over. Compressing that is the one shortcut that costs more than it saves.</p>
+  </div>
+</section>
+
+<section id="s18">
+  <h2><i>18</i>Open decisions</h2>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Question</th><th>Blocks</th><th>Owner</th></tr></thead>
+    <tbody>
+      <tr><td class="k">D1</td><td><strong>CAN program numbers for the real fleet</strong> — which makes, models and years have a supported ALL-CAN300 program, and what each exposes</td><td>Which machines can produce ECU hours at all — and therefore which the pilot should go on. A machine without one yields position and ignition only.</td><td>Tech lead → Teltonika</td></tr>
+      <tr><td class="k">D2</td><td>Reporting interval — 10 s, 30 s, or adaptive</td><td>Data volume, storage growth and burst size. Roughly 3× either way.</td><td>Tech lead + Afsal</td></tr>
+      <tr><td class="k">D3</td><td>Hosting and region — DigitalOcean / me-central-1 / me-south-1</td><td>Every cost estimate and the data-residency answer</td><td>Afsal</td></tr>
+      <tr><td class="k">D4</td><td>Private APN into our network with Etisalat/e&amp; or du</td><td>The whole section 12 control ladder</td><td>Afsal → carriers directly</td></tr>
+      <tr><td class="k">D5</td><td>Does the adopted server reject an unknown IMEI at the handshake, or only after accepting data? Verify against Traccar.</td><td>Whether the baseline ingress control exists on path A</td><td>Tech lead</td></tr>
+      <tr><td class="k">D6</td><td>Are engine hours ECU-read or software-estimated, per make?</td><td>Evidential weight of the figure. An estimated value cannot support a utilisation record.</td><td>Afsal</td></tr>
+      <tr><td class="k">D7</td><td>Owner-scope predicate — implemented and tested from the start, or added later?</td><td>Whether the widest access scope in the model is exercised before it is relied on.</td><td>Afsal</td></tr>
+      <tr><td class="k">D8</td><td>Device buffering limit in writing from Teltonika</td><td>How long an outage is survivable before data is discarded</td><td>Tech lead → Teltonika</td></tr>
+      <tr><td class="k">D9</td><td>Firmware version shipping on new units</td><td>TLS requires 03.27.02+. Older units need updating before deployment.</td><td>Tech lead → distributor</td></tr>
+      <tr><td class="k">D10</td><td>Trusted time-anchor mechanism for the evidence manifest</td><td>Step 5 of the evidence chain</td><td>Tech lead</td></tr>
+      <tr><td class="k">D11</td><td>Does the device present a client certificate for mutual TLS?</td><td>Whether cryptographic device identity is available at all</td><td>Tech lead → Teltonika</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <h4>Sequencing</h4>
+    <p>D1 first, and this week — it decides which of the real fleet can produce ECU hours at all, and therefore which machines the pilot goes on. D2 next, because the reporting interval sets data volume and storage growth for everything that follows. D3 before any hosting estimate is accepted. Everything else can follow the pilot build.</p>
+  </div>
+</section>
+
+<section id="s19">
+  <h2><i>19</i>Glossary</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="k">AVL packet</td><td>The record a Teltonika device sends — position plus whatever sensor and engine values are attached.</td></tr>
+      <tr><td class="k">Codec 8 / 8E</td><td>Teltonika's binary format for encoding an AVL packet.</td></tr>
+      <tr><td class="k">I/O element</td><td>One value inside an AVL packet, identified by a number rather than a readable name.</td></tr>
+      <tr><td class="k">CAN bus</td><td>The machine's internal data network. The CAN adapter listens to it; it never controls the machine.</td></tr>
+      <tr><td class="k">FMC130</td><td>The tracker. On its own it reports position, speed, ignition and movement; paired with an ALL-CAN300 it also reports engine hours, fuel and fault codes read from the machine.</td></tr>
+      <tr><td class="k">ALL-CAN300</td><td>The adapter that decodes engine hours, fuel and fault codes off the CAN bus and hands them to the FMC130 over a separate serial link.</td></tr>
+      <tr><td class="k">Program number</td><td>The Teltonika configuration for decoding a specific make, model and year. Per-model, not universal.</td></tr>
+      <tr><td class="k">Traccar</td><td>Open-source GPS server that already speaks Codec 8E. Used here as the reference implementation of a protocol terminator, and a candidate for path A.</td></tr>
+      <tr><td class="k">Protocol terminator</td><td>Whatever holds the device&#39;s TCP connection, parses Codec 8E and emits the acknowledgement — an adopted server or one we build. Used throughout so the architecture does not name a product it has not chosen.</td></tr>
+      <tr><td class="k">Bridge / gateway</td><td>Software that terminates device connections and translates the binary format. Not part of any managed cloud service.</td></tr>
+      <tr><td class="k">Open Link Timeout</td><td>How long the device holds the connection open after sending. Decides persistent versus short-lived connections.</td></tr>
+      <tr><td class="k">Assignment window</td><td>The dated record of which tenant an asset belonged to over a period. The basis of both access control and utilisation attribution.</td></tr>
+      <tr><td class="k">Utilisation certificate</td><td>Monthly statement of engine hours, idle time, distance and unobserved gaps for a hire period. Sealed and evidence-backed.</td></tr>
+      <tr><td class="k">Pooled tenancy</td><td>One shared platform with row-level separation, rather than infrastructure per customer.</td></tr>
+      <tr><td class="k">Device Shadow</td><td>A managed IoT service&#39;s stored copy of a device&#39;s last reported state. Referenced only to explain why path B was rejected.</td></tr>
+      <tr><td class="k">Source</td><td>The field distinguishing an ECU reading from a GNSS estimate. Never merged, never inferred.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr>
+<footer>
+  Kasper GPS Architecture · internal engineering reference · not a specification and not a source of truth<br>
+  Sources: teltonika_telematics_briefing.docx · SUDO_Technical_Pack.md · TechTeam_Brief_IoT.md · Kasper_IoT_Feature_List.md · AWS_IoT_Enquiry_Email.md · Kasper_Telematics_Technology_Report.docx · 03_Kasper_GPS_as_a_Service.docx · ROADMAP.md<br>
+  Scope is the GPS and device-data layer only. Open items are marked in place and consolidated in section 18 — those are questions to answer, not positions to build on. Corrections welcome and expected.
+</footer>
+
+</main>
+</div>
+
+</body>
+</html>

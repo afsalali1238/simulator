@@ -1,0 +1,40 @@
+{
+  "name": "dozr-telematics-sim",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dozr GPS/telematics local simulation + ingestion harness. Emits and receives REAL Teltonika Codec 8/8E binary over TCP into Postgres. Local/free now; hand off to the dev team for AWS later.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:logs": "docker compose logs -f db",
+    "db:schema": "node src/tools/load-sql.js db/schema.sql",
+    "db:seed": "node src/tools/load-sql.js db/seed.sql",
+    "db:reset": "npm run db:schema && npm run db:seed",
+    "start:ingest": "node src/ingestion/server.js",
+    "start:api": "node src/api/server.js",
+    "sim": "node src/simulator/run-simulator.js",
+    "sim:list": "node src/simulator/run-simulator.js --list",
+    "demo": "node src/tools/demo.js",
+    "test": "node src/tools/run-tests.js",
+    "test:gate": "node src/tools/test-gate.js",
+    "verify": "node src/tools/verify-runtime.js",
+    "test:crc": "node --test test/crc.test.js",
+    "test:codec": "node --test test/codec.test.js",
+    "test:store": "node --test test/store.test.js",
+    "test:ingestion": "node --test test/ingestion.test.js",
+    "test:decode": "node --test test/decode.test.js",
+    "test:tenancy": "node --test test/tenancy.test.js",
+    "test:api": "node --test test/api.test.js",
+    "test:scenarios": "node --test test/scenarios.test.js",
+    "test:replay": "node --test test/replay.test.js",
+    "test:operability": "node --test test/operability.test.js",
+    "test:config": "node --test test/config.test.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  }
+}

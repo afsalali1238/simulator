@@ -1,0 +1,33 @@
+# Local Postgres for the Dozr telematics simulation harness.
+#
+# This is the "PostgreSQL via Docker" local database. The app connects by URL
+# (DATABASE_URL in .env), so nothing in the code depends on Docker specifically
+# — CI or a dev laptop can point the same code at any Postgres.
+#
+# PRODUCTION NOTE (for the dev team): in AWS this becomes RDS/Aurora Postgres in
+# me-central-1 (region is decision D3). For prod parity you can swap the image
+# below for `timescale/timescaledb-ha:pg16` (bundles TimescaleDB + PostGIS) and
+# turn position_records into a hypertable + use a geometry column — the schema
+# is written so those are additive upgrades, not rewrites. Plain postgres:16 is
+# used here so the harness runs with zero extensions on any machine.
+
+services:
+  db:
+    image: postgres:16
+    container_name: dozr_telematics_db
+    environment:
+      POSTGRES_USER: dozr
+      POSTGRES_PASSWORD: dozr
+      POSTGRES_DB: dozr_telematics
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dozr -d dozr_telematics"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:

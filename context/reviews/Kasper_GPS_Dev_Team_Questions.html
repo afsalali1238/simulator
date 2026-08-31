@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dev Team Engagement Pack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dg-f1{fill:currentColor;opacity:.82}
+.dg-f3{fill:var(--yellow-dark);opacity:.9}
+.dg-red{fill:var(--error);opacity:.75}
+.dg-ms{fill:var(--yellow-dark)}
+.dg-bar{fill:var(--panel-2);stroke:currentColor;stroke-width:1}
+.dg-barh{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.4}
+.dg-barr{fill:none;stroke:var(--error);stroke-width:1.2;stroke-dasharray:5 3}
+.dg-grid{stroke:currentColor;stroke-width:1;opacity:.13}
+.ask{border:1px solid var(--rule);border-left:3px solid var(--yellow-dark);border-radius:0 10px 10px 0;background:var(--panel);padding:14px 18px;margin:14px 0;max-width:74ch;box-shadow:var(--shadow)}
+.ask .q{font-family:var(--f-head);font-size:15px;font-weight:600;margin-bottom:6px;letter-spacing:-.01em}
+.ask p{font-size:13.5px;color:var(--text-2);margin:0;max-width:none;line-height:1.55}
+.ask p+p{margin-top:7px}
+.ask .why{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);font-weight:700}
+.draft{background:var(--code-bg);border:1px solid var(--rule);border-radius:12px;padding:22px 24px;margin:20px 0}
+.draft p{max-width:66ch;font-size:14.5px;margin-bottom:12px}
+.draft p:last-child{margin-bottom:0}
+.draft ol,.draft ul{max-width:66ch;font-size:14.5px}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Engagement pack</div>
+  <nav>
+    <a href="#s0"><b>00</b>The split, and what it changes</a>
+    <a href="#s1"><b>01</b>How to run the conversation</a>
+    <a href="#s2"><b>02</b>The three that matter most</a>
+    <div class="grp">Questions</div>
+    <a href="#s3"><b>03</b>The estimate</a>
+    <a href="#s4"><b>04</b>Scope &amp; reuse</a>
+    <a href="#s5"><b>05</b>Technical approach</a>
+    <a href="#s6"><b>06</b>What they need from us</a>
+    <a href="#s7"><b>07</b>Team &amp; hiring</a>
+    <a href="#s8"><b>08</b>Quality</a>
+    <div class="grp">Suggestions</div>
+    <a href="#s9"><b>09</b>Seven ways to do it better</a>
+    <a href="#s10"><b>10</b>A different shape</a>
+    <a href="#s11"><b>11</b>The seam between us</a>
+    <div class="grp">Use it</div>
+    <a href="#s12"><b>12</b>Draft message</a>
+    <a href="#s13"><b>13</b>Reading the answers</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal · for the conversation with the development team</div>
+  <h1>Dev Team Engagement Pack</h1>
+  <p>Questions to ask about the five-month, nine-person estimate — and concrete suggestions for doing it faster and with less risk, given that we own the hardware and they own the software.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>The split, and what it changes</h2>
+  <p>We deal with Teltonika, procurement, SIMs, installation and everything physical. They build the software. That division is sensible and it should be stated explicitly in both plans, because two things follow from it that neither side has written down yet.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Their estimate is now software-only</h4>
+      <p>Nine people for five months is roughly <strong>45 person-months of software</strong>, with no hardware, procurement, installation or field work inside it. That makes the number harder to justify, not easier — the excluded work is real work, and it has been excluded.</p>
+    </div>
+    <div class="card">
+      <h4>The risk moves to the seam</h4>
+      <p>When one team owns the devices and another owns the code, <strong>the most likely cause of a slip is a handoff nobody dated.</strong> They cannot test against real traffic until we supply a device; we cannot verify an install until they supply a listener. Neither plan currently mentions the other.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <h4>The productive framing</h4>
+    <p>Do not open with &ldquo;why so long, why so many people&rdquo;. Open with <strong>&ldquo;here is our side of the plan — what do you need from us, and when?&rdquo;</strong> It is a genuine question, it is the one most likely to be under-thought on their side, and the answer tells you immediately whether they have understood that this system involves physical machines. A team that says &ldquo;we&#39;ll need two devices on a public endpoint by week three&rdquo; has thought about it. A team that says &ldquo;nothing, we&#39;ll mock the data&rdquo; has not.</p>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>How to run the conversation</h2>
+  <ul>
+    <li><strong>Ask for the breakdown before challenging the total.</strong> Any credible five-month estimate can be decomposed into person-months per area. Asking for it is normal and non-confrontational — and it either produces a reasoned answer or reveals that the number came from a team template.</li>
+    <li><strong>Do not present a counter-number as a target.</strong> &ldquo;We think this is closer to two engineers&rdquo; invites a defensive re-quote. &ldquo;Here is what we think the work is — what do you see that we don&#39;t?&rdquo; invites engineering.</li>
+    <li><strong>Separate the estimate from the team.</strong> The estimate may be wrong and the team may still be right for the job. Keep those two judgements apart in the meeting or you will end up arguing about people.</li>
+    <li><strong>Ask what would make it faster.</strong> Directly: &ldquo;what would you cut, and what would you need from us, to have something real running in eight weeks?&rdquo; Good teams enjoy this question.</li>
+    <li><strong>Take notes on what they ask you.</strong> The questions a team asks about devices, CAN data, buffering and replay tell you more about their fit than any answer they give about timelines.</li>
+  </ul>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>The three that matter most</h2>
+  <p>If the meeting is short, ask only these.</p>
+  <div class="ask"><div class="q">1 &nbsp;·&nbsp; Can you break the five months into person-months by area?</div><div class="why">Tests whether the estimate is derived or assumed</div><p>Ingestion and protocol handling, data model and access control, the dashboard screens, reporting, infrastructure, testing. Roughly, not to the day.</p><p><strong>Why it matters:</strong> 45 person-months has to land somewhere. If ingestion is 4 and screens are 25, they have misjudged where the difficulty is. If they cannot produce the split at all, the number came from a standard team shape rather than from this work.</p></div>
+<div class="ask"><div class="q">2 &nbsp;·&nbsp; What do you need from us, and by when?</div><div class="why">The handoffs neither plan has dated</div><p>Devices, SIMs, a machine to fit an adapter to, the list of which machines can produce engine hours, access to the existing screens and specification.</p><p><strong>Why it matters:</strong> this is the seam where the schedule will actually break, and it is the question their estimate has not been forced to confront. It also converts the meeting from a negotiation into joint planning.</p></div>
+<div class="ask"><div class="q">3 &nbsp;·&nbsp; Are you writing a Codec 8E parser, or adopting one?</div><div class="why">Potentially four to six weeks and most of the protocol risk</div><p>The devices speak Teltonika&#39;s binary format over raw TCP — there is no MQTT and no HTTPS. Something has to terminate that connection, complete the IMEI handshake, validate the checksum and return the acknowledgement. Open-source servers already do this in production.</p><p><strong>Why it matters:</strong> if they are writing it from scratch, ask what that buys over adopting a tested one. There are legitimate answers — control over when the acknowledgement is sent is the main one — but it should be a decision with a reason, not a default.</p></div>
+
+</section>
+
+<section id="s3">
+  <h2><i>03</i>The estimate</h2>
+  <div class="ask"><div class="q">Which five workstreams are the five developers on, and what are the interfaces between them?</div><div class="why">Tests whether the work actually parallelises</div><p>The core of this system is one telemetry record shape, one schema, one tenancy model and one ingestion path. Those are one- or two-person artefacts by nature.</p><p>If the answer is five feature areas that all touch the same schema, the developers will spend a material share of their time coordinating rather than building.</p></div>
+<div class="ask"><div class="q">What are the three assumptions that, if wrong, break the five months?</div><div class="why">Every real estimate has them; a template has none</div><p>A team that answers this quickly and specifically has stress-tested its own number. A team that says &ldquo;we&#39;ve allowed contingency&rdquo; has not.</p></div>
+<div class="ask"><div class="q">Does the five months start at signature, or when the team is complete?</div><div class="why">Potentially two to three months of difference</div><p>&ldquo;Recruiting experienced talent will be necessary&rdquo; means the clock cannot start until people are hired, have served notice, and have started. Ask who carries the schedule risk if hiring runs long, and what the plan is if only part of the team materialises.</p></div>
+<div class="ask"><div class="q">What does the first month cost, and what do we own at the end of it?</div><div class="why">Makes a phased commitment possible</div><p>Whatever the total, the first month should be separately priced and separately valuable. It is also the cheapest way for both sides to find out whether this partnership works.</p></div>
+
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Scope and reuse</h2>
+  <div class="ask"><div class="q">What does &ldquo;the initial version&rdquo; contain? In writing.</div><div class="why">The answer changes the meaning of every other answer</div><p>Specifically: which screens, which user types, whether there is a customer-facing surface, whether there is a public API, whether multi-tenancy is in or out.</p><p>If their scope is substantially larger than ours, the team size may be defensible and the real problem is that nobody has written the scope down.</p></div>
+<div class="ask"><div class="q">Have you seen the seven dashboard screens that already exist, and the architecture and protocol documents?</div><div class="why">Determines whether they are scoping greenfield</div><p>A working prototype of the dashboard exists, on our brand, with the data shapes already modelled. The device and protocol specification is written. The architecture reference is current.</p><p>If the month-one display POC is rebuilding something we already have, that is the clearest single saving available.</p></div>
+<div class="ask"><div class="q">What in the proposal is genuinely new build, versus integration of things that exist?</div><div class="why">Separates the real work from the restated work</div><p>Wiring existing screens to live data is integration and it is a fraction of the cost of designing and building them.</p></div>
+
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Technical approach</h2>
+  <div class="ask"><div class="q">What is the DevOps engineer deploying?</div><div class="why">A full-time infrastructure role implies an architecture decision already taken</div><p>A viable pilot for this can be a single server and a database. If the plan involves a load balancer, a container fleet, a stream and several managed stores, that is a decision worth examining before it is staffed — it is defensible at scale and heavy at ten devices.</p></div>
+<div class="ask"><div class="q">When the server acknowledges a batch, has it already been durably stored?</div><div class="why">The single most important technical question in the system</div><p>The device deletes its only copy of a record the moment it is acknowledged. Acknowledging before the write is confirmed means a crash loses data silently — and this data is what a utilisation record is built from.</p><p>How they answer tells you whether they have thought about the device as a system with its own state, or as a client that posts JSON.</p></div>
+<div class="ask"><div class="q">How do you attribute a record to a customer when machines change hands mid-hire?</div><div class="why">Tests whether they have understood the tenancy problem</div><p>An asset works for one customer this quarter and another next. If tenancy is a column on the asset, re-hiring either rewrites history or exposes the previous customer&#39;s data.</p><p>The right answer involves dated assignment windows and resolving at the record&#39;s own timestamp. &ldquo;We&#39;ll add a tenant ID&rdquo; is the answer that costs a rebuild later.</p></div>
+<div class="ask"><div class="q">What happens when a device reconnects after four hours offline?</div><div class="why">Replay is routine here, not an edge case</div><p>It replays thousands of buffered records with timestamps hours old, interleaved with live ones. Trips, engine-hour deltas and geofence events all have to come out the same regardless of arrival order — and stale events must not fire alerts.</p></div>
+
+</section>
+
+<section id="s6">
+  <h2><i>06</i>What they need from us</h2>
+  <p>Ask them to fill this in. If they cannot, fill it in together in the meeting — it is the most valuable half hour available.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Handoff</th><th>Direction</th><th>Needed by</th><th>Blocks</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Endpoint and TLS details to configure devices against</td><td>them → us</td><td class="k">before any unit ships</td><td>Every install and every test unit</td></tr>
+      <tr><td class="k">Two test units with live SIMs</td><td>us → them</td><td class="k">as early as possible</td><td>All protocol work; without them it is written against a simulator</td></tr>
+      <tr><td class="k">Which machines have a supported CAN program number</td><td>us → them</td><td class="k">before the data model hardens</td><td>Whether engine hours exist for a given asset at all</td></tr>
+      <tr><td class="k">A working listener they operate</td><td>them → us</td><td class="k">before installs begin</td><td>Install verification — without it nobody can confirm a fit worked</td></tr>
+      <tr><td class="k">Real machine data over time</td><td>us → them</td><td class="k">continuous once fitted</td><td>Ledger correctness, replay handling, everything hard</td></tr>
+      <tr><td class="k">Fleet list with make, model, year</td><td>us → them</td><td class="k">week one</td><td>Their asset model, and our vendor enquiry</td></tr>
+    </tbody>
+  </table></div>
+  <figure class="fig">
+<svg viewBox="0 0 1000 400" role="img" aria-label="Timeline showing the hardware track owned by Kasper and the software track owned by the development team, with five handoff points between them">
+<defs><marker id="q1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="q1a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<line x1="250" y1="60" x2="250" y2="340" class="dg-grid"/>
+<text x="250" y="52" class="dg-s" text-anchor="middle">W1</text>
+<line x1="323" y1="60" x2="323" y2="340" class="dg-grid"/>
+<text x="323" y="52" class="dg-s" text-anchor="middle">W2</text>
+<line x1="396" y1="60" x2="396" y2="340" class="dg-grid"/>
+<text x="396" y="52" class="dg-s" text-anchor="middle">W4</text>
+<line x1="469" y1="60" x2="469" y2="340" class="dg-grid"/>
+<text x="469" y="52" class="dg-s" text-anchor="middle">W6</text>
+<line x1="542" y1="60" x2="542" y2="340" class="dg-grid"/>
+<text x="542" y="52" class="dg-s" text-anchor="middle">W8</text>
+<line x1="615" y1="60" x2="615" y2="340" class="dg-grid"/>
+<text x="615" y="52" class="dg-s" text-anchor="middle">W10</text>
+<line x1="688" y1="60" x2="688" y2="340" class="dg-grid"/>
+<text x="688" y="52" class="dg-s" text-anchor="middle">W12</text>
+<line x1="761" y1="60" x2="761" y2="340" class="dg-grid"/>
+<text x="761" y="52" class="dg-s" text-anchor="middle">W14</text>
+<line x1="834" y1="60" x2="834" y2="340" class="dg-grid"/>
+<text x="834" y="52" class="dg-s" text-anchor="middle">W16</text>
+<line x1="907" y1="60" x2="907" y2="340" class="dg-grid"/>
+<text x="907" y="52" class="dg-s" text-anchor="middle">W18</text>
+<line x1="980" y1="60" x2="980" y2="340" class="dg-grid"/>
+<text x="980" y="52" class="dg-s" text-anchor="middle">W20</text>
+<text x="14" y="28" class="dg-k">TWO TRACKS, AND WHAT CROSSES BETWEEN THEM</text>
+<text x="14" y="86" class="dg-acc">OURS — HARDWARE</text>
+<text x="14" y="110" class="dg-t">Program-number enquiry</text>
+<rect x="250" y="96" width="182" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="136" class="dg-t">Test units on a bench</text>
+<rect x="286" y="122" width="110" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="162" class="dg-t">SIM / M2M activation</text>
+<rect x="286" y="148" width="146" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="188" class="dg-t">Procure pilot fleet</text>
+<rect x="432" y="174" width="110" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="214" class="dg-t">Install + verify on machines</text>
+<rect x="578" y="200" width="110" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="246" class="dg-e">THEIRS — SOFTWARE</text>
+<text x="14" y="270" class="dg-t">Thin slice · device to screen</text>
+<rect x="250" y="256" width="219" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="296" class="dg-t">Ingestion + data model</text>
+<rect x="396" y="282" width="256" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="322" class="dg-t">Surfaces + rules</text>
+<rect x="578" y="308" width="219" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="348" class="dg-t">Ledger + evidence</text>
+<rect x="761" y="334" width="146" height="20" rx="5" class="dg-bar"/>
+<line x1="323" y1="86" x2="323" y2="354" class="dg-la"/>
+<circle cx="323" cy="366" r="4" class="dg-ms"/>
+<text x="323" y="386" class="dg-acc" text-anchor="middle">endpoint + TLS spec</text>
+<line x1="396" y1="86" x2="396" y2="354" class="dg-la"/>
+<circle cx="396" cy="366" r="4" class="dg-ms"/>
+<text x="396" y="386" class="dg-acc" text-anchor="middle">2 test units + SIMs</text>
+<line x1="432" y1="86" x2="432" y2="354" class="dg-la"/>
+<circle cx="432" cy="366" r="4" class="dg-ms"/>
+<text x="432" y="386" class="dg-acc" text-anchor="middle">which machines have ECU access</text>
+<line x1="615" y1="86" x2="615" y2="354" class="dg-la"/>
+<circle cx="615" cy="366" r="4" class="dg-ms"/>
+<text x="615" y="386" class="dg-acc" text-anchor="middle">real machine data</text>
+<line x1="578" y1="86" x2="578" y2="354" class="dg-la"/>
+<circle cx="578" cy="366" r="4" class="dg-ms"/>
+<text x="578" y="400" class="dg-acc" text-anchor="middle">listener for install verification</text>
+</svg>
+<figcaption>The vertical lines are the handoffs, and they are the part neither plan currently describes. Their estimate contains no dependency on us, and ours contains no commitment to them. Every one of these has a date and an owner or it will be discovered late: an endpoint they can point a device at, two test units and live SIMs, the list of which machines can actually produce engine hours, and — the one that runs the other way — a working listener by the time the electrician is on site, because otherwise nobody can verify an install.</figcaption>
+</figure>
+
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Team and hiring</h2>
+  <div class="ask"><div class="q">Can you start with a smaller core and ramp on evidence?</div><div class="why">Reduces their hiring risk and our exposure at the same time</div><p>An architect and two engineers can deliver a thin end-to-end slice. Hiring continues in parallel, and the team grows when there is work that genuinely parallelises — which is later than the plan assumes.</p><p>This is a suggestion that helps them. Committing to nine people from day one means they must hire nine people before they can start earning, and any hiring slip is their problem and our delay.</p></div>
+<div class="ask"><div class="q">Who specifically is on this, and have they built device telemetry before?</div><div class="why">The most predictive question about outcome</div><p>Not CVs — one concrete example of a system with real devices, buffering, replay and a binary protocol. Web application experience does not transfer to the parts of this that are hard.</p></div>
+<div class="ask"><div class="q">What happens if only five of the nine are hired by the start date?</div><div class="why">Tests whether the plan degrades gracefully</div><p>The answer reveals whether the estimate is a real plan or a resourcing formula.</p></div>
+
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Quality</h2>
+  <div class="ask"><div class="q">How do you generate device traffic before hardware exists?</div><div class="why">The answer that unblocks their whole schedule</div><p>The frame format is fully documented, so valid test packets can be constructed without a device. A traffic generator lets them work at full speed while our procurement runs, and it is the only way to test outage replay, duplicate delivery and clock skew on demand.</p><p>If they have not planned one, suggesting it is the single most useful thing you can offer them.</p></div>
+<div class="ask"><div class="q">What is your test approach for a four-hour outage replay?</div><div class="why">Separates telemetry experience from web experience</div><p>This cannot be tested by clicking through screens. It needs generated data with deliberately awkward properties: out-of-order timestamps, duplicates, gaps, implausible clocks.</p></div>
+<div class="ask"><div class="q">What are the two QA engineers testing in month two?</div><div class="why">A fair question, not a hostile one</div><p>Before there is a device, a user or a screen on live data, it is worth understanding what the test work actually is. If the answer is &ldquo;writing the traffic generator and the replay harness&rdquo;, that is excellent and the roles are misnamed. If it is manual test cases against mock data, the ratio is wrong.</p></div>
+
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Seven ways to do it better</h2>
+  <p>Offer these as suggestions, not conditions. Most of them make their life easier too.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Suggestion</th><th>What it buys</th></tr></thead>
+    <tbody>
+      <tr><td class="k">1 · Thin slice instead of a display POC</td><td>One real device, through their listener, into a store, onto one screen showing engine hours. Answers every dangerous question in five weeks instead of thirteen, and it is a more honest demo.</td></tr>
+      <tr><td class="k">2 · Build the traffic generator first</td><td>Unblocks their entire schedule from our procurement. Also the only practical way to test replay, duplicates and clock skew.</td></tr>
+      <tr><td class="k">3 · Adopt the protocol parser</td><td>Codec 8E parsing is solved and field-tested by open-source projects. Reimplementing it is weeks of work and most of the protocol risk, for a benefit that should be named explicitly.</td></tr>
+      <tr><td class="k">4 · Reuse the seven screens</td><td>They exist, on brand, with the data shapes modelled. Wiring them to live data is integration work, not design work.</td></tr>
+      <tr><td class="k">5 · Start smaller, ramp on evidence</td><td>Three people on the thin slice; grow when there is parallel work. Reduces their hiring risk and gets to first real data sooner.</td></tr>
+      <tr><td class="k">6 · Fix the record shape early, and keep it ours</td><td>One agreed telemetry record that everything downstream consumes. It is the contract between our track and theirs, and it is what lets either side change tools later without a rewrite.</td></tr>
+      <tr><td class="k">7 · Demo against real or generated data, weekly</td><td>Not status reports. A running system every week, fed by awkward data, is the only progress signal that cannot be faked.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>A different shape</h2>
+  <figure class="fig">
+<svg viewBox="0 0 1000 262" role="img" aria-label="Comparison of the proposed display-first phasing against a thin-slice-first phasing, showing when the protocol and ECU risks are resolved in each">
+<defs><marker id="q2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<line x1="200" y1="58" x2="200" y2="250" class="dg-grid"/>
+<text x="200" y="50" class="dg-s" text-anchor="middle">W1</text>
+<line x1="352" y1="58" x2="352" y2="250" class="dg-grid"/>
+<text x="352" y="50" class="dg-s" text-anchor="middle">W4</text>
+<line x1="504" y1="58" x2="504" y2="250" class="dg-grid"/>
+<text x="504" y="50" class="dg-s" text-anchor="middle">W8</text>
+<line x1="656" y1="58" x2="656" y2="250" class="dg-grid"/>
+<text x="656" y="50" class="dg-s" text-anchor="middle">W12</text>
+<line x1="808" y1="58" x2="808" y2="250" class="dg-grid"/>
+<text x="808" y="50" class="dg-s" text-anchor="middle">W16</text>
+<line x1="960" y1="58" x2="960" y2="250" class="dg-grid"/>
+<text x="960" y="50" class="dg-s" text-anchor="middle">W20</text>
+<text x="14" y="26" class="dg-k">WHEN THE UNKNOWNS GET ANSWERED</text>
+<text x="14" y="86" class="dg-t">Proposed</text>
+<rect x="200" y="70" width="152" height="26" rx="6" class="dg-bar"/>
+<text x="210" y="88" class="dg-t">POC · display</text>
+<rect x="352" y="70" width="608" height="26" rx="6" class="dg-bar"/>
+<text x="364" y="88" class="dg-t">full-scale development</text>
+<line x1="694" y1="100" x2="694" y2="126" class="dg-l" marker-end="url(#q2)"/>
+<text x="694" y="140" class="dg-err" text-anchor="middle">protocol + ECU risk lands here</text>
+<text x="694" y="154" class="dg-s" text-anchor="middle">two-thirds through, with the design hardened</text>
+<text x="14" y="196" class="dg-acct">Suggested</text>
+<rect x="200" y="180" width="228" height="26" rx="6" class="dg-barh"/>
+<text x="210" y="198" class="dg-acct">thin slice · device → store → screen</text>
+<rect x="428" y="180" width="57" height="26" rx="6" class="dg-bar"/>
+<text x="436" y="198" class="dg-s">re-est.</text>
+<rect x="485" y="180" width="475" height="26" rx="6" class="dg-bar"/>
+<text x="497" y="198" class="dg-t">build out, on evidence</text>
+<line x1="390" y1="174" x2="390" y2="150" class="dg-la"/>
+<text x="390" y="240" class="dg-acc" text-anchor="middle">same risk answered in week five, for the price of two devices</text>
+</svg>
+<figcaption>Same total duration, same team, one difference: when you find out. A display POC defers every question that could invalidate the design until the design is already built around the answer. A thin vertical slice — one real device, through their listener, into a store, onto one screen showing engine hours — answers the same questions in week five, while changing course is still cheap. It also gives them something honest to demo, and gives you a re-estimate grounded in real work rather than a template.</figcaption>
+</figure>
+
+  <p>Same duration, same team, one difference: when you find out. The commercial version of this is straightforward and standard — <strong>commit to the first six weeks, not to the five months.</strong> A fixed-price, fixed-deliverable thin slice, followed by a re-estimate grounded in real work.</p>
+  <div class="note ok">
+    <h4>What the first six weeks should deliver</h4>
+    <ul>
+      <li>A listener that terminates a real device, completes the handshake and acknowledges correctly</li>
+      <li>The agreed telemetry record shape, and a traffic generator that produces it</li>
+      <li>Two test units reporting from a bench, and one adapter fitted to one real machine</li>
+      <li>Engine hours from that machine visible on one screen</li>
+      <li>A re-estimate for the rest, written by people who have now seen the data</li>
+    </ul>
+    <p>If a team cannot do that in six weeks with three people, the five-month plan was never going to hold. If they can, you have a partner and an estimate you can trust.</p>
+  </div>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>The seam between us</h2>
+  <p>Three things to agree in writing, whoever builds what. None of them is contentious, and all three are usually left implicit until they cause a problem.</p>
+  <ul>
+    <li><strong>The telemetry record shape is jointly agreed and stays ours.</strong> It is the interface between their software and our devices. Given away, it becomes their internal format and every future change needs them.</li>
+    <li><strong>&ldquo;Installed&rdquo; means engine hours observed on the server.</strong> Not &ldquo;device fitted&rdquo;. A device reporting position but no engine hours looks perfectly healthy, and the difference is only visible on their side — so the definition has to be shared or the failure is found months later.</li>
+    <li><strong>A dated dependency list, maintained by both sides.</strong> Section 06 is the starting version. It takes ten minutes a week and it is the single most effective protection against the schedule quietly slipping at the handoffs.</li>
+  </ul>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Draft message</h2>
+  <p>Send as-is or trim. It asks for the three things that matter, offers something useful, and does not open a negotiation about headcount.</p>
+  <div class="draft">
+    <p>Thanks for the roadmap — helpful to see the shape of it. Before we go further I have a few questions, and a couple of suggestions that might make things easier on your side too.</p>
+    <p><strong>On the estimate.</strong> Could you break the five months down into rough person-months by area — protocol and ingestion, data model and access control, dashboard screens, reporting, infrastructure, testing? Not to the day, just enough that we can see where the effort sits. Related: does the five months start at signature or once the team is fully hired, and what is the plan if hiring runs longer than expected?</p>
+    <p><strong>On the split.</strong> We&#39;re handling the hardware side — Teltonika, the CAN adapters, SIMs, procurement and installation. That means there are handoffs between us that neither plan currently dates, and I&#39;d rather we work them out now than discover them later. Specifically:</p>
+    <ul>
+      <li>What do you need from us, and by when? Test devices, SIMs, a machine to fit an adapter to, the fleet list?</li>
+      <li>When can you give us an endpoint to configure devices against? We can&#39;t ship a unit before that exists.</li>
+      <li>We&#39;ll need a working listener before installs start — otherwise there&#39;s no way to verify a fit actually worked.</li>
+    </ul>
+    <p><strong>On approach.</strong> A few things worth discussing:</p>
+    <ol>
+      <li>The devices speak Teltonika&#39;s binary Codec 8E over raw TCP — no MQTT, no HTTPS — and something has to complete the IMEI handshake and return the acknowledgement. Are you planning to write that parser, or adopt an existing one? Open-source servers already do this in production.</li>
+      <li>Rather than a display POC in month one, would a thin end-to-end slice work better — one real device through your listener into a store, with engine hours on one screen? It answers the risky questions early and gives us both a real demo. We can have test units on a bench quickly.</li>
+      <li>We already have seven dashboard screens built as a working prototype, plus the architecture and protocol documents. Worth a look before scoping the POC — some of it may already be done.</li>
+      <li>A traffic generator that produces valid Codec 8E frames would let you work at full speed while our procurement runs, and it&#39;s the only practical way to test what happens when a device reconnects after hours offline. Is that in the plan?</li>
+    </ol>
+    <p><strong>One technical question</strong> I&#39;d like your view on: when your server acknowledges a batch, has it already been durably stored? The device deletes its only copy on acknowledgement, and this data is what our utilisation records are built from, so the ordering matters to us more than usual.</p>
+    <p>Happy to go through all of this on a call. And a genuine question rather than a leading one: what would you cut, and what would you need from us, to have something real running in eight weeks?</p>
+  </div>
+</section>
+
+<section id="s13">
+  <h2><i>13</i>Reading the answers</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Encouraging</th><th>Concerning</th></tr></thead>
+    <tbody>
+      <tr><td>Asks about buffer size, reporting interval, and what happens on reconnect</td><td>Proposes to mock the device data and integrate later</td></tr>
+      <tr><td>Produces the person-month breakdown without friction</td><td>Restates the total, or treats the question as a challenge</td></tr>
+      <tr><td>Has an opinion on adopting versus writing the parser, with reasons</td><td>Has not considered that the protocol is not HTTP</td></tr>
+      <tr><td>Asks for the fleet list and the CAN program numbers unprompted</td><td>Does not ask what data the machines can actually produce</td></tr>
+      <tr><td>Pushes back on something specific in our architecture</td><td>Agrees with everything</td></tr>
+      <tr><td>Offers a smaller start of their own accord</td><td>Requires the full team before anything can begin</td></tr>
+      <tr><td>Names who will actually do the work and what they have built before</td><td>Describes roles rather than people</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <h4>The point of all this</h4>
+    <p>Not to win an argument about headcount. It is to find out whether they have understood that this system involves physical machines on sites, with intermittent connectivity, whose data ends up in a record someone relies on months later. A team that gets that will produce a better plan on their own once the questions are in front of them — and a team that does not will produce the same number again in different words.</p>
+  </div>
+</section>
+
+<hr>
+<footer>
+  Dev Team Engagement Pack · internal · questions and suggestions, not conditions<br>
+  Companions: Kasper_GPS_Architecture.html · Kasper_GPS_Delivery_Plan.html · Kasper_GPS_Proposal_Review.html<br>
+  We own the hardware track; they own the software. The handoffs in section 06 are the part neither plan has dated.
+</footer>
+
+</main>
+</div>
+</body>
+</html>

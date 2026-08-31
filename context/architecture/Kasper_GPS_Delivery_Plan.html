@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kasper GPS Delivery Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dg-f1{fill:currentColor;opacity:.82}
+.dg-f2{fill:currentColor;opacity:.42}
+.dg-f3{fill:var(--yellow-dark);opacity:.9}
+.dg-f4{fill:var(--green);opacity:.75}
+.dg-bar{fill:var(--panel-2);stroke:currentColor;stroke-width:1}
+.dg-barh{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.4}
+.dg-grid{stroke:currentColor;stroke-width:1;opacity:.13}
+.dg-ms{fill:var(--yellow-dark)}
+.wk{font-family:var(--f-mono);font-size:12px;font-variant-numeric:tabular-nums;color:var(--text-3)}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Delivery plan</div>
+  <nav>
+    <a href="#s0"><b>00</b>Scope &amp; assumptions</a>
+    <a href="#s1"><b>01</b>The shape of the problem</a>
+    <a href="#s2"><b>02</b>Schedule</a>
+    <a href="#s3"><b>03</b>The critical path</a>
+    <div class="grp">Phases</div>
+    <a href="#s4"><b>04</b>Phase definitions</a>
+    <a href="#s5"><b>05</b>Gates</a>
+    <div class="grp">People</div>
+    <a href="#s6"><b>06</b>Staffing model</a>
+    <a href="#s7"><b>07</b>Roles</a>
+    <a href="#s8"><b>08</b>Staffing scenarios</a>
+    <div class="grp">Exposure</div>
+    <a href="#s9"><b>09</b>External dependencies</a>
+    <a href="#s10"><b>10</b>Schedule risks</a>
+    <a href="#s11"><b>11</b>Out of scope</a>
+    <a href="#s12"><b>12</b>What moves these dates</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal engineering · shared reference</div>
+  <h1>Kasper GPS Delivery Plan</h1>
+  <p>A preliminary roadmap and staffing model for the initial release: what has to happen, in what order, who is needed when, and which dependencies actually set the date.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>Scope and assumptions</h2>
+  <p>The <strong>initial release</strong> is taken to mean: a pilot fleet instrumented and verified, the seven Fleet screens running on live device data, a utilisation record produced from ECU engine hours, and a reconciled month behind it. Not a public launch, not a customer-facing rollout — the first point at which the system can be trusted to say something true about a machine.</p>
+
+  <div class="note">
+    <h4>How to read the numbers</h4>
+    <p><strong>Weeks are relative, not calendar dates.</strong> Week 1 is the day the first purchase order is raised. Nothing here is committed to a date because two of the largest inputs — vendor response time and machine availability — are not ours to schedule.</p>
+    <p>Durations are estimates for reasoning about sequence and shape. They assume a team that has not built this before, which is the honest assumption, and they include no holiday, no competing priorities and no second project. Treat the ordering as the useful part and the durations as a starting position to argue with.</p>
+  </div>
+
+  <h4>Assumed</h4>
+  <ul>
+    <li>Pilot size around <strong>ten machines</strong>, chosen from assets that go out on hire.</li>
+    <li>Hardware is FMC130 with the CAN adapter — the combination the architecture assumes.</li>
+    <li>The build is in-house. If an external partner takes the ingestion tier, section 08 sets out what changes.</li>
+    <li>Machines are working assets. They are instrumented when they are idle, not when the schedule would prefer.</li>
+    <li>No existing M2M account with the carrier. If one exists, take two weeks off the physical track.</li>
+  </ul>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>The shape of the problem</h2>
+  <p>There are two tracks, and only one of them is under the team's control.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>The software track</h4>
+      <p>Contract, ingestion, data model, surfaces, ledger. Estimable, compressible with more people at some phases, and recoverable when it slips — a bad week can be made up.</p>
+      <p>It is also the track everyone instinctively plans first, because it is the one they can see.</p>
+    </div>
+    <div class="card">
+      <h4>The physical track</h4>
+      <p>Program numbers from Teltonika, devices from a distributor, SIMs from a carrier, an electrician, and a machine standing still long enough to be wired.</p>
+      <p><em>Not estimable, not compressible, not recoverable.</em> Every wait belongs to someone else&#39;s calendar, and the steps are strictly serial.</p>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <h4>The single most important scheduling decision</h4>
+    <p><strong>Start the physical track in week one, before the software design is settled.</strong> Nothing in it depends on the architecture being finished — the fleet list, the program-number enquiry, the carrier account and one or two test units can all be in motion while the ingestion path is still being argued about.</p>
+    <p>The default behaviour is the opposite: settle the design, then order hardware. That sequence adds six to eight weeks to the end date and buys nothing, because the design questions that hardware would answer stay open the whole time.</p>
+  </div>
+
+  <div class="note ok">
+    <h4>Order one or two test units immediately</h4>
+    <p>Ahead of the fleet order, ahead of the program-number answer, ahead of everything. Two units on a bench are worth more than any amount of documentation: they answer the open protocol questions directly, they let P1 onward be written against real Codec 8E traffic rather than a generator, and they turn the largest technical unknown in the architecture — how an adopted server actually behaves at the handshake and the acknowledgement — into something observable in week four rather than week ten.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Schedule</h2>
+<figure class="fig">
+<svg viewBox="0 0 1030 492" role="img" aria-label="Two-track schedule over twenty weeks showing physical procurement and installation running ahead of and alongside the software phases, with the critical path highlighted">
+<defs><marker id="t1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<line x1="250" y1="52" x2="250" y2="446" class="dg-grid"/>
+<text x="250" y="44" class="dg-s" text-anchor="middle">W1</text>
+<line x1="324" y1="52" x2="324" y2="446" class="dg-grid"/>
+<text x="324" y="44" class="dg-s" text-anchor="middle">W2</text>
+<line x1="398" y1="52" x2="398" y2="446" class="dg-grid"/>
+<text x="398" y="44" class="dg-s" text-anchor="middle">W4</text>
+<line x1="472" y1="52" x2="472" y2="446" class="dg-grid"/>
+<text x="472" y="44" class="dg-s" text-anchor="middle">W6</text>
+<line x1="546" y1="52" x2="546" y2="446" class="dg-grid"/>
+<text x="546" y="44" class="dg-s" text-anchor="middle">W8</text>
+<line x1="620" y1="52" x2="620" y2="446" class="dg-grid"/>
+<text x="620" y="44" class="dg-s" text-anchor="middle">W10</text>
+<line x1="694" y1="52" x2="694" y2="446" class="dg-grid"/>
+<text x="694" y="44" class="dg-s" text-anchor="middle">W12</text>
+<line x1="768" y1="52" x2="768" y2="446" class="dg-grid"/>
+<text x="768" y="44" class="dg-s" text-anchor="middle">W14</text>
+<line x1="842" y1="52" x2="842" y2="446" class="dg-grid"/>
+<text x="842" y="44" class="dg-s" text-anchor="middle">W16</text>
+<line x1="916" y1="52" x2="916" y2="446" class="dg-grid"/>
+<text x="916" y="44" class="dg-s" text-anchor="middle">W18</text>
+<line x1="990" y1="52" x2="990" y2="446" class="dg-grid"/>
+<text x="990" y="44" class="dg-s" text-anchor="middle">W20</text>
+<text x="14" y="75" class="dg-k">TRACK A — PHYSICAL</text>
+<text x="14" y="102" class="dg-t">Order 1–2 test units</text>
+<rect x="250" y="88" width="92" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="128" class="dg-t">SIM account + M2M activation</text>
+<rect x="287" y="114" width="148" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="154" class="dg-t">Confirm CAN program numbers</text>
+<rect x="250" y="140" width="185" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="180" class="dg-t">Procure pilot devices + adapters</text>
+<rect x="435" y="166" width="111" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="206" class="dg-t">Book electrician · site access</text>
+<rect x="509" y="192" width="74" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="232" class="dg-t">Install + verify pilot machines</text>
+<rect x="583" y="218" width="111" height="20" rx="5" class="dg-barh"/>
+<text x="14" y="257" class="dg-k">TRACK B — SOFTWARE</text>
+<text x="14" y="284" class="dg-t">P0  Contract + traffic generator</text>
+<rect x="250" y="270" width="92" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="310" class="dg-t">P1  Ingestion + cold archive</text>
+<rect x="342" y="296" width="130" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="336" class="dg-t">P2  Data model + tenancy</text>
+<rect x="472" y="322" width="111" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="362" class="dg-t">P3  Surfaces + rules + delivery</text>
+<rect x="583" y="348" width="148" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="388" class="dg-t">   ↳ message templates submitted</text>
+<rect x="546" y="374" width="74" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="414" class="dg-t">P4  Ledger + sealing + record</text>
+<rect x="731" y="400" width="111" height="20" rx="5" class="dg-bar"/>
+<text x="14" y="439" class="dg-k">TRACK C — VALIDATION</text>
+<text x="14" y="466" class="dg-t">P5  Pilot run + reconciliation</text>
+<rect x="842" y="452" width="148" height="20" rx="5" class="dg-barh"/>
+<line x1="398" y1="52" x2="398" y2="452" class="dg-la"/>
+<polygon points="393,452 403,452 398,462" class="dg-ms"/>
+<text x="398" y="478" class="dg-acc" text-anchor="middle">first real device traffic</text>
+<line x1="620" y1="52" x2="620" y2="452" class="dg-la"/>
+<polygon points="615,452 625,452 620,462" class="dg-ms"/>
+<text x="620" y="478" class="dg-acc" text-anchor="middle">first ECU engine hours</text>
+<line x1="990" y1="52" x2="990" y2="452" class="dg-la"/>
+<polygon points="985,452 995,452 990,462" class="dg-ms"/>
+<text x="990" y="478" class="dg-acc" text-anchor="middle">reconciled month</text>
+</svg>
+<figcaption>Weeks are relative to the day the first purchase order is raised, not to a calendar. The shaded bars are the critical path, and note where they sit: five of the six are in the physical track. Software has slack; procurement, vendor response and site access do not. The two milestones that matter are the early ones — a test unit reporting in week 4 means P1 onward is written against real device traffic instead of a generator, and week 10 is the first time anyone finds out whether engine hours actually arrive from these machines.</figcaption>
+</figure>
+
+</section>
+
+<section id="s3">
+  <h2><i>03</i>The critical path</h2>
+<figure class="fig">
+<svg viewBox="0 0 1000 205" role="img" aria-label="Serial dependency chain from fleet list through Teltonika program numbers, procurement, electrician booking and installation to ECU hours arriving, with lead times on each link">
+<defs><marker id="t2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="t2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="14" y="60" width="146" height="58" rx="10" class="dg-box"/>
+<text x="87" y="84" class="dg-t" text-anchor="middle">Fleet list</text>
+<text x="87" y="101" class="dg-s" text-anchor="middle">make · model · year</text>
+<rect x="176" y="60" width="146" height="58" rx="10" class="dg-hi"/>
+<text x="249" y="84" class="dg-acct" text-anchor="middle">Teltonika</text>
+<text x="249" y="101" class="dg-s" text-anchor="middle">program number per model</text>
+<rect x="338" y="60" width="146" height="58" rx="10" class="dg-hi"/>
+<text x="411" y="84" class="dg-acct" text-anchor="middle">Order</text>
+<text x="411" y="101" class="dg-s" text-anchor="middle">devices + adapters</text>
+<rect x="500" y="60" width="146" height="58" rx="10" class="dg-hi"/>
+<text x="573" y="84" class="dg-acct" text-anchor="middle">Electrician</text>
+<text x="573" y="101" class="dg-s" text-anchor="middle">booked · site access</text>
+<rect x="662" y="60" width="146" height="58" rx="10" class="dg-hi"/>
+<text x="735" y="84" class="dg-acct" text-anchor="middle">Install</text>
+<text x="735" y="101" class="dg-s" text-anchor="middle">wire · verify on server</text>
+<rect x="824" y="60" width="146" height="58" rx="10" class="dg-hi"/>
+<text x="897" y="84" class="dg-acct" text-anchor="middle">ECU hours</text>
+<text x="897" y="101" class="dg-s" text-anchor="middle">arriving</text>
+<line x1="160" y1="89" x2="174" y2="89" class="dg-la" marker-end="url(#t2a)"/>
+<text x="168" y="46" class="dg-acc" text-anchor="middle">~1 wk</text>
+<line x1="322" y1="89" x2="336" y2="89" class="dg-la" marker-end="url(#t2a)"/>
+<text x="330" y="46" class="dg-acc" text-anchor="middle">1–3 wk</text>
+<line x1="484" y1="89" x2="498" y2="89" class="dg-la" marker-end="url(#t2a)"/>
+<text x="492" y="46" class="dg-acc" text-anchor="middle">~1 wk</text>
+<line x1="646" y1="89" x2="660" y2="89" class="dg-la" marker-end="url(#t2a)"/>
+<text x="654" y="46" class="dg-acc" text-anchor="middle">1–2 wk</text>
+<line x1="808" y1="89" x2="822" y2="89" class="dg-la" marker-end="url(#t2a)"/>
+<text x="816" y="46" class="dg-acc" text-anchor="middle">2–3 wk</text>
+<text x="14" y="30" class="dg-k">EVERY LINK IS SOMEONE ELSE’S CALENDAR</text>
+<text x="14" y="152" class="dg-s">Software runs alongside this and can absorb slip. This chain cannot: each step needs the one before it finished,</text>
+<text x="14" y="167" class="dg-s">and four of the five waits belong to a supplier, a vendor, or a machine that is busy earning.</text>
+<text x="14" y="190" class="dg-err">A week lost at the Teltonika step is a week lost at the end. There is no way to compress it later.</text>
+</svg>
+<figcaption>The chain that sets the date. Nothing in it is parallelisable — you cannot order the right adapter before you know the program number, and you cannot verify an install before the adapter is on the machine. The one lever available is starting it on day one, before the software design is settled, because none of these steps depends on the software being finished.</figcaption>
+</figure>
+
+  <p>Two consequences worth stating plainly. <strong>The end date is set by the fleet list</strong>, because everything downstream waits on knowing which machines have a supported program number — and that list has to be accurate about make, model and year, not approximate. <strong>And the last link is the longest.</strong> Installation is two to three weeks not because wiring a device takes long, but because ten machines are rarely idle at the same time, on the same site, on days the electrician is free.</p>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Phase definitions</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Phase</th><th class="num">Weeks</th><th>Delivers</th><th>Carries the risk of</th></tr></thead>
+    <tbody>
+      <tr><td class="k">P0 · Contract</td><td class="num">1–2.5</td><td>The telemetry contract, the normaliser skeleton, and a traffic generator producing valid Codec 8E frames</td><td>Nothing visible. This is the phase most likely to be skipped and the one that makes every later phase a contained change.</td></tr>
+      <tr><td class="k">P1 · Ingestion</td><td class="num">2.5–6</td><td>Terminator stood up, device registry, normaliser writing the contract into a store, immutable archive</td><td>The protocol assumptions. If the devices behave differently from the documentation, it surfaces here.</td></tr>
+      <tr><td class="k">P2 · Model</td><td class="num">6–9</td><td>Assets, devices, both assignment tables, row-level security, enricher, state projector</td><td>Tenancy. Expensive to retrofit and the failure is silent.</td></tr>
+      <tr><td class="k">P3 · Surfaces</td><td class="num">9–13</td><td>Seven Fleet screens on live data, geofences and rules, message delivery</td><td>Scope. This is where features get invented, and it overlaps the install window.</td></tr>
+      <tr><td class="k">P4 · Ledger</td><td class="num">13–16</td><td>Utilisation ledger, periods, gap accounting, sealing, record rendering</td><td>Correctness under replay and out-of-order arrival. Hard to test without months of messy real data.</td></tr>
+      <tr><td class="k">P5 · Pilot</td><td class="num">16–20</td><td>Pilot running, reconciliation against the existing path, operational runbook</td><td>Reality. Everything the first four phases assumed gets tested by machines on sites.</td></tr>
+    </tbody>
+  </table></div>
+  <p>P0 and P1 carry the technical risk; P2 carries the design risk; P5 carries the risk nobody can estimate. If time has to come out, it comes out of P3 — a screen deferred is recoverable, a tenancy model retrofitted is not.</p>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Gates</h2>
+  <p>What has to be demonstrably true to leave each phase. Not a status update — a thing someone can watch happen.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Leaving</th><th>Only when</th></tr></thead>
+    <tbody>
+      <tr><td class="k">P0</td><td>Generated frames decode into the contract with sources set correctly, and no surface references an ingestion-specific shape</td></tr>
+      <tr><td class="k">P1</td><td>A real test unit&#39;s data reaches the store and the archive; killing the store mid-flight causes the device to replay with no gap</td></tr>
+      <tr><td class="k">P2</td><td>A record resolves to exactly one tenant at its own timestamp, and a cross-tenant query returns nothing under row-level security</td></tr>
+      <tr><td class="k">P3</td><td>A real geofence crossing on a real machine reaches a real phone, and a site-scoped user sees only their own assets</td></tr>
+      <tr><td class="k">P4</td><td>A hire period produces a sealed record that resolves to an immutable object version and discloses its unobserved gaps</td></tr>
+      <tr><td class="k">P5</td><td>A full reporting cycle reconciles against the existing path with every difference explained, not merely small</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <h4>One gate is different from the others</h4>
+    <p>P1&#39;s gate asks you to <strong>break the system on purpose</strong> — kill the store while a device is mid-transmission and confirm the device replays rather than losing the record. It is the only gate that tests the property the whole architecture is built around, and it takes an afternoon. Skipping it means finding out during a dispute instead.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Staffing model</h2>
+<figure class="fig">
+<svg viewBox="0 0 900 380" role="img" aria-label="Stacked bar chart of full-time-equivalent effort by role across the six phases, peaking at 2.3 FTE during P3">
+<line x1="70" y1="300" x2="876" y2="300" class="dg-grid"/>
+<text x="60" y="304" class="dg-s" text-anchor="end">0.0</text>
+<line x1="70" y1="256" x2="876" y2="256" class="dg-grid"/>
+<text x="60" y="260" class="dg-s" text-anchor="end">0.5</text>
+<line x1="70" y1="212" x2="876" y2="212" class="dg-grid"/>
+<text x="60" y="216" class="dg-s" text-anchor="end">1.0</text>
+<line x1="70" y1="168" x2="876" y2="168" class="dg-grid"/>
+<text x="60" y="172" class="dg-s" text-anchor="end">1.5</text>
+<line x1="70" y1="124" x2="876" y2="124" class="dg-grid"/>
+<text x="60" y="128" class="dg-s" text-anchor="end">2.0</text>
+<line x1="70" y1="80" x2="876" y2="80" class="dg-grid"/>
+<text x="60" y="84" class="dg-s" text-anchor="end">2.5</text>
+<text x="14" y="30" class="dg-k">FTE BY PHASE</text>
+<rect x="90" y="256" width="96" height="44" class="dg-f4"/>
+<rect x="90" y="230" width="96" height="26" class="dg-f3"/>
+<rect x="90" y="142" width="96" height="88" class="dg-f1"/>
+<text x="138.0" y="133" class="dg-acc" text-anchor="middle">1.8</text>
+<text x="138.0" y="320" class="dg-t" text-anchor="middle">P0</text>
+<rect x="226" y="265" width="96" height="35" class="dg-f4"/>
+<rect x="226" y="238" width="96" height="26" class="dg-f3"/>
+<rect x="226" y="150" width="96" height="88" class="dg-f1"/>
+<text x="274.0" y="141" class="dg-acc" text-anchor="middle">1.7</text>
+<text x="274.0" y="320" class="dg-t" text-anchor="middle">P1</text>
+<rect x="362" y="274" width="96" height="26" class="dg-f4"/>
+<rect x="362" y="256" width="96" height="18" class="dg-f3"/>
+<rect x="362" y="238" width="96" height="18" class="dg-f2"/>
+<rect x="362" y="150" width="96" height="88" class="dg-f1"/>
+<text x="410.0" y="141" class="dg-acc" text-anchor="middle">1.7</text>
+<text x="410.0" y="320" class="dg-t" text-anchor="middle">P2</text>
+<rect x="498" y="256" width="96" height="44" class="dg-f4"/>
+<rect x="498" y="238" width="96" height="18" class="dg-f3"/>
+<rect x="498" y="150" width="96" height="88" class="dg-f2"/>
+<rect x="498" y="98" width="96" height="53" class="dg-f1"/>
+<text x="546.0" y="89" class="dg-acc" text-anchor="middle">2.3</text>
+<text x="546.0" y="320" class="dg-t" text-anchor="middle">P3</text>
+<rect x="634" y="282" width="96" height="18" class="dg-f4"/>
+<rect x="634" y="265" width="96" height="18" class="dg-f3"/>
+<rect x="634" y="238" width="96" height="26" class="dg-f2"/>
+<rect x="634" y="150" width="96" height="88" class="dg-f1"/>
+<text x="682.0" y="141" class="dg-acc" text-anchor="middle">1.7</text>
+<text x="682.0" y="320" class="dg-t" text-anchor="middle">P4</text>
+<rect x="770" y="256" width="96" height="44" class="dg-f4"/>
+<rect x="770" y="230" width="96" height="26" class="dg-f3"/>
+<rect x="770" y="203" width="96" height="26" class="dg-f2"/>
+<rect x="770" y="159" width="96" height="44" class="dg-f1"/>
+<text x="818.0" y="150" class="dg-acc" text-anchor="middle">1.6</text>
+<text x="818.0" y="320" class="dg-t" text-anchor="middle">P5</text>
+<line x1="70" y1="300" x2="876" y2="300" class="dg-l"/>
+<rect x="90" y="340" width="13" height="13" class="dg-f1"/>
+<text x="109" y="351" class="dg-e">Backend / data</text>
+<rect x="196.0" y="340" width="13" height="13" class="dg-f2"/>
+<text x="215.0" y="351" class="dg-e">Frontend</text>
+<rect x="266.0" y="340" width="13" height="13" class="dg-f3"/>
+<text x="285.0" y="351" class="dg-e">Architecture · vendors</text>
+<rect x="420.0" y="340" width="13" height="13" class="dg-f4"/>
+<text x="439.0" y="351" class="dg-e">Field &amp; procurement</text>
+</svg>
+<figcaption>Effort is not flat, and the peak is not where people expect it. P3 is the crunch — screens being wired to live data at the same moment machines are being instrumented — and it is the one phase where a second pair of hands genuinely buys time. P0 to P2 resist splitting: they are one contract, one schema and one ingestion path, and two engineers on them mostly generate coordination. Field and procurement effort is highest at the start, which is the opposite of how these plans are usually staffed.</figcaption>
+</figure>
+
+  <p>Peak is <strong>2.3 FTE at P3</strong>; the twenty-week release costs roughly <strong>36 person-weeks</strong> in total. Both numbers assume the same people stay on it throughout — a plan that hands the work between people at phase boundaries costs materially more, because the tenancy model and the telemetry contract are the kind of thing that has to be held in one head to stay coherent.</p>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Roles</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Role</th><th>Owns</th><th>Needed</th><th class="num">Person-weeks</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Backend / data</td><td>Contract, normaliser, ingestion, schema and row-level security, ledger, sealing. <strong>The constraint on this plan.</strong></td><td>W1–W20, near-full through P0–P2 and P4</td><td class="num">~17</td></tr>
+      <tr><td class="k">Frontend</td><td>Wiring the seven existing screens to live data, geofence editing, alert surfaces. Screens exist already — this is integration, not design.</td><td>Heavily P3, tapering</td><td class="num">~7</td></tr>
+      <tr><td class="k">Architecture &amp; vendors</td><td>Teltonika, carrier and distributor threads; the open decisions; keeping the design coherent as reality arrives</td><td>Continuous, part-time</td><td class="num">~5</td></tr>
+      <tr><td class="k">Field &amp; procurement</td><td>Fleet list, purchase orders, SIM activation, electrician scheduling, install verification, chasing responses</td><td>Front-loaded, peaks again at installs</td><td class="num">~7</td></tr>
+      <tr><td class="k">Auto-electrician</td><td>Physical installation and wiring</td><td>Contracted, ~1 machine-day each</td><td class="num">~2</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn">
+    <h4>The role most often left unassigned</h4>
+    <p><strong>Field and procurement is a real job, not admin someone absorbs.</strong> Seven person-weeks of chasing a distributor, getting a carrier account opened, extracting program numbers from a vendor, and finding ten machines standing still. When it is nobody&#39;s named responsibility it defaults to whoever is busiest, and it is the track that sets the end date. Name a person.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Staffing scenarios</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Scenario</th><th class="num">Weeks</th><th>What actually changes</th></tr></thead>
+    <tbody>
+      <tr><td class="k">One engineer</td><td class="num">~24</td><td>P3 stretches by about four weeks because screens follow the ledger rather than running alongside it. Everything else is unchanged — P0 to P2 were never going to parallelise.</td></tr>
+      <tr><td class="k">Two engineers <span class="pill prop">assumed</span></td><td class="num">~20</td><td>The plan above. The second engineer earns their place in P3 and is under-used in P0–P2; the honest use of them early is the traffic generator, the install verification tooling, and taking the field-and-procurement role.</td></tr>
+      <tr><td class="k">Three engineers</td><td class="num">~19</td><td>Almost no gain. The physical track becomes the binding constraint before the software does, and the third engineer spends P0–P2 waiting on decisions only one person can make.</td></tr>
+      <tr><td class="k">Partner builds ingestion</td><td class="num">~20</td><td>Not faster, and differently risky. Removes P0–P1 from the internal team and adds a specification, a review cycle and an integration seam. Worth it to buy capacity, not to buy time — and the telemetry contract must stay ours or the reversibility rule is lost on day one.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <h4>Why adding people barely moves it</h4>
+    <p>The software is not the long pole after roughly week nine. Below three engineers the constraint is the backend; at three and above it is a distributor, a vendor and a machine that is out earning. Beyond the second engineer, <strong>money is better spent shortening the physical track</strong> — paying for expedited shipping, a second electrician, or simply starting four weeks earlier — than on more software capacity.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>External dependencies</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Dependency</th><th>Owner</th><th class="num">Assumed</th><th>If it slips</th></tr></thead>
+    <tbody>
+      <tr><td class="k">CAN program numbers</td><td>Teltonika</td><td class="num">1–3 wk</td><td>Everything slips one-for-one. The single most schedule-sensitive item in the plan.</td></tr>
+      <tr><td class="k">Device supply</td><td>UAE distributor</td><td class="num">3–5 d</td><td>Low risk at pilot volume; stocked locally. Confirm the CAN adapter is stocked too — it often is not.</td></tr>
+      <tr><td class="k">M2M SIM account</td><td>Carrier</td><td class="num">1–2 wk</td><td>Blocks installs, not the build. Longer if the account is new; start it in week one regardless.</td></tr>
+      <tr><td class="k">Electrician availability</td><td>Contractor</td><td class="num">1–2 wk</td><td>Compressible by paying for it. One of the few places money converts to time.</td></tr>
+      <tr><td class="k">Machine availability</td><td>Operations</td><td class="num">2–3 wk</td><td><strong>The least controllable input.</strong> Machines are instrumented when idle. Plan installs around the yard&#39;s reality, and instrument opportunistically rather than in a batch.</td></tr>
+      <tr><td class="k">Message template approval</td><td>Messaging provider</td><td class="num">1–2 wk</td><td>Only bites if submitted late. Submit during P2, not at the start of P3.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Schedule risks</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Risk</th><th>Effect</th><th>Reduce it by</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Program numbers unavailable for part of the fleet</td><td>Those machines cannot produce engine hours at all. Pilot scope shrinks or shifts to different machines.</td><td>Asking Teltonika about the whole fleet list in week one, not the ten machines you had in mind</td></tr>
+      <tr><td class="k">Physical track started late</td><td>Six to eight weeks added, invisibly, because the software looks on schedule the whole time</td><td>Raising the first purchase order before the architecture is agreed</td></tr>
+      <tr><td class="k">No early test unit</td><td>P1 built against a generator; protocol assumptions unverified until installs. Rework lands in the worst week.</td><td>Two units on a bench by week three</td></tr>
+      <tr><td class="k">Install sign-off without verification</td><td>A device that reports position but no engine hours looks healthy. Discovered when the record is needed.</td><td>Making &quot;engine hours visible on our server&quot; the definition of a completed install</td></tr>
+      <tr><td class="k">P3 scope growth</td><td>Screens are the visible part, so this is where requests land. Four weeks becomes seven.</td><td>Fixing the seven screens as the scope and queueing everything else behind P5</td></tr>
+      <tr><td class="k">Ledger correctness found late</td><td>Replay and out-of-order handling fail on real data during P5, after the design has hardened</td><td>Replaying a deliberately messy day — outage, backlog, clock skew — against the ledger during P4</td></tr>
+      <tr><td class="k">Single-person dependency</td><td>One person holds the contract, the schema and the vendor threads. Any absence stops the plan.</td><td>The architecture reference existing and being current; a second engineer reading it in P1 rather than P3</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>Out of scope for the initial release</h2>
+  <p>Named so that leaving them out is a decision rather than an oversight, and so nobody plans around them being present.</p>
+  <ul>
+    <li><strong>Analytics over accumulated history.</strong> Separate work, and it needs history that will not exist for months.</li>
+    <li><strong>The purpose-built ingestion gateway.</strong> The plan assumes an adopted server. Building the gateway instead adds roughly four to six weeks to P1 and is worth it only if engine hours are relied on outside the team from day one.</li>
+    <li><strong>Owner-scoped external access.</strong> The predicate should exist and be tested; the surface can follow.</li>
+    <li><strong>Scheduled report delivery, acknowledgement and escalation, public API and webhooks.</strong> Schema should carry the fields; behaviour can wait.</li>
+    <li><strong>Anything requiring a second device type or a second protocol.</strong></li>
+  </ul>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>What moves these dates</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Question</th><th>Effect on the plan</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Which machines have a supported program number?</td><td>Sets which assets the pilot uses and therefore when installs can start. Everything downstream. <strong>Answer first.</strong></td></tr>
+      <tr><td class="k">Adopted server or purpose-built gateway?</td><td>Four to six weeks on P1, and it changes who is needed in P0–P1</td></tr>
+      <tr><td class="k">Reporting interval</td><td>No effect on the schedule; large effect on data volume and storage growth. Decide before P1 hardens.</td></tr>
+      <tr><td class="k">Hosting and region</td><td>No effect on the software schedule; blocks any infrastructure procurement or estimate</td></tr>
+      <tr><td class="k">Existing carrier M2M account?</td><td>Two weeks off the physical track if one exists</td></tr>
+      <tr><td class="k">Is a second engineer available, and from when?</td><td>Four weeks between the one- and two-engineer scenarios, realised entirely in P3</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr>
+<footer>
+  Kasper GPS Delivery Plan · preliminary · internal engineering reference<br>
+  Companion to Kasper_GPS_Architecture.html — phase definitions and gates follow its build sequence.<br>
+  Weeks are relative to the first purchase order. Durations are estimates for reasoning about sequence, not commitments.
+</footer>
+
+</main>
+</div>
+</body>
+</html>

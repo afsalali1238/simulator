@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPS Requirements Specification</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dg-f1{fill:currentColor;opacity:.82}
+.dg-f3{fill:var(--yellow-dark);opacity:.9}
+.dg-grid{stroke:currentColor;stroke-width:1;opacity:.13}
+.dg-bar{fill:var(--panel-2);stroke:currentColor;stroke-width:1}
+.dg-barh{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.4}
+table.req{font-size:13px}
+table.req td.id{font-family:var(--f-mono);font-size:11.5px;white-space:nowrap;color:var(--yellow-dark);font-weight:700}
+table.req td.pr{font-family:var(--f-mono);font-size:10px;text-align:center;white-space:nowrap}
+table.req td.src{font-family:var(--f-mono);font-size:10px;color:var(--text-3);white-space:nowrap}
+table.req td.ac{color:var(--text-2);font-size:12.5px}
+.M{color:var(--error);font-weight:700}
+.S{color:var(--yellow-dark);font-weight:700}
+.C{color:var(--text-3);font-weight:700}
+.cnt{font-family:var(--f-mono);font-size:10px;color:var(--text-3);letter-spacing:.08em;margin:0 0 6px}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Requirements</div>
+  <nav>
+    <a href="#s0"><b>00</b>Purpose &amp; how to use</a>
+    <a href="#s1"><b>01</b>Scope boundary</a>
+    <a href="#s2"><b>02</b>Conventions</a>
+    <a href="#s3"><b>03</b>Actors</a>
+    <div class="grp">Requirements</div>
+    <a href="#s4"><b>04</b>ING · Ingestion &amp; devices</a>
+    <a href="#s5"><b>05</b>ATT · Attribute</a>
+    <a href="#s6"><b>06</b>LOC · Locate</a>
+    <a href="#s7"><b>07</b>HIS · Reconstruct</a>
+    <a href="#s8"><b>08</b>DET · Detect</a>
+    <a href="#s9"><b>09</b>EVD · Evidence</a>
+    <a href="#s10"><b>10</b>DLV · Delivery</a>
+    <a href="#s11"><b>11</b>RPT · Reporting</a>
+    <a href="#s12"><b>12</b>NFR · Non-functional</a>
+    <div class="grp">Boundaries</div>
+    <a href="#s13"><b>13</b>Interfaces between teams</a>
+    <a href="#s14"><b>14</b>Constraints</a>
+    <a href="#s15"><b>15</b>Out of scope</a>
+    <div class="grp">Closing</div>
+    <a href="#s16"><b>16</b>Acceptance</a>
+    <a href="#s17"><b>17</b>Open questions</a>
+    <a href="#s18"><b>18</b>How to estimate this</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal engineering · estimation basis</div>
+  <h1>GPS Requirements</h1>
+  <p>What the initial release contains, stated so it can be estimated against and tested. One hundred and twelve numbered requirements, each with an acceptance condition, plus what is explicitly excluded.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>Purpose and how to use this</h2>
+  <p>This exists to answer one question that has been asked and not yet answered in writing: <strong>what does the initial release contain?</strong> An estimate produced without it is a guess about scope dressed as a guess about effort.</p>
+  <div class="note">
+    <h4>How to respond to it</h4>
+    <p>Do not respond with a total. Respond <strong>per requirement group</strong>: rough effort, any requirement you think is wrong or missing, and anything you cannot estimate without more information. A requirement you disagree with is a useful answer — an estimate that silently absorbs it is not.</p>
+    <p>Where a requirement seems obvious, check its acceptance condition before agreeing. Several of them look ordinary and are not: ING-04, ATT-05, EVD-03 and DET-10 in particular describe behaviour that most systems get wrong by default.</p>
+  </div>
+  <p>These are requirements, not a design. Where one implies a mechanism it is because the mechanism is the requirement — acknowledging only after a durable write is not an implementation preference, it is the difference between a gap being recoverable and being invisible.</p>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>Scope boundary</h2>
+  <p>The initial release delivers five capabilities in dependency order. Everything in this document serves one of them; anything that served none has been cut, and the cuts are listed in section 15.</p>
+  <figure class="fig">
+<svg viewBox="0 0 1000 340" role="img" aria-label="Bar chart of requirement counts across eight capability groups in build order, with ingestion, attribution and evidence highlighted as the ones that cannot be retrofitted">
+<text x="14" y="26" class="dg-k">REQUIREMENTS BY CAPABILITY  ·  BUILD ORDER TOP TO BOTTOM</text>
+<text x="14" y="71" class="dg-acct">ING · Ingestion &amp; devices</text>
+<rect x="230" y="56" width="221" height="22" rx="5" class="dg-barh"/>
+<text x="461" y="72" class="dg-e">17</text>
+<text x="485" y="72" class="dg-s">Nothing else can be built or tested until records arrive and are trusted</text>
+<text x="14" y="101" class="dg-acct">ATT · Attribute</text>
+<rect x="230" y="86" width="208" height="22" rx="5" class="dg-barh"/>
+<text x="448" y="102" class="dg-e">16</text>
+<text x="459" y="102" class="dg-s">Every other capability is filtered through it; retrofitting it is a rebuild</text>
+<text x="14" y="131" class="dg-t">LOC · Locate</text>
+<rect x="230" y="116" width="130" height="22" rx="5" class="dg-bar"/>
+<text x="370" y="132" class="dg-e">10</text>
+<text x="394" y="132" class="dg-s">The visible capability, and the least risky</text>
+<text x="14" y="161" class="dg-t">HIS · Reconstruct</text>
+<rect x="230" y="146" width="104" height="22" rx="5" class="dg-bar"/>
+<text x="344" y="162" class="dg-e">8</text>
+<text x="368" y="162" class="dg-s">Correctness under replay is the hard part, not the queries</text>
+<text x="14" y="191" class="dg-t">DET · Detect</text>
+<rect x="230" y="176" width="208" height="22" rx="5" class="dg-bar"/>
+<text x="448" y="192" class="dg-e">16</text>
+<text x="446" y="192" class="dg-s">Depends on Locate and on site definitions from Attribute</text>
+<text x="14" y="221" class="dg-acct">EVD · Evidence</text>
+<rect x="230" y="206" width="182" height="22" rx="5" class="dg-barh"/>
+<text x="422" y="222" class="dg-e">14</text>
+<text x="446" y="222" class="dg-s">Depends on all of the above being right; the reason the system exists</text>
+<text x="14" y="251" class="dg-t">DLV · Delivery</text>
+<rect x="230" y="236" width="117" height="22" rx="5" class="dg-bar"/>
+<text x="357" y="252" class="dg-e">9</text>
+<text x="381" y="252" class="dg-s">Carries Detect to people who are not looking at a screen</text>
+<text x="14" y="281" class="dg-t">RPT · Reporting</text>
+<rect x="230" y="266" width="130" height="22" rx="5" class="dg-bar"/>
+<text x="370" y="282" class="dg-e">10</text>
+<text x="381" y="282" class="dg-s">Renders from sealed Evidence, not from live queries</text>
+<text x="14" y="318" class="dg-s">Shaded rows are the ones that are expensive or impossible to retrofit. They are also the three most likely to be under-estimated,</text>
+<text x="14" y="334" class="dg-s">because none of them produces a screen anybody can look at.</text>
+</svg>
+<figcaption>Requirement counts are not effort estimates — Locate has nine requirements and is the easiest capability in the system, while Attribute has fourteen and is the one most likely to force a rebuild if it is got wrong. The build order matters more than the counts: ingestion has to be trustworthy before anything above it means anything, and attribution has to exist before any surface can safely show a record to a customer.</figcaption>
+</figure>
+
+  <div class="tw"><table>
+    <thead><tr><th>Capability</th><th>Means</th><th>Done when</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Locate</td><td>Where is this machine now, and is it working</td><td>An operator finds any asset in scope on a map and knows whether the answer is current</td></tr>
+      <tr><td class="k">Reconstruct</td><td>Where has it been, and what did it do</td><td>A day can be replayed accurately, including a day containing an outage</td></tr>
+      <tr><td class="k">Detect</td><td>Tell someone when something matters</td><td>A real geofence crossing reaches a real phone, and a silent device raises an alert</td></tr>
+      <tr><td class="k">Attribute</td><td>Whose machine was this, and when</td><td>A record resolves to exactly one tenant at its own timestamp, enforced at the data layer</td></tr>
+      <tr><td class="k">Evidence</td><td>Prove how long it ran, months later</td><td>A hire period produces a sealed record, backed by immutable data, that discloses its gaps</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn">
+    <h4>Where the difficulty actually sits</h4>
+    <p>Locate, reconstruct and detect are satisfied by any competent tracking product and account for most of the visible surface. <strong>Attribute and evidence are the reason this is being built rather than bought</strong>, and they account for almost none of the visible surface. An estimate that scales with screens will be wrong in both directions at once.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Conventions</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Column</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="k">ID</td><td>Stable. Quote it in estimates, questions and commits. IDs are never reused if a requirement is withdrawn.</td></tr>
+      <tr><td class="k">Acceptance</td><td>The observable condition that closes the requirement. If it cannot be demonstrated, the requirement is not met — a passing unit test is not the acceptance condition.</td></tr>
+      <tr><td class="k">Priority</td><td><span class="M">M</span> in the initial release · <span class="S">S</span> wanted, may be deferred with agreement · <span class="C">C</span> out unless it costs nothing</td></tr>
+      <tr><td class="k">Source</td><td><strong>Device</strong> comes free from the telemetry stream · <strong>CAN</strong> depends on ECU access per machine · <strong>Protocol</strong> is fixed by the device · <strong>Platform</strong> is application logic · <strong>Design</strong> is a property that must be built in rather than added</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Source matters for estimation.</strong> A CAN-sourced requirement carries an external dependency that may not be satisfiable for every machine; a Design-sourced requirement cannot be added later without rework. Neither is visible from the requirement text alone.</p>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>Actors</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Actor</th><th>Uses the system to</th><th>Sees</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Internal operator</td><td>Run the fleet day to day — map, alerts, exceptions</td><td>Everything</td></tr>
+      <tr><td class="k">Internal admin</td><td>Register devices, manage assets and assignments, resolve disputes</td><td>Everything, audited</td></tr>
+      <tr><td class="k">Tenant master</td><td>See the machines on hire to them, across their sites</td><td>Their assets, for their periods only</td></tr>
+      <tr><td class="k">Tenant site user</td><td>See what is on their site today</td><td>Assigned sites only</td></tr>
+      <tr><td class="k">Asset owner</td><td>Monitor machines they own, wherever those machines are</td><td>Own assets, all periods, all tenants</td></tr>
+      <tr><td class="k">Installer</td><td>Confirm a fitted device is reporting correctly before leaving site</td><td>One device, at commissioning</td></tr>
+      <tr><td class="k">Finance</td><td>Produce and defend a utilisation record</td><td>Sealed periods and their evidence</td></tr>
+    </tbody>
+  </table></div>
+  <p>The installer is the actor most often forgotten, and ING-11 exists for them. Without a way to confirm engine hours are arriving before leaving site, a failed fit is discovered weeks later on a machine that has since moved.</p>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>ING · Ingestion and device management</h2>
+  <p class="cnt">17 REQUIREMENTS · BUILD FIRST · NOTHING ABOVE THIS IS TESTABLE UNTIL IT WORKS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">ING-01</td><td>Terminate device TCP sessions and complete the IMEI handshake</td><td class="ac">A real device connects, presents its IMEI and receives a single accept or reject byte</td><td class="pr"><span class="M">M</span></td><td class="src">Protocol</td></tr>
+<tr><td class="id">ING-02</td><td>Validate CRC-16/IBM and confirm the two record counts match; discard invalid packets without acknowledging</td><td class="ac">A corrupted frame is dropped, no acknowledgement is sent, and a metric increments</td><td class="pr"><span class="M">M</span></td><td class="src">Protocol</td></tr>
+<tr><td class="id">ING-03</td><td>Decode Codec 8 and Codec 8E frames into the agreed telemetry record</td><td class="ac">Generated frames of both codecs decode with every documented I/O element mapped</td><td class="pr"><span class="M">M</span></td><td class="src">Protocol</td></tr>
+<tr><td class="id">ING-04</td><td>Acknowledge a batch only after every record in it is durably stored</td><td class="ac">Killing the store mid-transmission produces no acknowledgement and the device replays with no gap</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-05</td><td>Reject an IMEI that is not on the device allow-list, at the handshake</td><td class="ac">An unknown IMEI receives the reject byte and transmits no records</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-06</td><td>Derive a deduplication key from device-side content only — never arrival time or connection</td><td class="ac">The same record arriving twice on different connections yields one stored row</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-07</td><td>Every consumer processes duplicates idempotently and independently</td><td class="ac">Replaying a consumer over existing data changes nothing</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-08</td><td>Accept records with historical timestamps without error or performance penalty</td><td class="ac">A four-hour backlog replays and reconstructs trips and hour deltas identically to live arrival</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-09</td><td>Apply backpressure when downstream is unavailable; never drop records to keep up</td><td class="ac">Downstream outage results in devices buffering, not in missing records</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-10</td><td>Maintain a device registry: IMEI, model, firmware, SIM identifier, status, commissioning date</td><td class="ac">A device can be registered, decommissioned, and is refused at connect once decommissioned</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ING-11</td><td>Commissioning workflow recording CAN adapter fitted, firmware version, and first verified ECU reading</td><td class="ac">An install cannot be marked complete until an engine-hours value has been received from that device</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ING-12</td><td>Connectivity monitoring with last-seen per device</td><td class="ac">A device silent beyond a threshold is visible as offline, distinct from stationary</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ING-13</td><td>Reassign a device to a different asset, preserving the previous assignment</td><td class="ac">History before and after reassignment resolves to the correct asset</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ING-14</td><td>Store device timestamp and arrival timestamp separately on every record</td><td class="ac">Both are queryable and differ during replay</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-15</td><td>Quarantine records whose timestamp is implausible relative to arrival</td><td class="ac">Out-of-bounds records reach a review queue rather than the trip builder</td><td class="pr"><span class="S">S</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ING-16</td><td>Expose firmware version per device</td><td class="ac">Visible in the device registry</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ING-17</td><td>Flag a duplicate-IMEI collision when a second connection presents an IMEI already active on another live connection</td><td class="ac">The collision is logged and raises an operational alert; the existing session is not silently displaced without a record</td><td class="pr"><span class="S">S</span></td><td class="src">Design</td></tr>
+</tbody></table></div>
+  <div class="note warn">
+    <h4>ING-04 is the requirement to read twice</h4>
+    <p>The device deletes its only copy of a record the moment it is acknowledged. Acknowledging before the write is confirmed converts a crash into silent, permanent data loss — and the loss is invisible, because a gap looks exactly like a machine that was switched off. Everything in EVD depends on this being right, and it cannot be added afterwards.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>ATT · Attribute</h2>
+  <p class="cnt">16 REQUIREMENTS · THE MOST EXPENSIVE GROUP TO RETROFIT</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">ATT-01</td><td>Asset master data: type, make, model, year, serial, owner</td><td class="ac">Every asset carries all six fields</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-02</td><td>Record whether an asset has a supported CAN program number</td><td class="ac">Assets without one are identifiable in a single query</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-03</td><td>Device-to-asset assignment as a dated window</td><td class="ac">Open and close windows; a device may have many over time</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-04</td><td>Asset-to-tenant assignment as a dated window, with basis and contract reference</td><td class="ac">Re-hiring an asset creates a new window rather than editing the old</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-05</td><td>Resolve every record to at most one tenant, at the record&#39;s own timestamp</td><td class="ac">A record produced during tenant A&#39;s window is invisible to tenant B, and vice versa, regardless of when it arrived</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-06</td><td>Prevent overlapping assignment windows for the same asset</td><td class="ac">Attempting to create an overlap is refused at write time</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-07</td><td>Refuse a utilisation-basis assignment on an asset that cannot source ECU hours</td><td class="ac">Blocked at creation, not reported afterwards</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-08</td><td>Enforce access control at the data layer rather than in application queries</td><td class="ac">A new endpoint written without a scope clause returns nothing rather than everything</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-09</td><td>Role — tenant master: all their sites and projects, for their periods only</td><td class="ac">Verified by a cross-period query returning only their windows</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-10</td><td>Role — tenant site user: assets on assigned sites only</td><td class="ac">A site user cannot see a sibling site&#39;s assets</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-11</td><td>Role — asset owner: own assets across every tenant and every period</td><td class="ac">The widest scope in the model; verify it explicitly</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-12</td><td>Role — internal admin: cross-tenant access, always written to the audit log</td><td class="ac">Every cross-tenant read produces an audit row</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-13</td><td>Periods with no tenant assignment are visible to internal users only</td><td class="ac">Unassigned telemetry never reaches a tenant</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-14</td><td>Audit log for cross-tenant access, permission changes and assignment changes</td><td class="ac">Append-only, queryable by asset and by user</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">ATT-15</td><td>Correct a wrongly-entered assignment window by superseding it with a new window, never by editing the original</td><td class="ac">An admin-initiated correction creates a new window and marks the erroneous one superseded; both remain queryable and the audit log records the change</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">ATT-16</td><td>Record the confirmed CAN program number per asset, with the date and who verified it</td><td class="ac">An asset with no confirmed program number cannot be marked Tier 3 eligible, and the unverified assets are listable in a single query before any quote is issued</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+
+</tbody></table></div>
+  <div class="note warn">
+    <h4>Why ATT-03 and ATT-04 are two tables and not one</h4>
+    <p>A device moves to a different machine when it fails or the machine is sold. A machine changes hands every time it is re-hired. These happen on different schedules and both are dated, so telemetry has to resolve through both to answer whose engine hours these are, on which asset. Collapsing them into one relationship is the single most common way this class of system is got wrong, and the failure is silent until a customer sees another customer&#39;s data.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>LOC · Locate</h2>
+  <p class="cnt">10 REQUIREMENTS · LOWEST RISK · LARGEST VISIBLE SURFACE</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">LOC-01</td><td>Current position for every asset in the caller&#39;s scope</td><td class="ac">Map and list agree, and both reflect the most recent record</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">LOC-02</td><td>Current status per asset: moving, idle, stopped, offline</td><td class="ac">Status derives from ignition and movement, and offline derives from last-seen</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">LOC-03</td><td>Last-known position with its timestamp when an asset is offline</td><td class="ac">An offline asset shows a position and an explicit age, never a stale pin implying currency</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-04</td><td>Live map of all assets in scope</td><td class="ac">A tenant sees only their own assets; an internal user sees all</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-05</td><td>Asset list filterable by site, type, status and tenant</td><td class="ac">Each filter narrows correctly and combines with the access predicate</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-06</td><td>Per-asset detail: position, ignition, engine hours, fuel, voltage, last seen</td><td class="ac">Values absent from the device are shown as not measured, not as zero</td><td class="pr"><span class="M">M</span></td><td class="src">Device / CAN</td></tr>
+<tr><td class="id">LOC-07</td><td>Represent no-fix and offline distinctly from stationary</td><td class="ac">Three states are visually and semantically distinct</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-08</td><td>Resolve coordinates to a street address on demand</td><td class="ac">Addresses appear on trip endpoints and on request, not per record</td><td class="pr"><span class="S">S</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-09</td><td>Cluster map markers at fleet scale</td><td class="ac">Map remains usable at several hundred assets</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">LOC-10</td><td>Generate a scoped, revocable read-only tracking link for a single asset, viewable without login</td><td class="ac">The link shows live position and status for one asset only, expires or is revocable by an admin, and reveals no other tenant&#39;s data</td><td class="pr"><span class="S">S</span></td><td class="src">Design</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>HIS · Reconstruct</h2>
+  <p class="cnt">8 REQUIREMENTS · THE DIFFICULTY IS REPLAY, NOT QUERYING</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">HIS-01</td><td>Route playback for an asset over a selected date range</td><td class="ac">Playback matches the stored history and handles gaps visibly</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">HIS-02</td><td>Trip list with start, end, distance, duration and stops</td><td class="ac">Trips reconcile against odometer and ignition events</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">HIS-03</td><td>Derive trips from ignition and movement transitions, correct under out-of-order arrival</td><td class="ac">Replaying a day in reverse order produces identical trips</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">HIS-04</td><td>Accumulate time on site per asset per site</td><td class="ac">Derived from geofence entry and exit, and correct across a replayed outage</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">HIS-05</td><td>Query telemetry history by asset over a time window</td><td class="ac">Returns within the performance target in NFR-05</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">HIS-06</td><td>Retain full telemetry history online for at least 13 months — the floor that makes the 12-month customer promise true on every day of the year</td><td class="ac">A record 12 months old is queryable without restore, on any date</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">HIS-07</td><td>Retain raw device frames immutably alongside decoded records</td><td class="ac">A stored value can be re-derived from the original bytes</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">HIS-08</td><td>Derive shift boundaries and the moving / idle / stopped time split per asset per day</td><td class="ac">A day&#39;s shift boundaries and time split reconcile against ignition and movement transitions, and replay identically</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>DET · Detect</h2>
+  <p class="cnt">16 REQUIREMENTS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">DET-01</td><td>Define site boundaries as polygon or radius</td><td class="ac">A site can be drawn, edited, and assigned to a project</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-02</td><td>Raise entry and exit events against a defined site</td><td class="ac">Events carry the asset, site, direction and device timestamp</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-03</td><td>Auto-geofence a parked asset and alert on movement outside it</td><td class="ac">Radius established at ignition-off; movement beyond it raises an alert</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">DET-04</td><td>Alert on movement with ignition off</td><td class="ac">Tow detection raises within one reporting interval</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">DET-05</td><td>Alert on over-speed against a configurable threshold with a dwell period</td><td class="ac">A single-sample spike does not alert; sustained excess does</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">DET-06</td><td>Record harsh acceleration, braking and cornering events</td><td class="ac">Device-detected events are stored and visible per asset</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">DET-07</td><td>Detect fuel loss across a shutdown and distinguish it from refuelling</td><td class="ac">Level at shutdown is compared with level at the next start, because the CAN bus is dormant while the machine is off and reports nothing in between; a refuel does not raise a loss alert, an unexplained shortfall does, and the alert states both timestamps</td><td class="pr"><span class="M">M</span></td><td class="src">CAN</td></tr>
+<tr><td class="id">DET-08</td><td>Alert on service due against an engine-hour threshold</td><td class="ac">Threshold crossing on the ledger raises once, not repeatedly</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-09</td><td>Alert on device health: offline, GPS fix lost, external power disconnected</td><td class="ac">Each condition raises distinctly</td><td class="pr"><span class="M">M</span></td><td class="src">Device</td></tr>
+<tr><td class="id">DET-10</td><td>Evaluate absence-based rules on a schedule, not on record arrival</td><td class="ac">A device that stops transmitting raises an alert without any record arriving</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DET-11</td><td>Suppress alerts derived from records older than a staleness threshold</td><td class="ac">A replayed six-hour-old geofence crossing is logged, not delivered</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DET-12</td><td>Configure alert rules per asset, per site and per tenant</td><td class="ac">Rules can be scoped at all three levels and resolve predictably</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-13</td><td>Alert on movement outside a site&#39;s working hours</td><td class="ac">Schedule configurable per site</td><td class="pr"><span class="S">S</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-14</td><td>Alert on deviation from an expected route corridor</td><td class="ac">Corridor definable per job</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DET-15</td><td>Capture active diagnostic trouble codes from the CAN adapter and raise an alert when a code becomes newly active</td><td class="ac">A code appearing on a machine raises once on transition to active, not repeatedly while it stays active; clearing is recorded</td><td class="pr"><span class="M">M</span></td><td class="src">CAN</td></tr>
+<tr><td class="id">DET-16</td><td>Map SPN and FMI to plain-language text and a suggested action, from a table verified against the SAE J1939 standard</td><td class="ac">Every seeded row is checked against the standard before release, and an unmapped code surfaces as its raw SPN/FMI rather than a guess</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+
+</tbody></table></div>
+  <div class="note">
+    <h4>DET-10 and DET-11 are the two that get missed</h4>
+    <p>A device going silent cannot be detected by anything arriving, because the defining feature is that nothing arrived — so absence-based rules need a scheduled sweep. And a device replaying an outage will regenerate every geofence crossing it missed; without a staleness threshold those all get delivered, hours late, to somebody&#39;s phone.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>EVD · Evidence</h2>
+  <p class="cnt">14 REQUIREMENTS · THE REASON THE SYSTEM EXISTS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">EVD-01</td><td>Read engine hours from the machine ECU and store with an explicit source</td><td class="ac">Every stored hour value carries ecu or estimated</td><td class="pr"><span class="M">M</span></td><td class="src">CAN</td></tr>
+<tr><td class="id">EVD-02</td><td>Never merge ECU-sourced and estimated values into one field</td><td class="ac">Separate columns end to end, through to the rendered report</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-03</td><td>Represent unmeasured values as null, never as zero</td><td class="ac">A machine with no CAN access shows no engine hours, not 0.0</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-04</td><td>Compute engine-hour delta across an assignment window</td><td class="ac">Delta equals end minus start, and both endpoints are ECU-sourced or the period is not valid evidence</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">EVD-05</td><td>Compute idle time: engine running, no movement</td><td class="ac">Separated from productive hours in every report</td><td class="pr"><span class="M">M</span></td><td class="src">Device / CAN</td></tr>
+<tr><td class="id">EVD-06</td><td>Produce a utilisation period holding start and end hours, delta, idle, distance and gaps</td><td class="ac">One row per asset per hire window</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">EVD-07</td><td>Account for unobserved time and disclose it on the utilisation record</td><td class="ac">Gap minutes appear on the record; they are never silently absorbed</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-08</td><td>Never infer idle or stationary from an absence of data</td><td class="ac">A connectivity gap is recorded as unknown</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-09</td><td>Seal a utilisation period once issued; corrections are new rows referencing the original</td><td class="ac">A sealed row cannot be updated through any application path</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-10</td><td>Store evidence objects immutably under a retention lock</td><td class="ac">Deletion or modification is refused for the retention period, including by an administrator</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-11</td><td>Produce a daily manifest of object hashes chained to the previous day and signed</td><td class="ac">Altering any archived object breaks the chain from that day forward</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-12</td><td>Re-render a utilisation record identically months later</td><td class="ac">Rendered from the sealed period, not a live re-query</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-13</td><td>Anchor the daily manifest to a trusted time source</td><td class="ac">Establishes that a record predates a given date</td><td class="pr"><span class="S">S</span></td><td class="src">Design</td></tr>
+<tr><td class="id">EVD-14</td><td>Fuel consumed per period, labelled with its source</td><td class="ac">Appears on the utilisation record where available</td><td class="pr"><span class="S">S</span></td><td class="src">CAN</td></tr>
+</tbody></table></div>
+  <div class="note warn">
+    <h4>EVD-07 and EVD-08 together</h4>
+    <p>When a machine is offline the system knows nothing — it does not know the machine was idle. Recording that time as idle understates usage on a record somebody relies on. The requirement is to carry the unobserved time explicitly and show it, which is uncomfortable and correct. A record that quietly absorbs its gaps is worse than one that admits them.</p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>DLV · Delivery</h2>
+  <p class="cnt">9 REQUIREMENTS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">DLV-01</td><td>Deliver alerts over WhatsApp</td><td class="ac">A real event reaches a real phone, with delivery status recorded</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DLV-02</td><td>Deliver alerts and documents over email</td><td class="ac">Delivery and failure both recorded</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DLV-03</td><td>Show alerts in the application</td><td class="ac">Unread state per user</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DLV-04</td><td>One row per alert; one row per channel attempt with provider identifier and status</td><td class="ac">Queryable per alert and per channel</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DLV-05</td><td>Retry per channel attempt, never re-firing other channels</td><td class="ac">A WhatsApp failure does not resend the email</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DLV-06</td><td>Deduplicate alerts on rule, asset and event window</td><td class="ac">A backlog replay does not deliver hundreds of historical alerts</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DLV-07</td><td>Carry acknowledgement fields in the schema from first release</td><td class="ac">Columns exist and are null; behaviour may follow later</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">DLV-08</td><td>Acknowledge an alert, and escalate unacknowledged alerts</td><td class="ac">—</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">DLV-09</td><td>Quiet hours and per-user channel preferences</td><td class="ac">—</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+</tbody></table></div>
+  <p>Message templates on WhatsApp require provider approval with a lead time of one to two weeks. Submit them during the data-model phase, not at the start of the surfaces phase.</p>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>RPT · Reporting</h2>
+  <p class="cnt">10 REQUIREMENTS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">RPT-01</td><td>Utilisation report per asset, per site and per tenant</td><td class="ac">Figures reconcile to the sealed periods</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-02</td><td>Trip and mileage report</td><td class="ac">Reconciles to the trip records</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-03</td><td>Idle time report</td><td class="ac">Separates idle from productive hours</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-04</td><td>Fuel report, with source labelled on every figure</td><td class="ac">Estimated values are never presented as readings</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-05</td><td>Geofence entry and exit log</td><td class="ac">Filterable by asset, site and date</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-06</td><td>Export any report as CSV and PDF</td><td class="ac">Exports match the on-screen figures exactly</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-07</td><td>Render reports from sealed periods rather than a live re-query</td><td class="ac">A report regenerated later is byte-identical</td><td class="pr"><span class="M">M</span></td><td class="src">Design</td></tr>
+<tr><td class="id">RPT-08</td><td>Scheduled report delivery by email</td><td class="ac">—</td><td class="pr"><span class="C">C</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-09</td><td>Timesheet report per asset: shift start/end, moving/idle/stopped split, overtime flag against a configurable daily threshold</td><td class="ac">Overtime flags trigger only past the configured threshold; figures reconcile to HIS-08</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+<tr><td class="id">RPT-10</td><td>Vehicle behaviour report per asset: harsh acceleration, braking and cornering counts, and idle cost, attributed to the asset</td><td class="ac">Figures reconcile to the DET-06 events; no figure is attributed to a named person, because a shift assignment is not a verified identity</td><td class="pr"><span class="M">M</span></td><td class="src">Platform</td></tr>
+
+</tbody></table></div>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>NFR · Non-functional</h2>
+  <p class="cnt">12 REQUIREMENTS</p>
+  <div class="tw"><table class="req">
+<thead><tr><th>ID</th><th>Requirement</th><th>Acceptance</th><th class="pr">Pri</th><th>Source</th></tr></thead><tbody>
+<tr><td class="id">NFR-01</td><td>No acknowledged record is ever lost</td><td class="ac">Demonstrated by killing the store mid-transmission and confirming replay</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-02</td><td>Position visible on screen within 60 seconds of the device reporting</td><td class="ac">Measured device-to-screen at the configured interval</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-03</td><td>Drain a four-hour fleet backlog within thirty minutes</td><td class="ac">Load test with generated backlog traffic</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-04</td><td>Acknowledgement latency at p99 stays below the device Server Response Timeout</td><td class="ac">Monitored continuously; alarm well below the threshold</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-05</td><td>A 24-hour history query for one asset returns in under two seconds</td><td class="ac">Measured at the target fleet size</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-06</td><td>Live map for one hundred assets interactive within 2.5 seconds on 4G, mid-range Android</td><td class="ac">The primary user is on a phone at a site</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-07</td><td>WCAG 2.1 AA on every screen</td><td class="ac">Audited; regression treated as a defect</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-08</td><td>Encryption at rest on every store; encryption in transit on every internal hop, and on the device hop wherever firmware supports TLS (CON-05)</td><td class="ac">All internal hops encrypted; devices on pre-TLS firmware are enumerated as a tracked exception, never silently exempted</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-09</td><td>Daily backup with a restore rehearsed and recorded</td><td class="ac">An untested backup does not satisfy this</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-10</td><td>Structured logs with request correlation, and alerting on ingestion failure</td><td class="ac">Operational signal exists before the pilot carries real machines</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-11</td><td>A deployment must not drop a connection between receiving a batch and acknowledging it</td><td class="ac">Rolling deploy under live traffic produces no data gap</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+<tr><td class="id">NFR-12</td><td>Data residency as decided in the hosting decision</td><td class="ac">Recorded and verifiable</td><td class="pr"><span class="M">M</span></td><td class="src">—</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s13">
+  <h2><i>13</i>Interfaces between the two teams</h2>
+  <p>Kasper owns the hardware track — vendor relationship, procurement, SIMs, installation. The development team owns the software. These are the handoffs. <strong>Each needs an owner and a date, or it will be discovered late.</strong></p>
+  <div class="tw"><table class="req">
+    <thead><tr><th>ID</th><th>Interface</th><th>Direction and what it blocks</th></tr></thead>
+    <tbody><tr><td class="id">INT-01</td><td>Ingestion endpoint host, port and TLS details published to the hardware team</td><td class="ac">Dev team → Kasper. Blocks configuring any device, including bench units</td></tr><tr><td class="id">INT-02</td><td>A reachable test endpoint for bench units before fleet installs</td><td class="ac">Dev team → Kasper. Blocks all protocol validation</td></tr><tr><td class="id">INT-03</td><td>A traffic generator producing valid Codec 8 and 8E frames</td><td class="ac">Dev team, internal. Unblocks their schedule from hardware procurement</td></tr><tr><td class="id">INT-04</td><td>An install verification view showing first ECU reading per device</td><td class="ac">Dev team → Kasper. Blocks sign-off of any installation</td></tr><tr><td class="id">INT-05</td><td>Fleet list with make, model, year and CAN program number availability</td><td class="ac">Kasper → dev team. Blocks the asset model and ATT-02</td></tr><tr><td class="id">INT-06</td><td>Two test devices with live SIMs on the test endpoint</td><td class="ac">Kasper → dev team. Blocks ING-01 to ING-05 being validated against reality</td></tr><tr><td class="id">INT-07</td><td>Real machine data, continuous, once devices are fitted</td><td class="ac">Kasper → dev team. Blocks EVD and replay correctness work</td></tr><tr><td class="id">INT-08</td><td>The telemetry record shape, agreed jointly and owned by Kasper</td><td class="ac">Both ways. The interface between the two tracks</td></tr></tbody>
+  </table></div>
+  <div class="note ok">
+    <h4>INT-03 is the one worth doing first</h4>
+    <p>A traffic generator producing valid frames removes the development team&#39;s dependency on our procurement entirely. It is also the only practical way to test outage replay, duplicate delivery and clock skew on demand, since none of those can be produced reliably by a real device. Built early, it unblocks the whole software track and makes ING-06 through ING-09 testable before a single machine is instrumented.</p>
+  </div>
+</section>
+
+<section id="s14">
+  <h2><i>14</i>Constraints</h2>
+  <p>Not requirements — facts about the devices that bound any design. Taken from the vendor documentation and to be verified against the firmware actually received.</p>
+  <div class="tw"><table class="req">
+    <thead><tr><th>ID</th><th>Constraint</th></tr></thead>
+    <tbody><tr><td class="id">CON-01</td><td>Devices transmit Codec 8 / 8E over raw TCP. No MQTT, no HTTPS, no client certificate.</td></tr><tr><td class="id">CON-02</td><td>A device deletes its only copy of a record when it receives the acknowledgement.</td></tr><tr><td class="id">CON-03</td><td>Device identity is an IMEI in cleartext. It is not a cryptographic credential.</td></tr><tr><td class="id">CON-04</td><td>Devices buffer to flash when offline and replay on reconnect, out of order relative to live traffic.</td></tr><tr><td class="id">CON-05</td><td>TLS 1.1/1.2 is available from firmware 03.27.02; server certificate provision is ours.</td></tr><tr><td class="id">CON-06</td><td>Firmware is managed by the vendor&#39;s own update service, not by us.</td></tr><tr><td class="id">CON-07</td><td>ECU data availability depends on a per-model program number that may not exist for a given machine.</td></tr><tr><td class="id">CON-08</td><td>Devices back off on a fixed schedule after connection failures, which spreads reconnection.</td></tr></tbody>
+  </table></div>
+</section>
+
+<section id="s15">
+  <h2><i>15</i>Out of scope</h2>
+  <p>Named so that exclusion is a decision rather than an omission, and so nobody estimates them by accident.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Excluded</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Operator identification (iButton / RFID)</td><td>Needs hardware we are not fitting and a workflow we do not have</td></tr>
+      <tr><td class="k">Remote immobiliser</td><td>Safety and liability. Requires legal review, a motion interlock and two-person authorisation before it is even considered</td></tr>
+      <tr><td class="k">Driver scorecards and per-person ranking</td><td>Needs operator identification, which is out. <strong>Resolved:</strong> behaviour scoring stays, but it is scored against the <em>asset</em>, not a person (DET-06, RPT-10). A shift assignment is a name typed by an operator, not a verified identity, so no figure is attributed to an individual and nothing is presented as a driver score. Per-person scorecards return only if operator identification does.</td></tr>
+      <tr><td class="k">Public API and webhooks</td><td>Design the internal API as though it will be published; publishing is later work</td></tr>
+      <tr><td class="k">Custom report builder</td><td>Six fixed reports cover the known need</td></tr>
+      <tr><td class="k">Tenant-branded portal, isolated deployment</td><td>Commercial variants, not initial-release capability</td></tr>
+      <tr><td class="k">Analytics, prediction, optimisation</td><td>Requires accumulated history that does not exist. Separate work.</td></tr>
+      <tr><td class="k">A second device type or protocol</td><td>One device, one protocol, deliberately</td></tr>
+      <tr><td class="k">Hardware procurement, installation, commissioning labour</td><td>Kasper&#39;s track, not the development team&#39;s scope. The software side of commissioning is ING-11.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s16">
+  <h2><i>16</i>Acceptance</h2>
+  <p>Six demonstrations. Not a document review — someone watches each of these happen.</p>
+  <div class="tw"><table>
+    <thead><tr><th class="num">#</th><th>Demonstration</th><th>Closes</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>A real device connects, is accepted, transmits, is acknowledged, and clears its buffer</td><td class="k">ING-01 … ING-05</td></tr>
+      <tr><td class="num">2</td><td>The store is killed mid-transmission; the device replays and no record is lost</td><td class="k">ING-04, ING-08, NFR-01</td></tr>
+      <tr><td class="num">3</td><td>A record produced during one tenant&#39;s window is invisible to another, and a query written without a scope clause returns nothing</td><td class="k">ATT-05, ATT-08</td></tr>
+      <tr><td class="num">4</td><td>A device is disconnected for four hours; after replay, trips and engine-hour deltas match, and no stale alert was delivered</td><td class="k">HIS-03, DET-11, ING-08</td></tr>
+      <tr><td class="num">5</td><td>A geofence crossing on a real machine reaches a real phone within the delivery target</td><td class="k">DET-02, DLV-01</td></tr>
+      <tr><td class="num">6</td><td>A hire period produces a sealed utilisation record showing its unobserved gaps, resolving to an immutable object, and re-rendering identically a week later</td><td class="k">EVD-06 … EVD-12</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <h4>Demonstration 2 is the one to insist on</h4>
+    <p>It takes an afternoon, it tests the property the entire architecture is built around, and it is the only one that cannot be faked with convenient data. A team that resists it is telling you something.</p>
+  </div>
+</section>
+
+<section id="s17">
+  <h2><i>17</i>Open questions affecting these requirements</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Question</th><th>Affects</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Which machines have a supported CAN program number?</td><td class="k">ATT-02, ATT-07, all of EVD — determines which assets can satisfy the evidence capability at all</td></tr>
+      <tr><td class="k">Sleep policy per asset class — how a parked machine reports without flattening its battery</td><td class="k">LOC-02, LOC-07, DET-09, NFR-02 — <strong>the reporting interval is settled at 30 s while awake</strong>, matching the functional spec. What is not settled is what a machine that sits for days does: deep sleep suspends CAN and the GSM module, so an asset is either draining the machine battery or not reporting. Asleep must be a distinct state from offline, and each asset class needs a written profile.</td></tr>
+      <tr><td class="k">Does the chosen ingestion component reject an unknown IMEI at the handshake?</td><td class="k">ING-05 — if not, this requirement needs a different mechanism</td></tr>
+      <tr><td class="k">Hosting and region</td><td class="k">NFR-12 and any infrastructure estimate</td></tr>
+            <tr><td class="k">Cold retention beyond the online window, for evidence objects</td><td class="k">EVD-10 — <strong>the 12 vs 13 month difference is resolved, not a conflict:</strong> 13 months is the online retention floor, which is what guarantees the customer promise of a queryable 12 months at any point in the year. Still open is how long sealed evidence is held in the immutable tier after it leaves the online window.</td></tr>
+      <tr><td class="k">Which alert types warrant WhatsApp versus email</td><td class="k">DLV-01, DLV-02 — affects template count and approval lead time</td></tr>
+      <tr><td class="k">Is a duplicate-IMEI collision flag (ING-17) sufficient device-identity mitigation, or does the pilot need a stronger credential given the IMEI is cleartext and not cryptographic (CON-03)?</td><td class="k">ING-05, ING-17 — affects whether attribution can be trusted at the edge</td></tr>
+      <tr><td class="k">Does the evidence retention lock (EVD-10, no deletion by anyone for the retention period) conflict with any data-subject deletion obligation once driver-identifiable data is involved?</td><td class="k">EVD-10 — needs legal input before commissioning; not an engineering decision</td></tr>
+      <tr><td class="k">Which tenant tiers get the client tracking link (LOC-10), and is a login-free scoped link acceptable given the public-API exclusion above?</td><td class="k">LOC-10 — affects whether it ships in the initial release or after</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s18">
+  <h2><i>18</i>How to estimate against this</h2>
+  <ol>
+    <li><strong>Estimate per group, not in total.</strong> Eight functional groups plus non-functional. A total hides which group you think is hard, and that is the information worth having.</li>
+    <li><strong>Estimate the acceptance condition, not the requirement text.</strong> Most of these are ordinary to build and awkward to demonstrate. The demonstration is the deliverable.</li>
+    <li><strong>Flag every requirement you disagree with, and every one you would rather not build.</strong> Disagreement is a useful answer. Silent absorption is how estimates become fiction.</li>
+    <li><strong>Say what you cannot estimate yet, and what would let you.</strong> Several of these depend on device behaviour nobody has observed; the honest answer is a range plus what would narrow it.</li>
+    <li><strong>Separate first-time-through work from ongoing.</strong> Retention, monitoring and backup are not one-off tasks.</li>
+    <li><strong>Tell us what is missing.</strong> This is a first pass by people who have not built one of these before. A requirement we have not thought of is more valuable than a tighter number on the ones we have.</li>
+  </ol>
+</section>
+
+<hr>
+<footer>
+  GPS Requirements · internal engineering · estimation basis, first pass<br>
+  Companions: Kasper_GPS_Architecture.html · Kasper_GPS_Delivery_Plan.html · Kasper_GPS_Dev_Team_Questions.html<br>
+  112 requirements · 8 interfaces · 8 constraints. IDs are stable and are never reused.
+</footer>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasper GPS Reality Check</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap">
+</head>
+<body>
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-dark:#E6AF00; --yellow-tint:#FFF6D6;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --stop:#C0392B; --stop-bg:#FBEDEB;
+  --warn:#B0730B; --warn-bg:#FCF3E2;
+  --fix:#3F6EA8; --fix-bg:#EDF2F9;
+  --ok:#1F7A5A; --ok-bg:#E9F5F0;
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312; --shadow:none;
+    --stop:#EE7A6C; --stop-bg:#2C1714;
+    --warn:#E0A64A; --warn-bg:#2B2113;
+    --fix:#7FA9DC; --fix-bg:#161E29;
+    --ok:#4CC194; --ok-bg:#12241E;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312; --shadow:none;
+  --stop:#EE7A6C; --stop-bg:#2C1714;
+  --warn:#E0A64A; --warn-bg:#2B2113;
+  --fix:#7FA9DC; --fix-bg:#161E29;
+  --ok:#4CC194; --ok-bg:#12241E;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration-color:var(--text-3);text-underline-offset:2px}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1300px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:2px 0 24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 32px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:17ch}
+.mast .lede{font-size:16.5px;color:var(--text-2);max-width:64ch}
+.meta{display:flex;flex-wrap:wrap;gap:14px 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+.tally{display:flex;flex-wrap:wrap;gap:10px;margin:26px 0 0}
+.tally div{display:flex;align-items:baseline;gap:8px;padding:9px 14px;border:1px solid var(--rule);background:var(--panel);border-radius:2px}
+.tally b{font-family:var(--f-head);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.tally span{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+.tally .t-ok b{color:var(--ok)} .tally .t-warn b{color:var(--warn)}
+.tally .t-fix b{color:var(--fix)} .tally .t-stop b{color:var(--stop)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:14px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:17px;font-weight:600;letter-spacing:-.01em;margin:0 0 8px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+em{font-style:normal;background:var(--yellow-tint);padding:0 3px;border-radius:2px}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:3px;border:1px solid var(--rule)}
+
+.find{border-top:1px solid var(--rule);padding:26px 0 4px;display:grid;grid-template-columns:78px minmax(0,1fr);gap:24px}
+.find:last-child{border-bottom:1px solid var(--rule);padding-bottom:26px}
+.find-id{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:3px}
+.chip{display:inline-block;font-family:var(--f-mono);font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border-radius:2px;margin-bottom:7px}
+.c-stop{background:var(--stop-bg);color:var(--stop)}
+.c-warn{background:var(--warn-bg);color:var(--warn)}
+.c-fix{background:var(--fix-bg);color:var(--fix)}
+.c-ok{background:var(--ok-bg);color:var(--ok)}
+.find-body p{margin-bottom:10px}
+.find-body p:last-child{margin-bottom:0}
+
+.cf{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:14px 0;max-width:72ch;border-radius:2px;overflow:hidden}
+.cf > div{background:var(--panel);padding:12px 15px}
+.cf dt{font-family:var(--f-mono);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin-bottom:5px}
+.cf dd{font-size:14px;line-height:1.55}
+.cf .v dt{color:var(--ok)}
+.src{font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);display:block;margin-top:6px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:2px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:600px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.n{font-family:var(--f-mono);font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+th.n{text-align:right}
+.was{color:var(--text-3);text-decoration:line-through}
+.now{color:var(--ok);font-weight:600}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow)}
+.note.warn{border-left-color:var(--stop)}
+.note.ok{border-left-color:var(--ok)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+
+.did{border-left:3px solid var(--ok);background:var(--ok-bg);padding:11px 15px;margin:14px 0 0;max-width:72ch;border-radius:0 2px 2px 0}
+.did h4{margin:0 0 4px;color:var(--ok)}
+.did p{margin:0;max-width:none;font-size:13.5px}
+
+ol.todo{list-style:none;margin-left:0;counter-reset:t;max-width:70ch}
+ol.todo li{counter-increment:t;display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;padding:14px 0;border-top:1px solid var(--rule);margin:0}
+ol.todo li:last-child{border-bottom:1px solid var(--rule)}
+ol.todo li::before{content:counter(t,decimal-leading-zero);font-family:var(--f-mono);font-size:11px;color:var(--yellow-dark);padding-top:3px}
+
+.srcs{font-size:13px;max-width:74ch}
+.srcs li{margin-bottom:5px;color:var(--text-2)}
+
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--rule);font-family:var(--f-mono);font-size:10.5px;color:var(--text-3);line-height:1.8}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:28px 22px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0}
+  .doc{padding:0 22px 90px}
+  h1{font-size:32px}
+  .find{grid-template-columns:1fr;gap:10px}
+  .find-id{padding-top:0}
+}
+</style>
+
+<div class="shell">
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Review &amp; corrections</div>
+  <nav>
+    <div class="grp">Read first</div>
+    <a href="#s00"><b>00</b>What changed</a>
+    <a href="#s01"><b>01</b>The three blockers</a>
+    <div class="grp">Corrections</div>
+    <a href="#s02"><b>02</b>Hardware truth</a>
+    <a href="#s03"><b>03</b>Contradictions closed</a>
+    <a href="#s04"><b>04</b>The numbers</a>
+    <div class="grp">Closing</div>
+    <a href="#s05"><b>05</b>Still open</a>
+    <a href="#s06"><b>06</b>What holds up</a>
+    <a href="#s07"><b>07</b>Sources</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Technical review, applied · GPS-as-a-Service</div>
+  <h1>Kasper GPS Reality Check</h1>
+  <p class="lede">Every feature, tier, hardware claim and cost figure across the product, engineering and strategy packs — checked against Teltonika's own documentation and recomputed from its own components, then corrected in the files. This is what was wrong, what it now says, and the five decisions still yours.</p>
+  <div class="meta">
+    <div><dt>Reviewed</dt><dd>25 Aug 2026</dd></div>
+    <div><dt>Files corrected</dt><dd>8</dd></div>
+    <div><dt>Hardware</dt><dd>FMC130 · LV-CAN200 · ALL-CAN300</dd></div>
+    <div><dt>Install cost</dt><dd>AED 60 / 80 / 100</dd></div>
+  </div>
+  <div class="tally">
+    <div class="t-ok"><b>24</b><span>Corrected in the docs</span></div>
+    <div class="t-warn"><b>5</b><span>Still your call</span></div>
+    <div class="t-fix"><b>4</b><span>Verified strong</span></div>
+  </div>
+</header>
+
+<section id="s00">
+  <h2><i>00</i>What changed, and on what basis</h2>
+  <p>Nine documents were reviewed: the tier matrix and build spec in <code>02_Product</code>, the functional spec, the 112-requirement spec, the SUDO technical pack and the IoT feature list in <code>03_Engineering</code>, and four cost models in <code>01_Strategy</code>. Eight were edited.</p>
+  <p>Hardware assertions were checked against Teltonika's own wiki, datasheet and support forum rather than against the Kasper documents that repeat them. Every figure was recomputed from the components printed beside it. Four product decisions were yours and are applied as you chose them:</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Decision</th><th>Your call</th><th>Applied as</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Fuel theft</td><td>Reword to next-start detection</td><td>"Fuel loss detection — shutdown vs next start" everywhere; the dev note now carries the reason and names the probe as the alternative</td></tr>
+      <tr><td class="k">Driver scoring</td><td>Relabel as asset behaviour</td><td>Vehicle behaviour score, idle cost per vehicle; §15 exclusion rewritten from "unresolved conflict" to a resolution</td></tr>
+      <tr><td class="k">Fault codes</td><td>Keep at Tier 3, lift the exclusion</td><td>DTC exclusion removed; DET-15 and DET-16 added with an acceptance condition that the J1939 table is verified before release</td></tr>
+      <tr><td class="k">Install cost</td><td>AED 60 / 80 / 100</td><td>Propagated through capex, payback, opex stacks, margins, break-even and the cash simulation in all four cost models</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="s01">
+  <h2><i>01</i>The three blockers</h2>
+  <p>These are the ones that changed what you can promise. Two are now fixed in the documents. The first is fixed in wording but still needs the fleet check behind it.</p>
+
+  <div class="find">
+    <div class="find-id">B-01</div>
+    <div class="find-body">
+      <span class="chip c-stop">Blocker · wording fixed, evidence still needed</span>
+      <h3>Tier 3 engine hours are not guaranteed by the hardware, and "confirmed" was the wrong word</h3>
+      <div class="cf">
+        <div><dt>What the docs said</dt><dd>Functional spec glossary: ALLCAN300 is "<strong>confirmed</strong> to read engine hours, fuel and fault codes off a machine's CAN bus." Tier sheet, Tier 3: "+ Engine hours tracking," "Billing proof for equipment hire."</dd></div>
+        <div class="v"><dt>What Teltonika says</dt><dd>Asked about total engine hours on an <strong>FMC130 + ALL-CAN300 fitted to a John Deere machine</strong>, Teltonika support answered that availability depends on two separate gates: the model appearing on the ALL-CAN300 supported-vehicle list, <em>and</em> the parameter actually broadcasting on that machine's CAN lines. Where it does not, their recommended fallback is the device's <strong>Ignition ON Counter</strong>.<span class="src">community.teltonika.lt — "Problem retrieving total engine time on the CAN ALL300"</span></dd></div>
+      </div>
+      <p>That fallback is the exact value your own <code>Kasper_IoT_Feature_List.md</code> rules inadmissible: "An estimated value has no evidential weight in a dispute." So on a machine without program-number support, Tier 3 does not degrade to a weaker engine-hours figure — it produces <strong>no billable figure at all</strong>.</p>
+      <div class="did">
+        <h4>Fixed in the docs</h4>
+        <p>"Confirmed" is gone from every engine-hours claim. The functional spec's Tier 3 row now states both gates and names the ignition-counter fallback as inadmissible; the glossary says what the adapter reaches and what still depends on the machine. The tier sheet reads "ECU engine hours — where the CAN program number supports it," and the Tier 3 footer tells the reader to confirm the program number before quoting. A new requirement, <strong>ATT-16</strong>, records the confirmed program number per asset with its verification date, and its acceptance condition is that unverified assets are listable in one query <em>before</em> a quote goes out — the gate ATT-07 and ING-11 were missing, because both fire after the sale.</p>
+      </div>
+      <p>What is still needed is the thing no edit can supply: the real fleet, make and model and year, checked against the current ALL-CAN300 list.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">B-02</div>
+    <div class="find-body">
+      <span class="chip c-ok">Fixed</span>
+      <h3>The build spec told developers to compute engine hours the inadmissible way</h3>
+      <div class="cf">
+        <div><dt>What it said</dt><dd><code>kasper-feature-spec.html</code>, Utilisation report, developer note: "Aggregate <code>engine_hours</code> from telemetry <strong>where ignition=on</strong>" — on the same screen as "Dispute-proof because data is from the device."</dd></div>
+        <div class="v"><dt>What it says now</dt><dd>"Delta of ECU engine_hours across the assignment window: end reading minus start reading (EVD-04). Both endpoints must carry <code>source=ecu</code> or the period is not valid evidence and the report must say so rather than substitute an estimate. Never aggregate ignition-on time into this field."</dd></div>
+      </div>
+      <p>Aggregating ignition-on time <em>is</em> the estimate. A developer building faithfully to the old note would have shipped the flagship Tier 3 report as the thing you declared you would never issue — and it would have looked correct, because ignition-on hours and ECU hours track each other closely enough that nobody notices until a client's own hour meter disagrees.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">B-03</div>
+    <div class="find-body">
+      <span class="chip c-ok">Fixed</span>
+      <h3>Fuel theft "while parked" could not be detected from CAN, because there is no CAN data while parked</h3>
+      <div class="cf">
+        <div><dt>What it said</dt><dd>Three documents promised a drop detected "while ignition OFF," with a mockup showing "−38 L while parked · Tue 02:14" and a dev note keyed on <code>ignition=off</code>.</dd></div>
+        <div class="v"><dt>What actually happens</dt><dd>Teltonika's FMC130 sleep-mode documentation: in Deep Sleep the device "turns off GSM/GPRS," and <strong>OBD, CAN and I/O are disabled</strong> — fuel data named among the suspended fields. Independently, Traccar users report Teltonika CAN attributes such as mileage and fuel level simply stop being sent once ignition goes off, described as "the normal behaviour."<span class="src">wiki.teltonika-gps.com/view/FMC130_Sleep_modes · traccar.org forums</span></dd></div>
+      </div>
+      <div class="did">
+        <h4>Fixed in the docs</h4>
+        <p>Now "fuel loss detection — shutdown vs next start" in the tier matrix, the functional spec and the IoT feature list. The build spec's dev note carries the mechanism (<code>fuel_level_at_shutdown</code> stored on the ignition-off record, compared at next ignition-on, alert carrying both timestamps and the parked location) and states plainly that real-time overnight detection needs a capacitive or immersion probe on an FMC130 analog input, independently powered — and that it is not in the current BOM. Requirement DET-07's acceptance condition was rewritten to the same mechanism.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="s02">
+  <h2><i>02</i>Hardware truth</h2>
+  <p>The FMC130 is a sound choice and the tier architecture — one base device, adapter decides capability — is the right shape. Several of the specifics written around it were not right, and the biggest of them was making Tier 2 look weaker than the hardware actually is.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Was</th><th>Verified</th><th>Now says</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>"LVCAN200 — plugs into OBD port. <strong>Light vehicles only.</strong>" (tier sheet, and the functional spec glossary)</td>
+        <td>Teltonika's LV-CAN200 page lists light vehicles <em>including EVs</em>, <strong>trucks, buses and coaches</strong>, and its documented connection scheme is a CAN-wire connection with a resistor configuration — <strong>not an OBD-II plug</strong>.</td>
+        <td>"Wired to the vehicle's CAN lines — not an OBD plug… Covers light vehicles, trucks, buses and coaches on Teltonika's supported list." Tier 2's target line changed from "with OBD port" to "on the LVCAN200 supported list", so sales ask the qualifying question that actually decides it.</td>
+      </tr>
+      <tr>
+        <td>Tier 2 "— No oil pressure · No fault codes" presented as adapter limits</td>
+        <td>LV-CAN200's published parameter set includes <strong>oil pressure</strong> and <strong>door status</strong>; DTCs need the DTC variant.</td>
+        <td>Oil pressure and door status moved up to Tier 2 in the card, the comparison table and the per-tier list. "No fault codes" now says why: it needs the LVCAN200 DTC variant, which this tier does not fit.</td>
+      </tr>
+      <tr>
+        <td>Tier 2/Tier 3 differentiated on parameter count, with Tier 2 losing capability it has</td>
+        <td>The real dividing line is <strong>vehicle class</strong>: the ALL-CAN300 is the only one of the two Teltonika lists for agricultural and special transport — utility, forest and construction machinery.</td>
+        <td>Tier 3 now sells coverage rather than a longer bullet list: "Construction, agricultural and special-machinery coverage," plus axle load and hydraulic status. This is a better story <em>and</em> the true one.</td>
+      </tr>
+      <tr>
+        <td>SUDO pack: "CAN access — LVCAN interface, <strong>J1939 read directly from the machine ECU</strong>"</td>
+        <td>The FMC130 has <strong>no native CAN</strong>. It reads through an adapter decoding to a <strong>program number</strong> matched per make/model/year. Reseller technical guidance puts genuine J1939/FMS work on the FMC650 class.</td>
+        <td>Corrected in the pack and in the IoT feature list, with the consequence stated: "it is not a generic J1939 parser, and an unlisted machine yields nothing." A new paragraph in §7 warns SUDO that the adapter reports nothing while the machine is off.</td>
+      </tr>
+      <tr>
+        <td>"Live GPS location — every 30 seconds" on all tiers, unqualified</td>
+        <td>FMC130 backup battery is <strong>170 mAh</strong>; it runs off the machine battery. Protecting a battery on equipment parked for days means a sleep mode — Deep Sleep kills GSM, Online Deep Sleep still suspends CAN and I/O.</td>
+        <td>"Every 30 s while awake" throughout. The reporting interval is now settled at 30 s in the requirements too; what replaced it as an open question is the sleep policy per asset class, which is the real unknown.</td>
+      </tr>
+      <tr>
+        <td>Three different definitions of "offline" in one build spec (&gt;5 min, &gt;30 min, 4+ hours), none distinguishing asleep from offline</td>
+        <td>LOC-07 and DET-09 require exactly that distinction. Without it a yard of parked machines generates constant false alerts.</td>
+        <td>One shared definition: stale at &gt; 2× the configured reporting interval, offline at &gt; 60 min with no record, and an asset inside a sleep window shows <strong>ASLEEP</strong>, never OFFLINE.</td>
+      </tr>
+      <tr>
+        <td>"SPN 3216 — AdBlue level low," used twice and seeded as the first row of the fault-code table</td>
+        <td><strong>SPN 3216 is Aftertreatment 1 Intake NOx.</strong> DEF/AdBlue tank level is <strong>SPN 3516</strong>.</td>
+        <td>Corrected to 3516 in both places. The dev note now tells the team to verify every seeded row against the standard, names this exact error as the example, and warns that codes arrive in the adapter's own format so the delivered granularity must be confirmed per program number first.</td>
+      </tr>
+      <tr>
+        <td>No mounting or enclosure specification anywhere</td>
+        <td>FMC130 is <strong>IP41</strong> with <strong>internal GNSS and cellular antennas only</strong>. Operating range −40 °C to +85 °C is fine for the UAE.</td>
+        <td>The hardware strip now states IP41, internal antennas, 170 mAh and 128 MB flash, and that the device has no native CAN. The mounting spec itself is still to be written — see §05.</td>
+      </tr>
+      <tr>
+        <td>"Predictive maintenance alerts" as a Tier 3 bullet</td>
+        <td>Excluded by the requirements (prediction needs history that does not exist), tagged AI/ML in the IoT feature list, and absent from the Tier 3 detail page in its own document.</td>
+        <td>Removed. Replaced with axle load and hydraulic status, which the ALL-CAN300 actually delivers.</td>
+      </tr>
+      <tr>
+        <td>"Tier 2 → Tier 3 requires replacing LVCAN200 with ALLCAN300", framed as a ladder</td>
+        <td>It is a return site visit and a rewire — and a van never becomes an excavator.</td>
+        <td>The upgrade note now says so: the tiers are asset classes, most assets are quoted at their tier and stay there.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="s03">
+  <h2><i>03</i>Contradictions closed</h2>
+  <p>Section 15 of the requirements named four exclusions. Three were selling points elsewhere and two were marked <strong>Must</strong> in the build spec. All four are now consistent across the pack.</p>
+
+  <div class="tw">
+  <table>
+    <thead><tr><th>Feature</th><th>The conflict</th><th>Resolution applied</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="k">Driver behaviour scoring</td>
+        <td>Tier 2 headline and "idle cost per driver"; requirements §15 excluded operator ID and scorecards and flagged the conflict itself. The functional spec contradicted itself too — §04.3 had the score at Tier 2 as "Pilot," §04.7 had operator ID as "Later."</td>
+        <td>Behaviour scoring stays, scored against the <strong>asset</strong>. Renamed everywhere: vehicle behaviour score, vehicle behaviour report, idle cost per vehicle. §15 now reads as a resolution rather than an open conflict, and states why — a shift assignment is a name typed by an operator, not a verified identity. New <strong>RPT-10</strong> makes the non-attribution an acceptance condition. Harsh braking is also correctly labelled as accelerometer-sourced, not CAN.</td>
+      </tr>
+      <tr>
+        <td class="k">Diagnostic trouble codes</td>
+        <td>Tier 3 headline and a build-spec <strong>Must</strong>; an explicit §15 exclusion.</td>
+        <td>Exclusion removed, per your call. <strong>DET-15</strong> captures active codes and raises once on transition to active; <strong>DET-16</strong> requires the SPN/FMI mapping to be verified against SAE J1939 before release, with unmapped codes surfacing as raw SPN/FMI rather than a guess.</td>
+      </tr>
+      <tr>
+        <td class="k">Remote immobiliser</td>
+        <td>Excluded in the requirements and the functional spec — and present in the build spec as a "Should" with a dev note and a confirmation modal.</td>
+        <td>Replaced with an explicit "not built" block carrying the rationale: no endpoint, no UI element, and if reopened it comes back as its own scoped work with the interlock designed first.</td>
+      </tr>
+      <tr>
+        <td class="k">Retention: 12 vs 13 months</td>
+        <td>Two documents, two numbers, listed as a conflict to reconcile.</td>
+        <td>Not a conflict — a relationship. 13 months online is the floor that makes the 12-month customer promise true on <em>every</em> day of the year. HIS-06 now says that, and the open question narrowed to cold retention for sealed evidence, which is the part genuinely undecided.</td>
+      </tr>
+      <tr>
+        <td class="k">Reporting interval</td>
+        <td>"Confirmed" at 30 s in the functional spec, still open in the requirements.</td>
+        <td>Settled at 30 s while awake. The open question was replaced by the one that actually matters: the sleep policy per asset class.</td>
+      </tr>
+      <tr>
+        <td class="k">Screen count · ETA · tracking link TTL</td>
+        <td>Build spec said "8 screens", numbered 01/08 to 07/08, then jumped to 09/09. ETA was sold on every tier with no destination source. The client link expired "after 48h for long-hire equipment."</td>
+        <td>Nine screens throughout. ETA now reads "where a destination is set on the job." The link is bound to the assignment window and admin-revocable, with the note that a 48-hour TTL is useless on a six-month hire.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The requirements spec went from 108 to <strong>112</strong>: ATT-16, DET-15, DET-16, RPT-10. Group counts, the scope bar chart and the footer total were all updated to match, and verified programmatically — contiguous IDs per group, sum 112.</p>
+</section>
+
+<section id="s04">
+  <h2><i>04</i>The numbers</h2>
+  <p>Every figure was recomputed from the components printed beside it, at your installation cost of <strong>AED 60 / 80 / 100</strong>.</p>
+
+  <div class="find">
+    <div class="find-id">N-01</div>
+    <div class="find-body">
+      <span class="chip c-ok">Fixed</span>
+      <h3>One payback table, one break-even basis, one install cost</h3>
+      <p>There were three break-even fleet sizes across the pack (385, 424, 627 blended) and two payback tables for the same tiers. The two costing documents also disagreed on installation cost by up to 108% — the financial model's amortisation lines implied AED 100 / 150 / 250 while the cost model priced AED 80 / 100 / 120. Both are now your figures.</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>Per Tier 2 device</th><th class="n">Was</th><th class="n">Now</th></tr></thead>
+        <tbody>
+          <tr><td>Installation</td><td class="n was">100 / 150</td><td class="n now">AED 80</td></tr>
+          <tr><td>Capex (hardware + install)</td><td class="n was">508</td><td class="n now">AED 488</td></tr>
+          <tr><td>Capex incl. SIM activation</td><td class="n was">533</td><td class="n now">AED 513</td></tr>
+          <tr><td>Payback</td><td class="n was">8.8 / 6.7 mo</td><td class="n now">8.4 mo</td></tr>
+          <tr><td>Year-1 opex stack</td><td class="n was">70.31</td><td class="n now">AED 62.67</td></tr>
+          <tr><td>Year-1 gross profit</td><td class="n was">14.69</td><td class="n now">AED 17.33</td></tr>
+          <tr><td>12-month net contribution</td><td class="n was">326</td><td class="n now">AED 208</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Tier 1 payback is now 6.7 months and Tier 3 is 7.9. Break-even is stated on one basis per document and the bases no longer contradict: the cost models use <strong>351 devices</strong> (pure Tier 2, steady-state contribution of AED 58 against AED 20,333 fixed), and the financial model computes <strong>333</strong> from its own 30/40/30 blend. Both are correct for what they model, and each now says which it is.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">N-02</div>
+    <div class="find-body">
+      <span class="chip c-ok">Fixed — and my first read was too harsh</span>
+      <h3>The financial model's formulas were right; its printed numbers were stale</h3>
+      <p>I flagged that none of the three Year-1 opex stacks added up and that Tier 2's margin was computed against AED 85 rather than AED 80. That is what the file <em>said</em> — but <code>kasper-financial-model.html</code> is a live calculator, and every one of those values sits in an element that its own <code>update()</code> function overwrites on load. Reading the source, the arithmetic is sound: <code>calcOpex</code> sums correctly, <code>calcPayback</code> uses hardware plus install, <code>calcBreakEven</code> uses blended revenue less blended Year-2 opex.</p>
+      <p>So there were two defects, not the one I described. The <strong>real</strong> one was <code>const INSTALL = { t1: 100, t2: 150, t3: 250 }</code> — wrong inputs feeding correct formulas. The second was that every printed placeholder in the file had drifted from what the calculator produces, so anyone reading it as a document, or exporting it, saw figures the model does not generate.</p>
+      <div class="did">
+        <h4>Fixed in the docs</h4>
+        <p>INSTALL is now 60 / 80 / 100 with a comment recording the source and date. Every static placeholder was recomputed from the model's own formulas at default settings and written back — opex stacks, gross profits, both margin sets and their bar widths, paybacks, net contributions, break-even device count and ARR, blended revenue, the break-even month badge and all three ramp scenarios. The file now reads the same before and after JavaScript runs.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">N-03</div>
+    <div class="find-body">
+      <span class="chip c-ok">Fixed</span>
+      <h3>The cash simulation, rebuilt — and it improves</h3>
+      <p>The month-by-month simulation in <code>kasper-cost-to-breakeven.html</code> §04 was arithmetically correct row by row; it was simply built on the higher install cost. Rerun at AED 80:</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>Working capital</th><th class="n">Was</th><th class="n">Now</th></tr></thead>
+        <tbody>
+          <tr><td>Peak cumulative deficit</td><td class="n was">−92,479 at M13</td><td class="n now">−AED 83,879 at M13</td></tr>
+          <tr><td>Cumulative turns positive</td><td class="n was">Month 20</td><td class="n now">Month 19</td></tr>
+          <tr><td>Cumulative at Month 24</td><td class="n was">+46,033</td><td class="n now">+AED 62,333</td></tr>
+          <tr><td>Deployment capex, break-even fleet</td><td class="n was">225,992</td><td class="n now">AED 180,063</td></tr>
+          <tr><td>Recommended raise</td><td class="n was">120–150k</td><td class="n now">AED 110,000–135,000</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p>Two properties of the model that were previously left for a reader to discover are now stated in the assumptions note: the fleet-size column does not subtract the 15% that churn, so recurring cost is carried on devices that stopped paying — conservative on cash, but the fleet number is a gross count. And because cash in is flat at steady state while per-device recurring grows with the fleet, monthly net flattens toward zero by Month 36. At the corrected install cost that month is now marginally positive rather than negative, but it is still an artefact of assuming a constant ramp, and it is better to say so before an investor asks.</p>
+      <p>Two smaller corrections went in alongside: "every AED 1 of platform cost moves break-even by ~11 devices" is ~6 at this fleet size, and the failure-rate line now reflects 351 devices and picks up device theft, which the register named and the model never carried.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s05">
+  <h2><i>05</i>Still open — the five that need you, not an edit</h2>
+
+  <div class="find">
+    <div class="find-id">O-01</div>
+    <div class="find-body">
+      <span class="chip c-warn">Blocking</span>
+      <h3>The fleet list against the ALL-CAN300 supported-vehicle list</h3>
+      <p>Make, model and year, one row per machine. This is INT-05 in the requirements and it has been open across three document generations. It decides which assets can carry a Tier 3 contract and therefore whether the product's central promise exists. ATT-16 now gives it somewhere to live; nothing else on this list matters as much.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">O-02</div>
+    <div class="find-body">
+      <span class="chip c-warn">Pricing</span>
+      <h3>Tier 1 at AED 60 sits above the UAE basic-tracking band</h3>
+      <p>Published Dubai ranges put basic GPS at <strong>AED 30–50</strong> per vehicle per month, compliance-grade at 60–100, advanced analytics at 100–150+. Tier 3 at AED 110 sits correctly in the advanced band and is defensible on CAN data. Tier 1 buys position, geofence and trip history and is priced above the band those features trade in — and it is the tier your own sell-and-service scenario assumes is 70% of volume, where it already prices the service at <strong>AED 40</strong>. I have not changed any price; that is a commercial call.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">O-03</div>
+    <div class="find-body">
+      <span class="chip c-warn">Opportunity</span>
+      <h3>No OEM telematics path — which is the answer to O-01 for the machines that fail it</h3>
+      <p>Cat Product Link, Komatsu KOMTRAX, Volvo CareTrack, John Deere JDLink and Hitachi ConSite all expose <strong>ISO 15143-3 (AEMP 2.0)</strong>, a common schema for location, engine hours, fuel consumption, fault codes and utilisation across brands. That is <em>OEM-authoritative</em> data — stronger evidence in a billing dispute than a third-party CAN tap — obtained without touching the bus and without a program number.</p>
+      <p>It does not replace the FMC130: no real-time geofencing, no coverage of older machines, and it depends on the owner's OEM subscription. But for exactly the machines where ALL-CAN300 support turns out to be missing, it is a second route to the billable hour rather than a reason to write the asset off. I left it out of the documents because it is a strategy decision, not a correction.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">O-04</div>
+    <div class="find-body">
+      <span class="chip c-warn">To write</span>
+      <h3>A sleep policy per asset class, and a mounting spec</h3>
+      <p>These are now named as the open question in the requirements rather than buried, but neither exists. A machine that sits for two weeks is either draining its battery or not reporting; each asset class needs a written profile, and the platform needs to treat asleep as a state rather than a fault. Separately, IP41 with internal-only antennas dictates where the device can go on a steel-cab machine — and your own risk register already notes there is no anti-theft mounting spec.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">O-05</div>
+    <div class="find-body">
+      <span class="chip c-warn">Unpriced</span>
+      <h3>Development, hosting and the SIM data allowance</h3>
+      <p>All three cost models exclude development and hosting, honestly and explicitly. But the 112 requirements describe a capital project: a stateful Codec 8E gateway, acknowledge-after-durability with backpressure, row-level-enforced dated multi-tenancy, immutable evidence objects under retention lock, hash-chained signed daily manifests, byte-identical report re-rendering, WCAG 2.1 AA throughout. Retention alone at 30 s and 351 devices is roughly <strong>369 million rows a year</strong>, and HIS-07 requires keeping the raw device frames alongside the decoded ones, which roughly doubles it. At Tier 2's AED 58 contribution, every AED 100,000 of build cost is about 1,724 device-months to recover.</p>
+      <p>And the SIM: AED 10 per device per month from du is confirmed as a <em>price</em>, but no document states the included megabytes. At 30-second reporting a device produces 2,880 records a day — roughly <strong>14–35 MB a month</strong> once TCP/IP framing and keepalives are counted, with Tier 3's hundred-plus CAN parameters at the top of that range. Confirm the bundle before the MOQ-50 order lands.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s06">
+  <h2><i>06</i>What holds up</h2>
+  <p>Said plainly, because most of this document is criticism and the balance is not representative.</p>
+
+  <div class="find">
+    <div class="find-id">G-01</div>
+    <div class="find-body">
+      <span class="chip c-ok">Strong</span>
+      <h3>The SUDO technical pack is accurate on the protocol</h3>
+      <p>The IMEI handshake and the single accept/reject byte, the four-byte record-count acknowledgement, the CRC-16/IBM span, Codec 8 vs 8E identifiers, ACK Type AVL versus TCP/IP, dual-server Duplicate mode as a safe parallel-run path, the connection-failure back-off ladder — all correct, all sourced. The conclusion that AWS IoT Core cannot terminate these connections directly is right: the FMC130 offers TCP or UDP only, no MQTT and no HTTPS. One line about J1939 needed correcting; everything else stands.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">G-02</div>
+    <div class="find-body">
+      <span class="chip c-ok">Strong</span>
+      <h3>The requirements spec is the best artefact in the set</h3>
+      <p>ING-04 read against CON-02 — acknowledge only after a durable write, because the device deletes its only copy on acknowledgement — is the correct central insight, and the observation that a data gap looks exactly like a machine that was switched off is why it matters. ATT-03 and ATT-04 as two separate dated relationships is right, and is the thing this class of system most often gets wrong. EVD-03 (null, never zero), EVD-07 and EVD-08 (carry unobserved time explicitly), DET-10 (absence-based rules on a schedule) and DET-11 (suppress stale alerts on replay) only appear in specifications written by people who have thought hard about failure. Demonstration 2 in §16 is the right hill to die on.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">G-03</div>
+    <div class="find-body">
+      <span class="chip c-ok">Strong</span>
+      <h3>The functional spec already knew the answer to B-01</h3>
+      <p>§02 — "capability is the pair, not the tier alone," a Tier 3 device on an unsupported machine degrades to Tier 1's contract, and the system must <em>refuse</em> to open a utilisation-billed assignment on an asset that cannot source ECU hours — is the single best paragraph in the pack. The problem was never that nobody understood it. It was that the tier sheet sold the opposite.</p>
+    </div>
+  </div>
+
+  <div class="find">
+    <div class="find-id">G-04</div>
+    <div class="find-body">
+      <span class="chip c-ok">Strong</span>
+      <h3>The cash model and the funding read</h3>
+      <p>Every row of the simulation ties out, and recommending a raise well below the headline deployment capex — on the grounds that annual-upfront billing means clients fund most of the hardware on day one — is exactly the right reading. The CTO risk register is also sharper than most: single-vendor dependency, du coverage gaps on precisely the sites that need coverage, no OTA capability, unmodelled failure rates, no certified-installer programme, device theft on unattended equipment. The instinct was right throughout; what was missing is that almost none of it had crossed into the tier sheet, the requirements or the model. Several items now have.</p>
+    </div>
+  </div>
+</section>
+
+<section id="s07">
+  <h2><i>07</i>Sources</h2>
+  <h4>Primary — hardware and protocol</h4>
+  <ul class="srcs">
+    <li><a href="https://wiki.teltonika-gps.com/view/FMC130_CAN_adapters">Teltonika Wiki — FMC130 CAN adapters</a> (supported adapters, serial pin connection, firmware requirements)</li>
+    <li><a href="https://wiki.teltonika-gps.com/view/LV-CAN200">Teltonika Wiki — LV-CAN200</a> and <a href="https://wiki.teltonika-gps.com/view/ALL-CAN300">ALL-CAN300</a> (vehicle coverage, parameters, program numbers)</li>
+    <li><a href="https://wiki.teltonika-gps.com/view/FMC130_Sleep_modes">Teltonika Wiki — FMC130 Sleep modes</a> (CAN, OBD and I/O disabled in deep sleep)</li>
+    <li><a href="https://community.teltonika.lt/t/problem-retrieving-total-engine-time-on-the-can-all300/15900">Teltonika Community — Problem retrieving total engine time on the ALL-CAN300</a> (support answer on engine-hours availability and the Ignition ON Counter fallback)</li>
+    <li><a href="https://www.pbtech.com/pacific/product/NETTTK0130/Teltonika-FMC130-4G-LTE-Cat-1-tracker-with-flexibl">FMC130 specification</a> (IP41, internal antennas, 170 mAh, −40 to +85 °C, bands, I/O)</li>
+    <li><a href="https://www.traccar.org/forums/topic/the-can-data-computed-attributes-are-not-displayed-in-the-popup-when-ignition-off/">Traccar forums — CAN data not sent when ignition off</a></li>
+    <li><a href="https://trackiber.com/en/blogs/news/fmc150-vs-fmc130-native-can-vs-can-control">FMC150 vs FMC130 — native CAN vs adapter</a> (J1939/FMS needs the FMC650 class)</li>
+    <li><a href="https://www.ziptuning.com/blog/spn-3216-aftertreatment-1-intake-nox/">SPN 3216 — Aftertreatment 1 Intake NOx</a> · <a href="https://www.ziptuning.com/blog/spn-3516-aftertreatment-1-diesel-exhaust-fluid-tank-level/">SPN 3516 — DEF tank level</a></li>
+  </ul>
+  <h4>Primary — market and standards</h4>
+  <ul class="srcs">
+    <li><a href="https://ariannaltd.com/fleet-management-cost-in-dubai/">Dubai fleet-management cost bands</a> (AED 30–50 basic, 60–100 compliance, 100–150+ advanced)</li>
+    <li><a href="https://tdra.gov.ae/en/media/press-release/2021/tdra-2g-shutdown-is-proceeding-as-scheduled">TDRA — 2G shutdown proceeding as scheduled</a></li>
+    <li><a href="https://heavyvehicleinspection.com/blog/post/construction-equipment-software-integration-guide">ISO 15143-3 / AEMP 2.0 — mixed-fleet OEM telematics</a></li>
+    <li><a href="https://www.mapon.com/en/blog/preventing-fuel-theft-fleet">Fuel theft detection — CAN data vs capacitive tank sensors</a></li>
+    <li><a href="https://ominiflow.com/whatsapp-api-pricing/uae">WhatsApp Business API — UAE rates</a> (utility conversations ≈ USD 0.015; cost is not a risk, template approval lead time is)</li>
+  </ul>
+  <h4>Kasper documents corrected</h4>
+  <ul class="srcs">
+    <li><code>02_Product/</code> — kasper-tier-features.html · kasper-feature-spec.html · Kasper_Telematics_Functional_Spec.html (v1.5)</li>
+    <li><code>03_Engineering/</code> — Kasper_GPS_Requirements.html (112 reqs) · Correspondence/02_SUDO/SUDO_Technical_Pack.md · Correspondence/04_Internal/Kasper_IoT_Feature_List.md</li>
+    <li><code>01_Strategy/</code> — kasper-financial-model.html · kasper-cost-to-breakeven.html · kasper-cost-breakdown-summary.html · kasper-scenario-no-upfront-sell-service.html</li>
+  </ul>
+</section>
+
+<footer>
+  Kasper GPS · technical review and applied corrections · 25 Aug 2026<br>
+  24 corrections applied across 8 files · 5 decisions still open · 4 areas verified strong. Every hardware claim checked against vendor documentation; every figure recomputed from its own components at AED 60/80/100 installation cost.<br>
+  Companions: Kasper_GPS_Requirements.html · Kasper_Telematics_Functional_Spec.html · kasper-cost-to-breakeven.html
+</footer>
+
+</main>
+</div>
+
+</body>
+</html>

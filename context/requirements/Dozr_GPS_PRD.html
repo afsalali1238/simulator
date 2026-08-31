@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dozr GPS / Telematics — Product Requirements</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:18ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note.big{max-width:78ch}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+.pill.buy{border-color:var(--green);color:var(--green)}
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+footer .fine{font-size:10px;color:var(--text-3);opacity:.85;margin-top:10px;border-top:1px solid var(--rule);padding-top:12px}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">DOZR<span>/</span>GPS</div>
+  <div class="toc-sub">Product requirements</div>
+  <nav>
+    <a href="#s0"><b>00</b>How to read this PRD</a>
+    <a href="#s1"><b>01</b>Goals &amp; non-goals</a>
+    <a href="#s2"><b>02</b>Users &amp; jobs-to-be-done</a>
+    <a href="#s3"><b>03</b>The product spine</a>
+    <div class="grp">Functional requirements</div>
+    <a href="#s4"><b>04</b>Ingestion &amp; device contract</a>
+    <a href="#s5"><b>05</b>Decoding, model &amp; tenancy</a>
+    <a href="#s6"><b>06</b>Enrichment, rules &amp; screens</a>
+    <a href="#s7"><b>07</b>Utilisation ledger &amp; evidence</a>
+    <a href="#s8"><b>08</b>Messaging &amp; admin</a>
+    <div class="grp">Quality &amp; shape</div>
+    <a href="#s9"><b>09</b>Non-functional requirements</a>
+    <a href="#s10"><b>10</b>Data model outline</a>
+    <a href="#s11"><b>11</b>Integrations</a>
+    <div class="grp">Acceptance &amp; decisions</div>
+    <a href="#s12"><b>12</b>Pilot acceptance criteria</a>
+    <a href="#s13"><b>13</b>Open decisions</a>
+    <a href="#s14"><b>14</b>Out of scope</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Dozr GPS / Telematics · product requirements · device-data layer only</div>
+  <h1>GPS &amp; Telematics — Product Requirements</h1>
+  <p>What the device-data backend must do, module by module, to turn raw signals from a construction machine into a billing-grade utilisation record — and to light up the nine <code>fleet-v2</code> screens that already exist. The <em>what</em>; the handbook is the <em>who and how</em>, CLAUDE.md is the <em>rules</em>.</p>
+  <div class="meta">
+    <div><dt>Scope</dt><dd>GPS / telematics backend</dd></div>
+    <div><dt>Status</dt><dd>Pre-code · greenfield</dd></div>
+    <div><dt>Dashboard</dt><dd>fleet-v2/ (already built)</dd></div>
+    <div><dt>Companions</dt><dd>Handbook · CLAUDE.md · Review</dd></div>
+    <div><dt>Date</dt><dd>30 Aug 2026</dd></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>How to read this PRD</h2>
+  <p>This document specifies the GPS/telematics <strong>device-data layer</strong> only — the backend that receives data from Teltonika devices on construction machines, turns it into trustworthy records, and serves them to the dashboard. It is deliberately not about the Marketplace or Vendor OS; those are separate products with their own specs.</p>
+  <p>It sits in a set of four. Read this for <em>what</em> to build and to what standard; read the Build Handbook for <em>who</em> builds it and <em>how</em> the project runs; read <code>CLAUDE.md</code> for the <em>invariants</em> any coding agent must never break; read the Expert Build Review for the <em>reasoning</em> behind the architectural positions. Where they conflict, this PRD is authoritative on scope and requirements, and CLAUDE.md is authoritative on the correctness invariants.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Document</th><th>Answers</th><th>Where</th></tr></thead>
+      <tbody>
+        <tr><td class="k">This PRD</td><td>What to build, requirements, acceptance</td><td>03_Engineering/Dozr_GPS_PRD.html</td></tr>
+        <tr><td class="k">Build Handbook</td><td>Who, resources, plan, build-vs-buy</td><td>03_Engineering/Dozr_GPS_Build_Handbook.html</td></tr>
+        <tr><td class="k">CLAUDE.md</td><td>Invariants &amp; conventions for coding agents</td><td>the GPS code repo (proposed)</td></tr>
+        <tr><td class="k">Expert Review</td><td>Why — the architectural positions</td><td>03_Engineering/Dozr_GPS_IoT_Expert_Build_Review.html</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>On requirement priorities.</strong> Functional requirements carry a MoSCoW tag: <span class="pill open">Must</span> means pilot-blocking — the pilot cannot be accepted without it; <span class="pill mvp">Should</span> means strongly wanted but a pilot can proceed without it; <span class="pill ref">Could</span> means a genuine nice-to-have. Requirement IDs (e.g. <code>FR-ING-1</code>) are stable handles for tracking and for CLAUDE.md to reference.</p>
+  </div>
+
+  <div class="note warn">
+    <p><strong>Sourcing caveat.</strong> External figures referenced here (device capabilities, tariffs, standard identifiers) come from the internal corpus and general practice; web access was unavailable during preparation. Anything that drives a spend or a contract commitment must be confirmed at its source — Teltonika, the telco, and each project's own quotes — before it is relied upon.</p>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>Goals &amp; non-goals</h2>
+  <p>The product exists to make construction-equipment utilisation <em>measurable and billable</em> from a machine's own engine data, and to give operators a live picture of where their fleet is and how hard it is working. Success is not "we can see dots on a map" — it is "we can put a number on an invoice and defend it."</p>
+
+  <h3>Goals</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>#</th><th>Goal</th><th>Measured by</th></tr></thead>
+      <tbody>
+        <tr><td class="k">G1</td><td>Capture device data without loss</td><td>Zero acknowledged-then-lost records across a full pilot cycle</td></tr>
+        <tr><td class="k">G2</td><td>Produce billing-grade engine hours</td><td>Utilisation hours reconcile to the machine's own meter within tolerance</td></tr>
+        <tr><td class="k">G3</td><td>Make every billed number defensible</td><td>Each utilisation record resolves to sealed, immutable evidence</td></tr>
+        <tr><td class="k">G4</td><td>Light up the existing dashboard with real data</td><td>All nine <code>fleet-v2</code> screens serve live data, not mocks</td></tr>
+        <tr><td class="k">G5</td><td>Keep tenants isolated</td><td>No tenant can read or be billed for another's assets — enforced &amp; tested</td></tr>
+        <tr><td class="k">G6</td><td>Deliver alerts &amp; reports where operators already are</td><td>Key events reach the operator over WhatsApp</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Non-goals (for this product / this phase)</h3>
+  <div class="note">
+    <ul>
+      <li><strong>Not</strong> the Marketplace or Vendor OS — those are separate products.</li>
+      <li><strong>No</strong> phone- or app-based location tracking — tracking is hardware-only, by design.</li>
+      <li><strong>No</strong> predictive analytics, ML, or driver-scoring at pilot — utilisation is arithmetic and rules, not modelling.</li>
+      <li><strong>No</strong> native mobile app — delivery is WhatsApp plus the web dashboard.</li>
+      <li><strong>No</strong> in-house SIM/MVNO or custom firmware — use the telco's M2M SIM and Teltonika's stock firmware.</li>
+      <li><strong>No</strong> automated invoicing/payment in this layer — it produces the billable number and its evidence; billing itself lives elsewhere.</li>
+    </ul>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Users &amp; jobs-to-be-done</h2>
+  <p>Four human roles and one non-human actor. The non-human one — the device — matters because it has a "job" the system must respect: deliver its buffered data exactly once and then be free to forget it.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>User</th><th>Their job-to-be-done</th><th>What the product owes them</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Fleet operator / owner</td><td>"Know where my machines are and how much they worked"</td><td>Live map, utilisation per machine, alerts on their own fleet only</td></tr>
+        <tr><td class="k">The party being billed</td><td>"Trust — or challenge — the hours I'm charged for"</td><td>A utilisation figure backed by defensible, inspectable evidence</td></tr>
+        <tr><td class="k">Ops coordinator</td><td>"Keep devices healthy and installs verified"</td><td>Device health, last-seen, silent-device alerts, install verification</td></tr>
+        <tr><td class="k">Dozr admin</td><td>"Onboard tenants, devices, and assignments safely"</td><td>Admin tools for tenants, device provisioning, dated assignments</td></tr>
+        <tr><td class="k">The device (actor)</td><td>"Hand off my buffered data exactly once, then forget it"</td><td>An acknowledgement it can trust — sent only after durable storage</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note ok">
+    <p><strong>The device is a first-class user.</strong> Designing around its contract — buffer, send, wait for ACK, delete — is what separates a telematics system that can bill from one that merely maps. Treat its acknowledgement as a promise, not a formality.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>The product spine — five capabilities in order</h2>
+  <p>Every requirement in this PRD serves one of five capabilities, and they depend on each other in strict order. You cannot attribute utilisation to an owner (capability 4) before you can detect that the machine was working (3), which you cannot do before you can reconstruct its history (2), which requires that you located and stored it losslessly in the first place (1). Evidence (5) wraps the whole chain so the output can be billed.</p>
+
+  <div class="seq">
+    <div class="step"><span class="n">1</span><span class="b"><strong>LOCATE</strong>Receive and durably store every record a device sends — position, ignition, engine data. Lossless capture is the foundation everything else stands on.</span></div>
+    <div class="step"><span class="n">2</span><span class="b"><strong>RECONSTRUCT</strong>Turn the stream into an accurate, gap-aware history of each machine — where it was, when, and in what state.</span></div>
+    <div class="step"><span class="n">3</span><span class="b"><strong>DETECT</strong>Infer meaningful states from the history — moving, idle, working — and geofence entry/exit, explainably.</span></div>
+    <div class="step"><span class="n">4</span><span class="b"><strong>ATTRIBUTE</strong>Assign each machine's activity to the right owner/renter for the right period, using dated assignment windows.</span></div>
+    <div class="step"><span class="n">5</span><span class="b"><strong>EVIDENCE</strong>Seal the utilisation figure and the chain behind it so it survives a billing dispute. This is the product's reason to exist.</span></div>
+  </div>
+
+  <div class="note warn">
+    <p><strong>Do not build these out of order, and do not skip ahead to the screens.</strong> A pretty dashboard on top of lossy capture (capability 1 done wrong) is worse than no dashboard, because it looks trustworthy while being wrong. The functional requirements that follow are grouped to build this spine bottom-up.</p>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Functional requirements — ingestion &amp; device contract</h2>
+  <p>Capability 1 (LOCATE). This is where correctness is won or lost: the device holds the only copy of its buffered data until the server acknowledges, so the acknowledgement must be a promise the server can keep.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">FR-ING-1</td><td>Accept TCP connections from Teltonika devices, complete the IMEI handshake, and admit only devices on the provisioned allowlist</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-2</td><td>Parse Codec 8 and Codec 8 Extended (0x8E) frames; validate CRC-16; reject malformed frames <em>without</em> acknowledging them</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-3</td><td>Acknowledge a frame <strong>only after</strong> all its records are durably persisted — never before. This is the system's foundational invariant</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-4</td><td>Idempotent ingest: dedupe on (device, record identity) so a buffer re-sent after a missed ACK cannot double-count</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-5</td><td>Persist the raw frame to immutable cold storage as part of durable write, to anchor the evidence chain</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-6</td><td>Back-pressure under load: when storage lags, stop acknowledging rather than dropping — let devices hold their buffer</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ING-7</td><td>Support TLS from device firmware 03.27.02+ (D9); optional mutual TLS with a device client certificate (D11)</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">FR-ING-8</td><td>Support UDP transport as a fallback where TCP session cost is prohibitive</td><td><span class="pill ref">Could</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note warn">
+    <p><strong>FR-ING-3 is the requirement the whole product rests on.</strong> If the server acknowledges before the write is durable and then crashes, the device has already deleted its only copy — the data is gone, silently, and a billing period is now under-counted with no way to know. Everything else can be rebuilt; an acknowledged-then-lost record cannot.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Functional requirements — decoding, data model &amp; tenancy</h2>
+  <p>Capabilities 2 (RECONSTRUCT) and part of 4 (ATTRIBUTE). Turning raw frames into a canonical, tenant-scoped, time-correct record — and being honest about what the device did and did not report.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">FR-DEC-1</td><td>Decode standard AVL fields: position, speed, GNSS quality, ignition, movement, and device I/O</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-DEC-2</td><td>Decode CAN engine data via the machine's program number (D1). When the make/model/year is unlisted, store position + ignition only and flag the asset "no engine data"</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-DEC-3</td><td>Normalise every frame into one canonical record schema — the frozen contract every downstream module and screen depends on</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-DEC-4</td><td>Label engine-hours source explicitly as <code>ecu</code> (from CAN) or <code>estimated</code> (derived). The two must <strong>never</strong> be merged in storage or on screen</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-DEC-5</td><td>Treat NULL as distinct from zero everywhere — "we didn't receive it" is not "it was zero"</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-MOD-1</td><td>Pooled multi-tenant schema with row-level security; every read and write is scoped to a tenant with no exception path</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-MOD-2</td><td>Dated device→asset and asset→owner assignment windows; resolve each record against the assignment that was true at <em>its own</em> timestamp</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-MOD-3</td><td>Store position history in a time-series hypertable; keep a hot last-state cache for the live map</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-MOD-4</td><td>Keep the immutable raw layer physically separate from the derived, queryable layer</td><td><span class="pill mvp">Should</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p><strong>Why FR-MOD-2 is subtle and load-bearing:</strong> a machine changes hands mid-month, and both parties must be billed only for their own window. Resolving assignment at query time (or "as of now") silently misattributes the handover period. Every record must be attributed using the assignment that was in force at the moment that record was produced — not the current one.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Functional requirements — enrichment, rules &amp; the nine screens</h2>
+  <p>Capability 3 (DETECT) plus the surfaces. The nine <code>fleet-v2</code> screens already exist as UI on mock data; the requirement here is to feed them real, honest data — including honest empty, stale, and error states.</p>
+
+  <h3>Enrichment &amp; rules</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">FR-ENR-1</td><td>Geofences — define circular and polygon zones per tenant; detect and record entry / exit</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ENR-2</td><td>State detection — classify each machine as moving / idle / working using inspectable, rule-based logic (never an opaque model)</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ENR-3</td><td>Alert rules — geofence breach, idle-too-long, device silence, ignition outside working hours</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">FR-ENR-4</td><td>Fuel-event detection (level drops / refuels) where the machine reports fuel over CAN</td><td><span class="pill ref">Could</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The nine screens (FR-SCR)</h3>
+  <p>Each screen must serve live tenant-scoped data and degrade honestly when data is missing or stale. Screens whose inputs depend on CAN data must clearly show "no engine data" for unlisted machines rather than implying zero.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Screen</th><th>Live data it needs</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Fleet Map</td><td>Last-state positions, ignition, moving/idle/working state, per tenant</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">Utilisation</td><td>Engine hours (ecu vs estimated), working vs idle, per machine per period</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">Alerts Center</td><td>Live alert feed from the rules engine, acknowledge/resolve state</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">Geofences</td><td>Zone definitions, entry/exit events, dwell</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">Maintenance</td><td>Engine-hours-driven service intervals, due/overdue</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">Timesheet</td><td>Working-hours summary per machine/operator per day</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">Reports</td><td>Exportable utilisation &amp; activity over a date range</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">Fuel</td><td>Fuel level / consumption / events where CAN provides it</td><td><span class="pill ref">Could</span></td></tr>
+        <tr><td class="k">Cost &amp; ROI</td><td>Utilisation × rate models; derived, depends on Utilisation being solid first</td><td><span class="pill ref">Could</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note ok">
+    <p><strong>The dashboard is already built.</strong> The work here is not design — it is data contracts and honest states. The two screens that must be right for the pilot are Fleet Map (proves LOCATE + DETECT) and Utilisation (proves the billable number). The rest can follow.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Functional requirements — utilisation ledger &amp; evidence chain</h2>
+  <p>Capabilities 4 (ATTRIBUTE) and 5 (EVIDENCE). This is the product's reason to exist: a billable number that survives a dispute. The highest-stakes module in the system.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">FR-LED-1</td><td>Compute utilisation (working engine hours) per machine per period from <code>ecu</code> hours. The ignition-counter fallback is <strong>never</strong> admissible as billing evidence</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-LED-2</td><td>Attribute each period's utilisation to the correct owner/renter via the dated assignment window (FR-MOD-2)</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-LED-3</td><td>Produce an immutable, sealed utilisation record per machine per billing period</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-EVID-1</td><td>Each sealed record links to the underlying raw frames; integrity is provable via hash/manifest (tamper-evident)</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-EVID-2</td><td>Retain evidence for 7 years in immutable cold storage</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-EVID-3</td><td>Dispute pack: given any utilisation figure, produce its complete evidence trail on demand</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-EVID-4</td><td>Anchor the manifest to a trusted time source so "when" is provable, not just asserted (D10)</td><td><span class="pill mvp">Should</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note warn">
+    <p><strong>What "billing-grade" means, concretely:</strong> if a customer says "you charged me for 40 hours, prove it," the system must return the sealed record, the engine-hours source (<code>ecu</code>, not estimated), the assignment window that put the machine on their account, and the raw frames behind the number — all demonstrably unchanged since sealing. A number you cannot defend this way is not billable, no matter how accurate it happens to be.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Functional requirements — messaging &amp; admin</h2>
+  <p>Delivery where operators already are (WhatsApp), and the administrative surface that keeps tenancy, devices, and — critically — assignment windows correct, since those drive billing attribution.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td class="k">FR-MSG-1</td><td>Deliver key alerts to operators via WhatsApp (Cloud API), using pre-approved message templates</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">FR-MSG-2</td><td>Scheduled utilisation / activity reports via WhatsApp or email</td><td><span class="pill mvp">Should</span></td></tr>
+        <tr><td class="k">FR-MSG-3</td><td>Two-way queries — operator asks fleet status over WhatsApp and gets a reply</td><td><span class="pill ref">Could</span></td></tr>
+        <tr><td class="k">FR-ADM-1</td><td>Tenant onboarding — create org, users, and roles</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ADM-2</td><td>Device provisioning — register IMEI, bind to tenant, and set dated assignment windows</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ADM-3</td><td>Device health view — last-seen, buffer state, CRC/reject rate, and the install-verified flag</td><td><span class="pill open">Must</span></td></tr>
+        <tr><td class="k">FR-ADM-4</td><td>Audit log of admin actions — especially assignment changes, since they move billing attribution</td><td><span class="pill mvp">Should</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p><strong>"Install-verified" is a first-class field, not a note.</strong> Per the handbook, a device is only "installed" once engine hours have been seen arriving from that machine. FR-ADM-3 makes that a tracked state the ops coordinator manages — not a comment in a spreadsheet.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Non-functional requirements</h2>
+  <p>The qualities that make this "production grade" rather than "a working demo." Each has a target; where the target is a decision not yet made, it points at the relevant open decision.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Requirement</th><th>Target</th></tr></thead>
+      <tbody>
+        <tr><td class="k">NFR-DUR</td><td>Durability of acknowledged data</td><td>Zero acknowledged-then-lost records; RPO ≈ 0 for acknowledged data</td></tr>
+        <tr><td class="k">NFR-AVL</td><td>Ingestion availability</td><td>High — devices buffer through brief outages, but sustained downtime risks buffer overflow (D8). Aim 99.5%+</td></tr>
+        <tr><td class="k">NFR-PERF</td><td>Throughput &amp; query latency</td><td>Handle pilot load comfortably (~40 rec/s at 1,000 devices, per the review); dashboard queries feel live</td></tr>
+        <tr><td class="k">NFR-SCALE</td><td>Scale path</td><td>Thousands of devices on one Postgres before sharding; the database is the pressure point, not the socket</td></tr>
+        <tr><td class="k">NFR-SEC</td><td>Security</td><td>TLS in transit, RLS enforced, secrets managed, least privilege; location/utilisation treated as commercially sensitive</td></tr>
+        <tr><td class="k">NFR-RETAIN</td><td>Evidence retention</td><td>7 years, immutable, tiered (hot → warm → cold)</td></tr>
+        <tr><td class="k">NFR-OBS</td><td>Observability</td><td>Live metrics (records/sec, buffer depth, reject rate, per-device last-seen) and alert on device silence</td></tr>
+        <tr><td class="k">NFR-BR</td><td>Backup &amp; restore</td><td>Automated backups from day one; a <em>tested</em> restore; documented RTO / RPO</td></tr>
+        <tr><td class="k">NFR-MNT</td><td>Maintainability</td><td>Reproducible Docker deploys; stack consistent with the existing MVPs (vanilla + Supabase) for solo maintainability</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Data model outline</h2>
+  <p>The core entities and the relationships that carry the correctness invariants. This is an outline, not the schema — the DDL lives in the repo, and CLAUDE.md governs the invariants that any migration must preserve. The entities in <strong>bold</strong> are the ones whose design decides whether billing is defensible.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Entity</th><th>Key fields</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="k">tenant</td><td>id, name</td><td>Root of every RLS scope</td></tr>
+        <tr><td class="k">user</td><td>id, tenant_id, role</td><td>Belongs to exactly one tenant</td></tr>
+        <tr><td class="k">device</td><td>imei, model, firmware, tenant_id, status, install_verified</td><td><code>install_verified</code> flips true only when engine hours seen</td></tr>
+        <tr><td class="k">asset</td><td>id, type, make, model, year, program_number, has_engine_data</td><td><code>has_engine_data</code> derives from D1 program lookup</td></tr>
+        <tr><td class="k">device_assignment</td><td>device, asset, valid_from, valid_to</td><td><strong>Dated window</strong> — a device may move between machines</td></tr>
+        <tr><td class="k">asset_assignment</td><td>asset, owner/renter, valid_from, valid_to</td><td><strong>Dated window</strong> — drives billing attribution</td></tr>
+        <tr><td class="k">position_record</td><td>device, ts_ms, lat, lon, speed, ignition, state</td><td>Time-series hypertable; NULL ≠ zero</td></tr>
+        <tr><td class="k">engine_reading</td><td>asset, ts_ms, engine_hours, <strong>source</strong></td><td><code>source</code> ∈ {ecu, estimated} — never merged</td></tr>
+        <tr><td class="k">raw_frame</td><td>device, ts_ms, bytes, codec</td><td><strong>Immutable</strong> — the root of the evidence chain</td></tr>
+        <tr><td class="k">geofence / geofence_event</td><td>tenant, geometry / asset, type, ts</td><td>Entry/exit detection</td></tr>
+        <tr><td class="k">alert</td><td>tenant, type, asset, ts, state</td><td>From the rules engine</td></tr>
+        <tr><td class="k">utilisation_record</td><td>asset, owner, period, hours, source, <strong>sealed</strong>, manifest_hash</td><td><strong>Immutable once sealed</strong> — the billable unit</td></tr>
+        <tr><td class="k">evidence_manifest</td><td>utilisation_record, raw_frame refs, hash, time_anchor</td><td>Ties the number to its proof (D10)</td></tr>
+        <tr><td class="k">audit_log</td><td>actor, action, entity, ts</td><td>Assignment changes especially</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>Integrations</h2>
+  <div class="tw">
+    <table>
+      <thead><tr><th>System</th><th>Purpose</th><th>Notes / decisions</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Teltonika devices</td><td>Primary data source — Codec 8/8E over TCP/TLS</td><td>Program numbers per make/model/year via Teltonika (D1) gate engine-hours capability</td></tr>
+        <tr><td class="k">SIM / APN (telco M2M)</td><td>Device connectivity</td><td>Tariff to confirm (AED 10 vs 25–35); private APN optional (D4); interval drives data volume (D2)</td></tr>
+        <tr><td class="k">WhatsApp Cloud API</td><td>Alert &amp; report delivery</td><td>Meta business approval + template pre-approval have lead time — start early</td></tr>
+        <tr><td class="k">OEM telematics / ISO 15143-3</td><td>Manufacturer engine hours where CAN isn't available</td><td>Cat Product Link, Komatsu KOMTRAX, Volvo CareTrack, JDLink, Hitachi ConSite (AEMP 2.0)</td></tr>
+        <tr><td class="k">Supabase</td><td>Auth, Postgres, RLS, storage, APIs</td><td>Matches the existing MVP stack — lowest-friction app layer</td></tr>
+        <tr><td class="k">Object storage (S3-compatible)</td><td>Immutable cold evidence archive</td><td>AWS S3, DO Spaces, or self-hosted MinIO</td></tr>
+        <tr><td class="k">fleet-v2 dashboard</td><td>Consumer of the read API</td><td>Already built (9 screens) — wire to live data, don't rebuild</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Pilot acceptance criteria</h2>
+  <p>The pilot is accepted when all of these are demonstrably true — each is a <em>proof</em>, echoing the handbook's phase gates. "The demo worked" is not on this list; "we can invoice on this" is.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>#</th><th>Criterion</th><th>How it's verified</th></tr></thead>
+      <tbody>
+        <tr><td class="k">AC-1</td><td>Acknowledged data is durable</td><td>Kill the server mid-stream; the acknowledged record is present after restart</td></tr>
+        <tr><td class="k">AC-2</td><td>Engine hours are billing-grade</td><td>A real machine's utilisation reconciles to its own hour meter within tolerance</td></tr>
+        <tr><td class="k">AC-3</td><td>Must-priority screens are live</td><td>Fleet Map, Utilisation, and Alerts serve real tenant-scoped data end-to-end</td></tr>
+        <tr><td class="k">AC-4</td><td>A sealed record has a working dispute pack</td><td>Produce a utilisation figure's full evidence trail on demand, provably unchanged</td></tr>
+        <tr><td class="k">AC-5</td><td>Tenants are isolated</td><td>An explicit test confirms tenant A cannot read tenant B's data</td></tr>
+        <tr><td class="k">AC-6</td><td>The system is recoverable</td><td>A restore from backup is completed and verified, not just configured</td></tr>
+        <tr><td class="k">AC-7</td><td>It holds over a full cycle</td><td>~10 machines observed through one billing cycle with no correctness incident</td></tr>
+        <tr><td class="k">AC-8</td><td>Silence is noticed</td><td>A device that stops reporting raises an alert within the target window</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s13">
+  <h2><i>13</i>Open decisions</h2>
+  <p>Eleven decisions still open. They are listed here because each one changes a requirement, a cost, or a date — and D1 changes the whole schedule. Owners and target dates belong in the project tracker; this is the canonical list of what is undecided.</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>ID</th><th>Decision</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td class="k">D1</td><td>CAN program numbers per make/model/year (via Teltonika)</td><td><span class="pill open">Critical</span> Largest schedule risk; nothing hardware-related finalises until it returns. Send day one</td></tr>
+        <tr><td class="k">D2</td><td>Reporting interval</td><td>Swings data cost and storage volume several-fold; sets device data tariff</td></tr>
+        <tr><td class="k">D3</td><td>Hosting region</td><td>DigitalOcean (cheap) vs AWS me-central-1 / me-south-1 (UAE data residency)</td></tr>
+        <tr><td class="k">D4</td><td>Private APN</td><td>Stronger security posture vs added cost/complexity</td></tr>
+        <tr><td class="k">D5</td><td>Unknown-device handling at ingest</td><td>How Traccar/gateway treats an IMEI not on the allowlist</td></tr>
+        <tr><td class="k">D6</td><td>ECU vs estimated hours policy</td><td>Where estimated is permissible (display) and where it is banned (billing)</td></tr>
+        <tr><td class="k">D7</td><td>Owner-scope predicate</td><td>Exactly how attribution resolves ownership across assignment windows</td></tr>
+        <tr><td class="k">D8</td><td>Device buffer limit</td><td>How long a device can buffer before overflow — sets the acceptable outage window</td></tr>
+        <tr><td class="k">D9</td><td>Firmware 03.27.02+ for TLS</td><td>Whether all units are upgraded to support encrypted transport</td></tr>
+        <tr><td class="k">D10</td><td>Time anchor for the evidence manifest</td><td>Trusted timestamp source that makes "when" provable</td></tr>
+        <tr><td class="k">D11</td><td>Device client certificate for mutual TLS</td><td>Whether devices must authenticate themselves, not just the server</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section id="s14">
+  <h2><i>14</i>Out of scope</h2>
+  <p>Explicitly not part of this product or this phase — recorded so scope creep has to argue its way in.</p>
+  <div class="note">
+    <ul>
+      <li><strong>Marketplace and Vendor OS</strong> — separate products; this is the device-data layer only.</li>
+      <li><strong>Automated invoicing &amp; payment</strong> — this layer produces the billable number and its evidence; billing runs elsewhere.</li>
+      <li><strong>Predictive analytics / ML / driver scoring</strong> — utilisation here is arithmetic and explainable rules.</li>
+      <li><strong>Native mobile app</strong> — delivery is WhatsApp plus the web dashboard.</li>
+      <li><strong>Phone / app-based location</strong> — tracking is hardware-only, by design.</li>
+      <li><strong>In-house SIM/MVNO or custom firmware</strong> — use the telco's M2M SIM and stock Teltonika firmware.</li>
+      <li><strong>Custom Go ingestion gateway</strong> — a P6 migration triggered only when engine hours bill externally, not pilot scope. Start on Traccar.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Dozr · GPS &amp; Telematics Product Requirements</strong> — device-data layer only. Companion documents: the Build Handbook (<em>who and how</em>), CLAUDE.md (the <em>invariants</em> a coding agent must obey), and the Expert Build Review (the <em>why</em>). Prepared 30 August 2026.</p>
+  <p class="fine">External figures (device capabilities, tariffs, standard identifiers, throughput estimates) are drawn from the internal corpus and general practice; web access was unavailable during preparation. Confirm anything that drives a spend or contract commitment at its source — Teltonika, the telco, and each project's own quotes — before relying on it.</p>
+</footer>
+</main>
+
+
+</div>
+</body>
+</html>

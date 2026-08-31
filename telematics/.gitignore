@@ -1,0 +1,10 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Local env (copy .env.example -> .env and fill in)
+.env
+
+# Postgres data dir if run locally outside Docker
+pgdata/
+*.log

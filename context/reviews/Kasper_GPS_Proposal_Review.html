@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Proposal Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dg-f1{fill:currentColor;opacity:.82}
+.dg-f2{fill:currentColor;opacity:.42}
+.dg-f3{fill:var(--yellow-dark);opacity:.9}
+.dg-f4{fill:var(--green);opacity:.75}
+.dg-red{fill:var(--error);opacity:.75}
+.dg-bar{fill:var(--panel-2);stroke:currentColor;stroke-width:1}
+.dg-barh{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.4}
+.dg-barr{fill:none;stroke:var(--error);stroke-width:1.2;stroke-dasharray:5 3}
+.dg-grid{stroke:currentColor;stroke-width:1;opacity:.13}
+.quote{border-left:3px solid var(--rule);padding:2px 0 2px 18px;margin:16px 0 20px;max-width:70ch;font-style:italic;color:var(--text-2);font-size:14.5px}
+.quote p{margin:0 0 8px;max-width:none}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin:20px 0 26px}
+.vc{border:1px solid var(--rule);border-radius:12px;padding:14px 16px;background:var(--panel)}
+.vc h5{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:0 0 6px;font-weight:700}
+.vc .v{font-family:var(--f-head);font-size:15px;font-weight:600;margin-bottom:4px;letter-spacing:-.01em}
+.vc p{font-size:13px;color:var(--text-2);margin:0;max-width:none;line-height:1.5}
+.vc.ok{border-color:var(--green)}
+.vc.ok .v{color:var(--green)}
+.vc.bad{border-color:var(--error)}
+.vc.bad .v{color:var(--error)}
+.vc.warn{border-color:var(--yellow-dark)}
+.vc.warn .v{color:var(--yellow-dark)}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Proposal review</div>
+  <nav>
+    <a href="#s0"><b>00</b>What was proposed</a>
+    <a href="#s1"><b>01</b>Verdict</a>
+    <div class="grp">The analysis</div>
+    <a href="#s2"><b>02</b>Same calendar, 5× the cost</a>
+    <a href="#s3"><b>03</b>What is missing</a>
+    <a href="#s4"><b>04</b>The POC is the wrong POC</a>
+    <a href="#s5"><b>05</b>The team, role by role</a>
+    <a href="#s6"><b>06</b>The hiring assumption</a>
+    <a href="#s7"><b>07</b>&ldquo;QA runs concurrently&rdquo;</a>
+    <a href="#s8"><b>08</b>Where they may be right</a>
+    <div class="grp">Response</div>
+    <a href="#s9"><b>09</b>Counter-proposal</a>
+    <a href="#s10"><b>10</b>Questions to send back</a>
+    <a href="#s11"><b>11</b>How to run the conversation</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal · review of an external estimate</div>
+  <h1>Vendor Proposal Review</h1>
+  <p>An assessment of the proposed roadmap and staffing model for the initial GPS release: what holds up, what does not, and what to ask before agreeing to anything.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>What was proposed</h2>
+  <div class="quote">
+    <p>&ldquo;Timeline &amp; Phasing: The initial version is estimated to take 5 months. Month 1 will be dedicated to delivering a Proof of Concept (POC) with core display capabilities, followed by full-scale development.&rdquo;</p>
+    <p>&ldquo;Resource Requirements: The proposed team structure requires 9 members: 1 Solutions Architect, 5 Developers, 1 DevOps Engineer, and 2 QA Engineers. Recruiting experienced talent will be necessary to meet these technical requirements.&rdquo;</p>
+    <p>&ldquo;Quality Assurance Strategy: QA and testing will run concurrently with development rather than as a final phase to prevent bottlenecks and ensure an on-schedule release.&rdquo;</p>
+  </div>
+  <p>Three sentences, one number, no scope statement, no dependencies, no assumptions, and no definition of what &ldquo;the initial version&rdquo; contains. That absence is the finding, not a formatting complaint — there is no way to tell whether the five months was derived from anything, and no way to tell whether they and you are describing the same system.</p>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>Verdict</h2>
+  <div class="verdict">
+    <div class="vc ok"><h5>Timeline</h5><div class="v">Roughly right</div><p>Five months is a defensible number for this. It is very likely right for the wrong reasons.</p></div>
+    <div class="vc bad"><h5>Team size</h5><div class="v">~5× too large</div><p>45 person-months for work that needs about 9. Nothing in the design parallelises across five developers.</p></div>
+    <div class="vc bad"><h5>Scope coverage</h5><div class="v">Half the project absent</div><p>No hardware, no program numbers, no SIMs, no installation, no verification. The critical path is unmentioned.</p></div>
+    <div class="vc bad"><h5>The POC</h5><div class="v">Wrong risk</div><p>A display POC proves the thing nobody doubted and defers every question that could break the design.</p></div>
+    <div class="vc warn"><h5>Hiring</h5><div class="v">Understated</div><p>&ldquo;Recruiting will be necessary&rdquo; is a two-to-three month prefix to the five months, stated as an aside.</p></div>
+    <div class="vc warn"><h5>QA strategy</h5><div class="v">A truism</div><p>Concurrent QA is not a strategy. Nothing about test data, device simulation, or what is actually hard to test here.</p></div>
+  </div>
+  <div class="note warn">
+    <h4>The one sentence to take away</h4>
+    <p><strong>They have produced a software plan for a project whose critical path is physical.</strong> Everything else in this review follows from that. It is not a sign of a bad team — it is the standard shape of an estimate written by people who have built dashboards and have not yet had to wait three weeks for an auto-electrician and an idle excavator.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Same calendar, five times the cost</h2>
+<figure class="fig">
+<svg viewBox="0 0 1000 250" role="img" aria-label="Bar comparison showing the proposed team costs 45 person-months against 9 for the same calendar duration">
+<text x="14" y="26" class="dg-k">EFFORT FOR THE SAME CALENDAR</text>
+<text x="14" y="82" class="dg-t">Proposed  ·  9 people × 5 months</text>
+<rect x="250" y="62" width="698" height="30" rx="6" class="dg-red"/>
+<text x="960" y="82" class="dg-e">45 person-months</text>
+<text x="14" y="136" class="dg-t">This plan  ·  peak 2.3 FTE</text>
+<rect x="250" y="116" width="140" height="30" rx="6" class="dg-f3"/>
+<text x="402" y="136" class="dg-e">9 person-months</text>
+<line x1="250" y1="46" x2="250" y2="156" class="dg-l"/>
+<text x="14" y="188" class="dg-err">Both proposals land in roughly the same month. One of them costs five times more to get there.</text>
+<text x="14" y="204" class="dg-s">Because after week nine the constraint is a distributor, a vendor and a machine that is out working — not software capacity.</text>
+</svg>
+<figcaption>The five months is not the problem. The five months is roughly what this takes either way, because the schedule is set by the physical track — procurement, program numbers, installation, site access — and none of that goes faster with more developers. What nine people buy is the ability to build more software in parallel, and there is no parallel software to build: the core is one telemetry contract, one schema, one tenancy model, one ingestion path.</figcaption>
+</figure>
+
+  <p>This is the finding that matters commercially. Their five months and an in-house two-engineer plan land in roughly the same month — because <strong>after about week nine the constraint stops being software capacity.</strong> It becomes a distributor&#39;s stock, a vendor&#39;s response time, a carrier&#39;s account-opening process, and a machine that is out earning money and cannot be wired today.</p>
+  <p>Nine people cannot compress any of that. What they can do is build more software in parallel — and there is very little parallel software to build. The core of this system is one telemetry contract, one schema, one tenancy model and one ingestion path. Those are one-to-two-person artefacts by nature: split them across five developers and you get coordination overhead and divergent designs, not speed.</p>
+  <div class="note">
+    <h4>The fair version of this</h4>
+    <p>Nine people is not an absurd number for a large scope. It is an absurd number for <em>this</em> scope. Which is why section 10&#39;s first question is the only one that really matters: <strong>what do they think they are building?</strong> If their answer includes a customer portal, mobile apps, a public API and a multi-region deployment, the estimate is reasonable and the misunderstanding is yours to fix. If their answer is &ldquo;the GPS platform&rdquo;, the estimate is five times too big.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>What is missing</h2>
+<figure class="fig">
+<svg viewBox="0 0 1000 410" role="img" aria-label="Timeline comparing the two-phase proposal against the seven physical workstreams absent from it">
+<line x1="230" y1="66" x2="230" y2="376" class="dg-grid"/>
+<text x="230" y="58" class="dg-s" text-anchor="middle">W1</text>
+<line x1="302" y1="66" x2="302" y2="376" class="dg-grid"/>
+<text x="302" y="58" class="dg-s" text-anchor="middle">W2</text>
+<line x1="374" y1="66" x2="374" y2="376" class="dg-grid"/>
+<text x="374" y="58" class="dg-s" text-anchor="middle">W4</text>
+<line x1="446" y1="66" x2="446" y2="376" class="dg-grid"/>
+<text x="446" y="58" class="dg-s" text-anchor="middle">W6</text>
+<line x1="518" y1="66" x2="518" y2="376" class="dg-grid"/>
+<text x="518" y="58" class="dg-s" text-anchor="middle">W8</text>
+<line x1="590" y1="66" x2="590" y2="376" class="dg-grid"/>
+<text x="590" y="58" class="dg-s" text-anchor="middle">W10</text>
+<line x1="662" y1="66" x2="662" y2="376" class="dg-grid"/>
+<text x="662" y="58" class="dg-s" text-anchor="middle">W12</text>
+<line x1="734" y1="66" x2="734" y2="376" class="dg-grid"/>
+<text x="734" y="58" class="dg-s" text-anchor="middle">W14</text>
+<line x1="806" y1="66" x2="806" y2="376" class="dg-grid"/>
+<text x="806" y="58" class="dg-s" text-anchor="middle">W16</text>
+<line x1="878" y1="66" x2="878" y2="376" class="dg-grid"/>
+<text x="878" y="58" class="dg-s" text-anchor="middle">W18</text>
+<line x1="950" y1="66" x2="950" y2="376" class="dg-grid"/>
+<text x="950" y="58" class="dg-s" text-anchor="middle">W20</text>
+<text x="14" y="28" class="dg-k">WHAT THE PROPOSAL PLANS  ·  WHAT THE DELIVERY NEEDS</text>
+<text x="14" y="90" class="dg-acc">THEIR PLAN</text>
+<rect x="230" y="100" width="144" height="24" rx="5" class="dg-barh"/>
+<text x="238" y="117" class="dg-acc">POC · display</text>
+<rect x="374" y="100" width="576" height="24" rx="5" class="dg-bar"/>
+<text x="384" y="117" class="dg-t">full-scale development  ·  QA concurrent</text>
+<text x="14" y="168" class="dg-err">NOT IN THEIR PLAN</text>
+<text x="14" y="194" class="dg-t">Confirm CAN program numbers</text>
+<rect x="230" y="180" width="180" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="222" class="dg-t">Order test units</text>
+<rect x="230" y="208" width="108" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="250" class="dg-t">SIM / M2M activation</text>
+<rect x="266" y="236" width="144" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="278" class="dg-t">Procure devices + adapters</text>
+<rect x="410" y="264" width="108" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="306" class="dg-t">Book electrician · site access</text>
+<rect x="482" y="292" width="72" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="334" class="dg-t">Install + verify on machines</text>
+<rect x="554" y="320" width="108" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="362" class="dg-t">Pilot run + reconciliation</text>
+<rect x="806" y="348" width="144" height="20" rx="5" class="dg-barr"/>
+<text x="14" y="398" class="dg-err">Every dashed bar is someone else’s calendar, and every one of them is serial.</text>
+</svg>
+<figcaption>The proposal is a software plan for a project whose critical path is physical. Nothing in the dashed rows appears in it — not the program-number enquiry that decides which machines can produce engine hours, not procurement, not SIM activation, not the electrician, not verifying that a fitted device actually reports hours. These are not details to be filled in later: they are serial, externally owned, and they set the end date. A plan that omits them is not five months long, it is five months plus however long the omitted track takes once someone notices.</figcaption>
+</figure>
+
+  <p>Seven workstreams, all serial, all externally owned, none mentioned. Two of them decide whether the project can deliver its central capability at all:</p>
+  <ul>
+    <li><strong>CAN program numbers.</strong> Whether a given machine will yield ECU engine hours depends on its make, model and year having a supported program from the device vendor. Until that list is confirmed, nobody knows which machines can carry a utilisation record — and a plan that has not asked cannot know what it is committing to.</li>
+    <li><strong>Install verification.</strong> A device that reports position but no engine hours looks perfectly healthy. If &ldquo;installed&rdquo; does not mean &ldquo;engine hours observed on our server&rdquo;, the failure is discovered months later, on a machine that has since moved site.</li>
+  </ul>
+  <p>Also absent: any reference to the work that already exists. Seven dashboard screens are built as a working prototype, the device and protocol specification is written, and the architecture reference is current. A proposal that starts a display POC from zero has either not read them or is scoping greenfield — and either answer is worth knowing.</p>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>The POC is the wrong POC</h2>
+  <p>Month one on &ldquo;core display capabilities&rdquo; front-loads the least risky work in the project. Rendering a map and some tables is not in doubt; it is the part of the system with the most prior art and the fewest unknowns — and in this case a version of it already exists.</p>
+  <p>A proof of concept should attack the thing most likely to be wrong. Here that is a short list, and none of it is visual:</p>
+  <div class="tw"><table>
+    <thead><tr><th>The real unknown</th><th>Proved by</th><th>Costs</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Do the devices behave as documented?</td><td>One or two units on a bench, connecting to a listener, completing the handshake and acknowledgement</td><td>Two devices, a SIM, a few days</td></tr>
+      <tr><td class="k">Does the CAN adapter yield engine hours on <em>our</em> machines?</td><td>One adapter fitted to one real machine of a make we actually own</td><td>One install, one electrician day</td></tr>
+      <tr><td class="k">Does the ingestion path acknowledge only after a durable write?</td><td>Killing the store mid-transmission and confirming the device replays with no gap</td><td>An afternoon</td></tr>
+      <tr><td class="k">Does an outage replay reconstruct correctly?</td><td>Disconnecting a device for hours, then checking trips and hour deltas after the backlog drains</td><td>A day, mostly waiting</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn">
+    <h4>What a display POC actually demonstrates</h4>
+    <p>That the team can build a UI, against data someone has handed them in a convenient shape. Every hard question — protocol behaviour, ECU access, durability, replay, attribution — survives untouched into full-scale development, which is the worst place to discover any of them. <strong>A POC that never touches a real device is a demo.</strong></p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>The team, role by role</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Proposed</th><th>Assessment</th></tr></thead>
+    <tbody>
+      <tr><td class="k">1 Solutions Architect</td><td><strong>Reasonable, and the role that matters most.</strong> But ask what they will architect: if the answer involves a managed IoT service or a multi-service cloud ingestion tier, that decision needs examining before it is staffed, not after.</td></tr>
+      <tr><td class="k">5 Developers</td><td><strong>The core of the over-estimate.</strong> Ask them to name the five workstreams and the interfaces between them. If they cannot, the number came from a team template rather than from the work. Two engineers — one on data and ingestion, one on integration and surfaces — covers this scope.</td></tr>
+      <tr><td class="k">1 DevOps Engineer</td><td><strong>Implies an infrastructure decision already made.</strong> A full-time DevOps role for five months means substantial cloud infrastructure. Worth asking what they intend to deploy, because a viable pilot for this is a single server and a database.</td></tr>
+      <tr><td class="k">2 QA Engineers</td><td><strong>Wrong shape for the risk.</strong> Twenty-two percent of the team on QA, for a system with a small UI surface, no users, and whose real defects are out-of-order replay, clock skew, buffer drain after an outage, and tenancy resolution at a record&#39;s own timestamp. Those are found with a traffic generator and adversarial data — engineering work, not test cases.</td></tr>
+      <tr><td class="k">0 field / procurement</td><td><strong>The absence that sets the date.</strong> Nobody in the structure owns the fleet list, the vendor thread, purchase orders, SIM activation, electrician scheduling or install verification — roughly seven person-weeks of work on the critical path.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>The hiring assumption</h2>
+  <p>&ldquo;Recruiting experienced talent will be necessary to meet these technical requirements&rdquo; is doing an enormous amount of quiet work in that sentence. It means <strong>the five-month clock cannot start until the team exists.</strong></p>
+  <div class="tw"><table>
+    <thead><tr><th>Stage</th><th class="num">Realistic</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Sourcing and interviewing 9 people</td><td class="num">4–8 weeks</td></tr>
+      <tr><td class="k">Notice periods</td><td class="num">4–12 weeks</td></tr>
+      <tr><td class="k">Visas and onboarding, if hiring from outside the country</td><td class="num">4–8 weeks</td></tr>
+      <tr><td class="k">A team that has never worked together becoming productive</td><td class="num">4–6 weeks</td></tr>
+    </tbody>
+  </table></div>
+  <p>These overlap, but not by much, and the last one is the least discussed and most reliable. <strong>Five months of delivery realistically sits behind two to three months of assembly</strong> — call it seven to eight months from agreement to a working pilot, against a plan that says five.</p>
+  <p>It is also worth naming plainly what the sentence implies commercially: you are being asked to fund a team build. That may be exactly what you want, and it is a different decision from buying a delivery.</p>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>&ldquo;QA runs concurrently with development&rdquo;</h2>
+  <p>Nobody has proposed the alternative since about 2005. This is a statement everyone agrees with, which is what makes it unfalsifiable and therefore not a strategy. It tells you nothing about what will be tested or how.</p>
+  <p>The quality risks in this system are specific and unusual, and none of them is addressed by conventional test practice:</p>
+  <ul>
+    <li><strong>Out-of-order arrival.</strong> A device replaying a four-hour outage delivers records hours old, interleaved with live ones. Every calculation must produce the same answer regardless of arrival order.</li>
+    <li><strong>Duplicate delivery.</strong> A slow acknowledgement causes the device to resend an identical packet minutes later on a different connection. Deduplication has to be on record identity, not delivery.</li>
+    <li><strong>Unobserved gaps.</strong> A connectivity gap must be flagged as unknown, never inferred as an idle machine. Getting this wrong understates usage and nothing in the system looks broken.</li>
+    <li><strong>Tenancy at a timestamp.</strong> A record resolving to the wrong tenant is the worst defect this platform can have, and it is invisible in every normal test.</li>
+    <li><strong>Clock skew.</strong> Devices with implausible timestamps corrupt trips and hour deltas silently.</li>
+  </ul>
+  <p>Ask what their test approach is for a four-hour outage replay. The answer distinguishes a team that has built telemetry from a team that has built web applications.</p>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Where they may be right</h2>
+  <p>A review that finds nothing good is usually a review with an agenda. Three things in this proposal are sound:</p>
+  <ul>
+    <li><strong>Five months is honest.</strong> Plenty of vendors would have said eight weeks to win the work. Five months for a first release of a telemetry system is a realistic number, and it suggests they have some idea of the difficulty.</li>
+    <li><strong>A dedicated architect is correct.</strong> This system has three or four decisions that are expensive to reverse — tenancy, the ingestion boundary, the evidence path — and they benefit from one person owning coherence.</li>
+    <li><strong>Concurrent QA is directionally right</strong>, even if stated as a platitude. A final test phase on a system fed by real devices would be a genuine mistake.</li>
+  </ul>
+  <p>And the scope caveat stands: if they believe they are building substantially more than the GPS layer, the team size may be defensible and the fault is a missing scope statement rather than a padded estimate. Establish that before challenging the number.</p>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Counter-proposal</h2>
+  <p>Set out in full in the companion delivery plan. In summary:</p>
+  <div class="tw"><table>
+    <thead><tr><th>&nbsp;</th><th>Proposed to you</th><th>Counter</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Calendar</td><td>5 months</td><td>~20 weeks, plus whatever the physical track needs — start it in week one</td></tr>
+      <tr><td class="k">Effort</td><td>45 person-months</td><td>~9 person-months, peak 2.3 FTE</td></tr>
+      <tr><td class="k">Engineers</td><td>5 developers</td><td>2 — one on data and ingestion, one on integration and surfaces</td></tr>
+      <tr><td class="k">Architect</td><td>1 full-time</td><td>~0.3 FTE, continuous, also owning the vendor threads</td></tr>
+      <tr><td class="k">DevOps</td><td>1 full-time</td><td>Folded into the backend role until the infrastructure decision justifies more</td></tr>
+      <tr><td class="k">QA</td><td>2 engineers</td><td>A traffic generator and adversarial replay data, built by the engineers, in P0</td></tr>
+      <tr><td class="k">Field &amp; procurement</td><td>Unstaffed</td><td>A named owner, ~7 person-weeks, starting week one</td></tr>
+      <tr><td class="k">Month 1</td><td>Display POC</td><td>Telemetry contract, traffic generator, two test units on a bench, program-number enquiry raised</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note ok">
+    <h4>The sequencing change that matters more than the headcount</h4>
+    <p>Raise the first purchase order and the program-number enquiry <strong>before</strong> the architecture is agreed. Nothing in the physical track depends on the software design being settled, and the default sequence — settle the design, then order hardware — adds six to eight weeks that no amount of staffing recovers.</p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Questions to send back</h2>
+  <p>In order. The first one changes the meaning of every other answer.</p>
+  <ol>
+    <li><strong>What does &ldquo;the initial version&rdquo; contain?</strong> A written scope. Specifically: does it include hardware procurement, installation and commissioning, or only software?</li>
+    <li><strong>Which five workstreams are the five developers on, and what are the interfaces between them?</strong></li>
+    <li><strong>Who confirms the CAN program numbers for our fleet, and when does that enquiry go out?</strong></li>
+    <li><strong>Who owns procurement, SIM activation, electrician scheduling and install verification?</strong></li>
+    <li><strong>What is the definition of a completed install?</strong> If the answer is not &ldquo;engine hours observed on our server&rdquo;, that is the conversation.</li>
+    <li><strong>What ingestion path are you assuming</strong> — adopting an existing server, or building a protocol terminator? What is the DevOps engineer deploying?</li>
+    <li><strong>How do you test a four-hour outage replay?</strong> And how do you generate device traffic before hardware exists?</li>
+    <li><strong>Does the 5 months start at contract signature or at team completion?</strong> What is the hiring plan, and who carries the risk if it takes longer?</li>
+    <li><strong>Have you read the existing architecture reference and seen the seven screens that already exist?</strong> What in the POC is not already built?</li>
+    <li><strong>What are the three assumptions that, if wrong, break the 5 months?</strong> An estimate whose author cannot answer this has not been stress-tested.</li>
+  </ol>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>How to run the conversation</h2>
+  <ul>
+    <li><strong>Lead with scope, not with the number.</strong> Challenging headcount first invites a defensive re-quote. Establishing what they think they are building either resolves the gap or makes it undeniable.</li>
+    <li><strong>Do not present the counter-estimate as a target.</strong> Present it as a question: here is what we think this takes and why — what do you see that we do not? A team that engages with that is worth working with; a team that restates the original number is telling you something.</li>
+    <li><strong>Ask for the physical track in writing.</strong> Whoever ends up doing the work, that track must appear in the plan with owners and lead times. Its absence is the most reliable predictor of the date slipping.</li>
+    <li><strong>Make the first month cheap and decisive.</strong> Two devices, one adapter, one machine, one listener. It costs almost nothing, answers the questions that could invalidate the design, and it tells you more about the team than any proposal document will.</li>
+    <li><strong>Keep the telemetry contract.</strong> Whoever builds the ingestion tier, the record shape everything downstream consumes stays ours. Give that away and the ability to change vendor or approach goes with it.</li>
+  </ul>
+</section>
+
+<hr>
+<footer>
+  Vendor Proposal Review · internal · not for circulation outside the team<br>
+  Companions: Kasper_GPS_Architecture.html · Kasper_GPS_Delivery_Plan.html<br>
+  Effort and duration figures are estimates for comparison, not commitments.
+</footer>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dozr GPS / IoT — Independent Expert Build Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:18ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note.big{max-width:78ch}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+.pill.buy{border-color:var(--green);color:var(--green)}
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">DOZR<span>/</span>GPS</div>
+  <div class="toc-sub">Independent build review</div>
+  <nav>
+    <a href="#s0"><b>00</b>How to read this</a>
+    <a href="#s1"><b>01</b>Verdict in brief</a>
+    <div class="grp">Where it stands</div>
+    <a href="#s2"><b>02</b>Where the build actually is</a>
+    <a href="#s3"><b>03</b>What building this means</a>
+    <a href="#s4"><b>04</b>Two architectures — pick one</a>
+    <div class="grp">The market</div>
+    <a href="#s5"><b>05</b>What competitors run on</a>
+    <a href="#s6"><b>06</b>Open-source &amp; free stack</a>
+    <div class="grp">The plan</div>
+    <a href="#s7"><b>07</b>The team's estimate, reviewed</a>
+    <a href="#s8"><b>08</b>A realistic timeline</a>
+    <a href="#s9"><b>09</b>Resources &amp; cost</a>
+    <a href="#s10"><b>10</b>The experts you need</a>
+    <div class="grp">Act</div>
+    <a href="#s11"><b>11</b>The next 14 days</a>
+    <a href="#s12"><b>12</b>Open decisions that gate all</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Independent IoT &amp; Telematics Review · GPS / device-data layer only</div>
+  <h1>Building the GPS &amp; telematics platform</h1>
+  <p>An outside engineering read on the whole GPS track — how to build it, what it costs, who to hire, what the market already sells, and where the team's plan is right and where it will quietly slip. It builds on the work already in this repo rather than repeating it.</p>
+  <div class="meta">
+    <div><dt>Prepared for</dt><dd>Afsal · Dozr</dd></div>
+    <div><dt>Scope</dt><dd>GPS / telematics / IoT only</dd></div>
+    <div><dt>Date</dt><dd>August 2026</dd></div>
+    <div><dt>Builds on</dt><dd>Architecture · Delivery Plan · Proposal Review · Supplier Shortlist</dd></div>
+    <div><dt>Status</dt><dd>Review, not a spec — corrections expected</dd></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>How to read this</h2>
+  <p>You asked eight things at once: what resources are needed, how to implement it, what competitors are using, what free and open-source tools apply, a review of the roadmap and the development team's suggestion, a realistic timeline, and which experts the project needs. This document answers all eight, in that spirit, scoped strictly to the GPS and device-data layer — not the marketplace, Vendor OS or any other product.</p>
+
+  <p>One thing shapes everything below, so it is worth saying first. <strong>This repo already contains unusually good engineering thinking on this problem.</strong> The Architecture reference, the Delivery Plan, the Proposal Review and the Supplier Shortlist are the work of someone who understands the domain. My job is not to redo that — it is to stand outside it, confirm what is right, name the few places it is contradicted elsewhere in your own documents, and pull the eight answers into one place a decision can be made from.</p>
+
+  <div class="note">
+    <h4>Where each of your eight questions is answered</h4>
+    <div class="tw" style="margin:8px 0 0">
+    <table>
+      <thead><tr><th>Your question</th><th>Section</th></tr></thead>
+      <tbody>
+        <tr><td>How do we implement it?</td><td class="k">03 · 04</td></tr>
+        <tr><td>What are competitors using?</td><td class="k">05</td></tr>
+        <tr><td>What free / open-source resources apply?</td><td class="k">06</td></tr>
+        <tr><td>Review of the roadmap &amp; the team's suggestion</td><td class="k">07</td></tr>
+        <tr><td>Realistic timeline</td><td class="k">08</td></tr>
+        <tr><td>Resources needed (hardware, cloud, money)</td><td class="k">09</td></tr>
+        <tr><td>Which experts are required</td><td class="k">10</td></tr>
+        <tr><td>What to do first</td><td class="k">11 · 12</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>Verdict in brief</h2>
+  <p>If you read nothing else, read this.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>The plan is roughly the right length</h4>
+      <p>Four to five months to a validated pilot is realistic. The team's five-month estimate is not the problem.</p>
+    </div>
+    <div class="card">
+      <h4>But the team is ~5× too large</h4>
+      <p>Nine people for a ten-device pilot is a staffing template, not a plan. Two engineers plus a part-time coordinator fits the work.</p>
+    </div>
+    <div class="card">
+      <h4>The hard part isn't software</h4>
+      <p>The critical path is physical — confirming CAN program numbers, procuring devices, and getting an auto-electrician onto real machines. No amount of code shortens it.</p>
+    </div>
+    <div class="card">
+      <h4>You should probably buy the hard tier</h4>
+      <p>Terminating the Teltonika protocol is a solved problem sold as a service. Adopt it; own only the data model and the evidence path.</p>
+    </div>
+  </div>
+
+  <h3>The six things that decide this project</h3>
+  <ol>
+    <li><strong>Engine hours are evidence, not a metric.</strong> They settle billing disputes, so they must be read from the machine's ECU, stored tamper-evidently, and never inferred. This one requirement constrains the entire design — it is why you cannot just buy an off-the-shelf tracking app and be done.</li>
+    <li><strong>The device speaks binary TCP, not MQTT or HTTPS.</strong> That single fact rules out pointing the fleet straight at a managed IoT cloud, and it is the fork your team's plan and your architecture doc quietly disagree on (section 04).</li>
+    <li><strong>Not every machine can produce engine hours.</strong> It depends on a Teltonika <em>program number</em> existing for that exact make, model and year, and on the machine broadcasting the value. Until that list is checked against your real fleet, the pilot's scope is unknown. This is the single most urgent open item.</li>
+    <li><strong>Adopt the protocol terminator; don't build it.</strong> Open-source and commercial servers already parse Codec 8E in production. Build your own only when engine hours start billing an outside party — and even then, only the terminator, not the platform.</li>
+    <li><strong>Keep the telemetry contract yours.</strong> One agreed record shape that everything downstream reads. It is what lets you change tools — or suppliers — later without a rewrite. Give it away and every future change needs whoever built it.</li>
+    <li><strong>The physical track starts now, in parallel, and sets the date.</strong> Program-number enquiry out this week; two test units on order this week. Neither waits on the software plan being agreed.</li>
+  </ol>
+
+  <div class="note ok big">
+    <h4>The one-sentence version</h4>
+    <p>The problem is well understood in this repo; the risk is that it gets built as a nine-person cloud-software project when it is really a two-engineer integration whose real bottleneck is an electrician's calendar — so buy the ingestion, own the evidence, and start the hardware track today.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Where the build actually is</h2>
+  <p>An honest baseline, because it changes what "how long will it take" means. Everything that exists today is the front of the system; nothing behind it is real yet.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Layer</th><th>State today</th><th>Reading</th></tr></thead>
+      <tbody>
+        <tr><td>Fleet dashboard (7–9 screens)</td><td>Built as a working prototype on mock data (the <code>fleet-v2</code> build, Supabase mock backend)</td><td>Real work, and reusable — but it is the <em>display</em>, the least risky part</td></tr>
+        <tr><td>Device ingestion</td><td>Does not exist</td><td>The actual hard part. No Codec 8E has ever been terminated</td></tr>
+        <tr><td>Data model &amp; tenancy</td><td>Modelled on paper (Architecture doc); not implemented</td><td>Well specified; needs building against real records</td></tr>
+        <tr><td>Utilisation ledger / evidence</td><td>Specified; not built</td><td>The commercial reason the product exists</td></tr>
+        <tr><td>Devices in the field</td><td>Zero. No hardware procured, no SIMs, no installs</td><td>The critical path hasn't started</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The consequence is liberating rather than discouraging: <strong>the part that's done is the part anyone can do, and the part that's undone is where all the risk lives.</strong> That is exactly backwards from how it feels when you look at a polished dashboard, and it is why a demo of the screens should never be mistaken for progress on the system.</p>
+
+  <div class="note">
+    <h4>Two things the current docs get slightly wrong about their own state</h4>
+    <p><strong>Phone GPS is out.</strong> The older GPS-as-a-Service product doc opens with "phone-based GPS from day one." That is no longer the plan — tracking is hardware-only. Anything that still leans on browser/phone location should be treated as superseded.</p>
+    <p><strong>The devices serve two businesses, and only one is well specified.</strong> Utilisation billing (engine hours on a hired machine) is covered thoroughly. Logistics and movement — dispatching a truck between yards, sites and ports, and tracking that journey to an ePOD — appears only as an incidental "location" field. It is half the reason the devices exist and it currently has no home in the requirements. Decide whether it lives in this track's spec or a companion one, but decide.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>What building this actually means</h2>
+  <p>Strip away the product language and the system is five capabilities stacked in strict dependency order. Each one only works if the one before it does — which is why the order also tells you what to build first and what to prove in the pilot.</p>
+
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b>LOCATE</b>Where is the asset, now and over time. Free from the moment any device reports — needs no CAN, no adapter, no program number.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b>RECONSTRUCT</b>Turn a stream of points into trips, idle, and time-on-site. Application logic over the position feed.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b>DETECT</b>Geofences, unauthorised movement, over-speed, harsh driving. Device- and rules-driven; still no ECU needed.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b>ATTRIBUTE</b>Which client, which contract, which period does this record belong to. Requires dated assignment windows — the tenancy problem.</div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b>EVIDENCE</b>Engine hours from the ECU, stored tamper-evidently, sealed into a utilisation certificate that survives a dispute. Everything above exists to make this trustworthy.</div></div>
+  </div>
+
+  <p>The pipeline that delivers those five is not exotic, but each stage has one non-obvious rule that separates a system that settles a dispute from one that merely draws a map:</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Stage</th><th>What it does</th><th>The rule that matters</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Terminate</td><td>Hold the TCP socket, complete the IMEI handshake, validate CRC-16/IBM, parse Codec 8/8E, return the 4-byte acknowledgement</td><td>Use <strong>AVL acknowledgement mode</strong> and acknowledge <em>only after the record is durably stored</em>. The device deletes its only copy on ACK — acknowledge early and a crash loses billing data silently</td></tr>
+        <tr><td class="k">Normalise</td><td>Decode into one agreed telemetry record shape</td><td>Tag every value with its <strong>source</strong> — <code>ecu</code> vs estimated — and never merge them. A "not measured" is never written as zero</td></tr>
+        <tr><td class="k">Attribute</td><td>Resolve the record to a tenant</td><td>Tenancy is a <strong>dated assignment</strong> resolved at the record's own timestamp, not a column on the asset. Machines change hands mid-hire; a tenant ID rewrites history</td></tr>
+        <tr><td class="k">Store</td><td>Hot (last state), warm (time-series), cold (immutable evidence)</td><td>Idempotent on <strong>record identity</strong>, not delivery — devices replay buffers out of order after an outage. Late writes must be free</td></tr>
+        <tr><td class="k">Surface</td><td>Screens, geofence rules, WhatsApp alerts, client tracking links</td><td>Treat WhatsApp as a <strong>first-class channel</strong>, and shared tracking links as expiring credentials</td></tr>
+        <tr><td class="k">Seal</td><td>Utilisation periods, gap accounting, signed manifest chain</td><td>Disclose gaps, never infer idle across them. A sealed period points at an immutable object version; corrections are new rows</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The concrete build — and it rides your existing stack</h3>
+  <p>Your three MVPs already run on <strong>Vanilla HTML/CSS/JS + Supabase + Vercel</strong>. The GPS backend does not need to break that pattern, and shouldn't. The lowest-risk implementation is almost embarrassingly small:</p>
+
+  <div class="seq">
+    <div class="step"><div class="n">A</div><div class="b"><b>TERMINATOR</b>Adopt <strong>Traccar</strong> (open-source) on a single small VM. It speaks Codec 8E natively, keeps a device registry, and exposes a REST API. Days to first data, not weeks.</div></div>
+    <div class="step"><div class="n">B</div><div class="b"><b>STORE</b>One <strong>Postgres</strong> — your existing Supabase, or self-hosted — with <strong>PostGIS</strong> for geofencing and time-partitioning (or TimescaleDB if self-hosted) for the telemetry table. Cold evidence in object storage from day one, separate and immutable.</div></div>
+    <div class="step"><div class="n">C</div><div class="b"><b>SURFACE</b>Wire the seven Fleet screens you already have to live data through a thin API. This is integration, not design work.</div></div>
+    <div class="step"><div class="n">D</div><div class="b"><b>CONTRACT</b>Between A and B sits <em>your</em> telemetry record shape. Nothing above it knows which terminator produced the data — which is what makes swapping Traccar for a custom gateway later a contained change.</div></div>
+  </div>
+
+  <div class="note ok">
+    <p>That is a two-component ingestion path (Traccar + Postgres) feeding screens that already exist. It is the honest shape of the pilot — and it is a very long way from the multi-service cloud architecture that appears elsewhere in your own documents, which is the subject of the next section.</p>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Two architectures in your repo — pick one</h2>
+  <p>This is the most important thing an outside reader notices: <strong>your documents describe two different systems, and nobody has said so out loud.</strong> Resolving this is worth more than any other single decision here, because it changes the cost, the team and the timeline all at once.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <h4>Architecture in the BRD's "In Scope"</h4>
+      <p><span class="big">Heavy</span>AWS IoT Core, an ECS protocol bridge, Lambda → TimescaleDB, ASP.NET Core, Vue, MQTT internally. A managed-cloud, multi-service design — the instinct of an AWS-partner scoping call.</p>
+    </div>
+    <div class="card">
+      <h4>Architecture in your engineering reference</h4>
+      <p><span class="big">Lean</span>Adopt Traccar, one Postgres + TimescaleDB + PostGIS, pooled tenancy with row-level security, reversibility via an owned telemetry contract. The design of someone who has costed this at pilot scale.</p>
+    </div>
+  </div>
+
+  <p>These are not two flavours of the same plan. They imply different teams, different bills and different risk. The lean one is correct for where you are, and the reason is a hard technical fact, not a preference:</p>
+
+  <div class="note warn">
+    <p><strong>AWS IoT Core cannot terminate these device connections.</strong> The FMC130 sends Codec 8/8E binary frames over raw TCP or UDP — there is no MQTT publish path and no HTTPS on the device. IoT Core expects MQTT/HTTPS. So the moment you choose IoT Core you must <em>also</em> build a custom TCP bridge in front of it — and then you are paying for and operating a managed broker that your fleet can't speak to directly. You've taken on the hard part (the bridge) <em>and</em> added a component you underuse.</p>
+  </div>
+
+  <h3>The three honest paths</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Path</th><th>What it is</th><th>Components</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="k">A · Adopt</td><td>Run Traccar (or a commercial terminator); it parses Codec 8E and hands you the stream</td><td class="num">2</td><td><span class="pill buy">Pilot</span> Days to data. Strongest starting point</td></tr>
+        <tr><td class="k">B · Bridge</td><td>Custom TCP bridge in front of AWS IoT Core</td><td class="num">4+</td><td><span class="pill open">Avoid</span> Worst of both — build the bridge <em>and</em> pay for a broker you can't use fully</td></tr>
+        <tr><td class="k">C · Build</td><td>Purpose-built terminator (e.g. Go) you own end to end</td><td class="num">4</td><td><span class="pill prop">Later</span> Strongest acknowledgement control. Justified once engine hours bill an outside party</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>The migration trigger from A to C is not a device count — it is <strong>the first utilisation record issued from this data to someone outside your team</strong>. Until then, adopting a tested terminator is not a compromise; it is the right engineering call. And Teltonika's <em>Duplicate</em> server mode lets you run the old and new terminators in parallel, losslessly, whenever you switch — so the decision is fully reversible if you keep the telemetry contract yours.</p>
+
+  <div class="note">
+    <h4>What this means for the AWS / SUDO conversation</h4>
+    <p>Your latest position with SUDO is already the healthy one — you build the application layer, they advise on the AWS layer. Good. But make sure the AWS advice is a Well-Architected review of a <em>Traccar-on-a-VM + one Postgres</em> design, not a Well-Architected review of an IoT-Core-bridge design. The same partner, pointed at the wrong architecture, will happily help you build the expensive one well. The architecture question comes before the cloud-review question.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>What competitors and the market run on</h2>
+  <p>"What are competitors using" has two useful answers, because you compete on two fronts: against telematics <em>platforms</em> you could buy instead of build, and against the machine makers' own <em>OEM telematics</em>. Both matter, and the second is under-appreciated in your docs.</p>
+
+  <h3>The platform market — the ceiling on what building is worth</h3>
+  <p>Terminating Codec 8E, decoding CAN, running a device registry and storing telemetry is <strong>not novel work</strong>. Several companies sell exactly this, and Teltonika is among the most widely supported hardware in that market. The honest framing your Supplier Shortlist already reaches is worth repeating: <em>the alternative to a five-month build is not a longer build — it is a subscription and an integration.</em></p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Vendor</th><th>Where</th><th>What it is</th><th>Why it matters to you</th></tr></thead>
+      <tbody>
+        <tr><td class="k">flespi</td><td>EU</td><td>Telematics backend-as-a-service; terminates Teltonika protocols and streams decoded data over an API</td><td>The closest thing to buying the <em>ingestion tier alone</em> — the riskiest piece. Pay per device, keep your own model on top</td></tr>
+        <tr><td class="k">Wialon (Gurtam)</td><td>EU · global</td><td>One of the largest fleet platforms in the world; very large device library; sold through a partner network of thousands of integrators</td><td>Their partner map is a filterable list of firms that have integrated real Teltonika devices — a sourcing tool as much as a competitor</td></tr>
+        <tr><td class="k">Navixy</td><td>Global</td><td>White-label telematics SaaS with an API and app layer</td><td>A buy-and-rebrand option; benchmark for feature completeness</td></tr>
+        <tr><td class="k">Uffizio / Trakzee</td><td>India</td><td>Long-established white-label GPS platform vendor</td><td>Sells the platform and integrations rather than a dev team — a different purchase from hiring builders</td></tr>
+        <tr><td class="k">TrackoBit</td><td>India</td><td>White-label fleet platform with published device-integration lists</td><td>Same category; check whether they'll build something you own or only resell their platform</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>The screening question that cuts through all of them, in one call:</strong> "Do you support the FMC130 with the ALL-CAN300 adapter, and can you show me engine hours decoded from <em>my</em> machine models?" A live demo on your equipment is worth more than any proposal. If they can't, they are not in this market — whatever their website says.</p>
+  </div>
+
+  <h3>The OEM telematics path — the option your docs barely mention</h3>
+  <p>Every major equipment maker already ships telematics: <strong>Cat Product Link, Komatsu KOMTRAX, Volvo CareTrack, John Deere JDLink, Hitachi ConSite</strong>. These report OEM-authoritative data — including engine hours — from the factory, without anyone touching the CAN bus. And there is a standard, <strong>ISO 15143-3 (the AEMP telematics standard, "AEMP 2.0")</strong>, that exposes a common mixed-fleet API across brands.</p>
+
+  <p>This is strategically important for one reason: <strong>the machines that <em>can't</em> get a Teltonika program number are often exactly the ones that already have OEM telematics.</strong> For a modern Cat excavator on long-term hire, pulling ISO 15143-3 engine hours from Product Link may be a faster, cleaner route to evidence-grade data than fitting an FMC130 + ALL-CAN300 and hoping the make/model/year is on the supported list. A mature platform blends both: your own devices where you need control and coverage, OEM feeds where they exist.</p>
+
+  <div class="note ok">
+    <h4>The build-vs-buy verdict</h4>
+    <p>The strongest position — and the one your own architecture already argues for without framing it this way — is a <strong>middle path: buy the ingestion, own the model.</strong> Let Traccar or flespi terminate the devices; keep the telemetry contract, the tenancy model and the evidence store in-house. That is the reversibility rule applied to procurement, and it means the answer to "build or buy?" is "buy the commodity, build the moat."</p>
+  </div>
+
+  <p>One caveat on local competition: I can't verify named UAE construction-telematics rivals from here, and I'd treat any such list with suspicion anyway. The highest-signal source on who actually deploys well in the Emirates is a single phone call to your <strong>device distributor</strong> — they know which local integrators deploy FMC130s and which installs come back broken. That is the competitive intel worth having.</p>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Open-source &amp; free stack</h2>
+  <p>Almost the entire pilot can be built on free and open software. The table maps each pipeline stage to what to use, with licensing stated honestly — because "free" covers three different things (truly open, free-tier, and source-available) and the difference matters at scale.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Stage</th><th>Tool</th><th>License</th><th>Use it for / watch out</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Terminate</td><td><strong>Traccar</strong></td><td>Apache 2.0</td><td>Codec 8E + ~200 other protocols, device registry, REST API, basic UI. Your Path A. Verify whether it rejects an unknown IMEI <em>at handshake</em> or after accepting data</td></tr>
+        <tr><td class="k">Terminate</td><td>Open Codec 8E parsers <span class="pill ref">GitHub</span></td><td>various</td><td>e.g. <code>filipkroca/teltonikaparser</code>, standalone Codec 8E TCP servers. Reference code — and a hiring signal: whoever wrote one has done the exact work</td></tr>
+        <tr><td class="k">Relational</td><td><strong>PostgreSQL</strong></td><td>PostgreSQL (open)</td><td>Devices, assets, assignment windows, ledger. One database covers the whole realistic pilot range</td></tr>
+        <tr><td class="k">Geospatial</td><td><strong>PostGIS</strong></td><td>GPL-2.0</td><td>Geofences, corridor deviation, point-in-polygon. A Postgres extension — no separate system</td></tr>
+        <tr><td class="k">Time-series</td><td>TimescaleDB</td><td>Apache-2 core / TSL</td><td>Hypertables for the telemetry table. <em>Honesty flag:</em> the advanced features are source-available (free to self-host, not OSI-open) and managed availability varies — native Postgres partitioning is a fully-open fallback</td></tr>
+        <tr><td class="k">Time-series</td><td>ClickHouse</td><td>Apache 2.0</td><td>Only if you blow past ~100M rows/tables and need columnar analytics. Overkill at pilot scale</td></tr>
+        <tr><td class="k">App / auth</td><td><strong>Supabase</strong></td><td>Apache 2.0</td><td>Postgres + auth + row-level security + realtime, and it's what your MVPs already use. The natural home for tenancy and the app API</td></tr>
+        <tr><td class="k">Maps</td><td><strong>MapLibre GL JS</strong></td><td>BSD (open)</td><td>The fully-open fork of Mapbox GL. Pair with OpenStreetMap or free tiles — no per-load cap</td></tr>
+        <tr><td class="k">Maps</td><td>Mapbox GL JS</td><td>proprietary</td><td>Free under ~50k loads/month, then paid and proprietary. Fine to start; MapLibre if you'd rather not meter</td></tr>
+        <tr><td class="k">Ops / alerting</td><td><strong>Grafana</strong></td><td>AGPL-3.0</td><td>Internal dashboards and threshold alerts straight over the telemetry table. Free self-hosted</td></tr>
+        <tr><td class="k">Queue (later)</td><td>Redis Streams / RabbitMQ / Kafka</td><td>open</td><td>Only when ingestion and processing must scale independently. At ~40 records/sec (1,000 devices) a single Postgres handles it — don't add this at pilot</td></tr>
+        <tr><td class="k">Device config</td><td>Teltonika Configurator</td><td>free (vendor)</td><td>Free desktop tool to configure devices. Firmware campaigns run through FOTA WEB (paid)</td></tr>
+        <tr><td class="k">Test</td><td><strong>Traffic generator</strong></td><td>you build it</td><td>The single highest-leverage free asset. Build valid Codec 8E frames from the documented spec and develop the whole pipeline before hardware arrives</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>Not free, but worth naming:</strong> WhatsApp delivery — central to how your customers operate — runs through Meta's WhatsApp Business Cloud API (a free conversation tier exists) or an aggregator such as MSG91 or Twilio. And SIMs: du/Etisalat M2M SIMs are an operating cost per device, not a tool. Neither is open source; both are unavoidable.</p>
+  </div>
+
+  <div class="note ok">
+    <p>Net: the pilot's software bill of materials can be <strong>Traccar + PostgreSQL/PostGIS + Supabase + MapLibre + Grafana</strong> — every one free to run — plus a traffic generator you write. The money goes to hardware, SIMs, installation and the one or two engineers, not to software licences.</p>
+  </div>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>The roadmap and the team's estimate, reviewed</h2>
+  <p>The roadmap's own Fleet section is directionally right — it names Traccar, a Postgres/PostGIS + time-series store, and a dashboard on the Traccar API. That is the lean path from section 04. The problem is not the roadmap; it is the development team's <strong>nine-people-for-five-months</strong> proposal, which is a different animal.</p>
+
+  <div class="grid2">
+    <div class="card"><h4>What the team proposed</h4><p>~9 people (1 solutions architect, ~5 developers, 1 DevOps, 2 QA) over 5 months. First milestone: a display / dashboard POC. Roughly <strong>45 person-months</strong> of software.</p></div>
+    <div class="card"><h4>What the work actually is</h4><p>One telemetry contract, one schema, one tenancy model, one ingestion path, plus wiring screens that already exist. Roughly <strong>9 person-months</strong> — two engineers and a part-time coordinator.</p></div>
+  </div>
+
+  <h3>What they got right</h3>
+  <p>Credit where due: five months to a pilot is roughly the right duration, wanting an architect on it is sensible, and thinking about QA at all puts them ahead of many. This is not a bad team; it is a team that has been handed no written scope and has answered with a template.</p>
+
+  <h3>Where it will go wrong</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Issue</th><th>Why it's a problem</th></tr></thead>
+      <tbody>
+        <tr><td>Team ~5× too large</td><td>45 person-months has to land somewhere. If ingestion is 4 months and screens are 25, they've misjudged where the difficulty is. The core artefacts are one- or two-person work; five developers on one schema spend their time coordinating, not building</td></tr>
+        <tr><td>The physical track is missing entirely</td><td>Nothing about devices, procurement, SIMs or installation appears. This is a <strong>software plan for a project whose critical path is physical</strong> — and the omission means the schedule will slip at a handoff nobody dated</td></tr>
+        <tr><td>The display POC attacks the wrong risk</td><td>A month-one dashboard POC front-loads the <em>least</em> risky part — and you already have those screens. It defers every dangerous question (handshake behaviour, CAN engine hours on your makes, acknowledge-after-durability, outage replay) to month four, when changing course is expensive</td></tr>
+        <tr><td>The hiring prefix is hidden</td><td>"Recruiting experienced talent will be necessary" means the five months may not start at signature. Sourcing, notice periods and a team forming realistically add 2–3 months <em>in front</em> of the plan — and you'd carry the risk</td></tr>
+        <tr><td>The stack instinct is the expensive one</td><td>Where the heavy AWS-IoT-Core design shows up, it adds cost and a component the fleet can't use (section 04)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <h4>The single question that settles the team-size debate without a fight</h4>
+    <p>"Can you break the five months into person-months by area — ingestion, data model, screens, reporting, infrastructure, testing — and name the five developers' workstreams and the interfaces between them?" A team that has done this answers immediately and may revise the number themselves. A team that can't produced the estimate from a staffing template — and now you both know it, without you having to say so.</p>
+  </div>
+
+  <h3>The better shape — buy the first six weeks, not the five months</h3>
+  <p>Keep the same duration and team if you like, and change one thing: <strong>what month one proves.</strong> Swap the display POC for a <em>thin vertical slice</em> — one real device, through a listener, into a store, with engine hours on one screen. It answers the design-invalidating questions in week five instead of week thirteen, gives an honest demo, and produces a re-estimate grounded in real work. Commercially: commit to a fixed-price, fixed-deliverable six weeks, then re-scope. If a team can't deliver that slice in six weeks with three people, the five-month plan was never going to hold anyway.</p>
+
+  <div class="note warn">
+    <h4>Two teams means the risk is at the seam</h4>
+    <p>You own hardware; they own software. The most likely cause of a slip is a handoff neither plan mentions. Date these four now: (1) the endpoint + TLS details they give you before any device ships; (2) two test units + live SIMs you give them; (3) the list of which machines can actually produce engine hours; (4) a working listener they operate <em>before</em> installs start — because otherwise nobody can verify a fit worked, and a device reporting position but no engine data looks perfectly healthy.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>A realistic timeline</h2>
+  <p>Think of it as two tracks and one gate. The software track is compressible with people; the field track has external lead times on it and <strong>sets the earliest date anything can be validated</strong>. Start both at week zero — the field track is not a follow-on to the software build.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Phase</th><th>Weeks</th><th>Deliverable</th></tr></thead>
+      <tbody>
+        <tr><td class="k">P0 · Contract</td><td class="num">1–2.5</td><td>Telemetry record shape + normaliser + a traffic generator producing valid Codec 8E frames</td></tr>
+        <tr><td class="k">P1 · Ingestion</td><td class="num">2.5–6</td><td>Terminator (adopt Traccar), device registry, normaliser writing the contract, cold archive</td></tr>
+        <tr><td class="k">P2 · Model</td><td class="num">6–9</td><td>Assets, devices, both assignment tables, row-level security, enricher, state projector</td></tr>
+        <tr><td class="k">P3 · Surfaces</td><td class="num">9–13</td><td>Seven Fleet screens on live data, geofences, rules, WhatsApp delivery</td></tr>
+        <tr><td class="k">P4 · Ledger</td><td class="num">13–16</td><td>Utilisation periods, gap accounting, sealing + manifest chain, certificate render</td></tr>
+        <tr><td class="k">P5 · Pilot</td><td class="num">16–20</td><td>10 devices installed &amp; verified; a full cycle reconciled — <em>elapsed time, not effort</em></td></tr>
+        <tr><td class="k">P6 · Scale</td><td class="num">+2–4</td><td>Custom gateway if engine hours now bill externally; burst hardening. Outside the initial release</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Field track (from week 0)</th><th>Nature</th></tr></thead>
+      <tbody>
+        <tr><td>Confirm CAN program numbers with Teltonika, per machine</td><td>Vendor response time — <strong>start this week</strong></td></tr>
+        <tr><td>Procure devices + adapters; activate M2M SIMs</td><td>Distributor stock + carrier lead time</td></tr>
+        <tr><td>Schedule auto-electrician; install &amp; verify on machines</td><td>Someone else's calendar + a machine free to be wired</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p><strong>The shape adds up to ~13–17 weeks of build plus ~4 weeks of observation — four to five months to a validated pilot</strong>, about a month of which is elapsed time nobody can compress. That last month is the one worth defending: a pilot that reports "it worked" after a week has only proven devices transmit, which was never in doubt. The <em>full cycle</em> is what surfaces the failures that matter — a machine that goes quiet for a weekend, an assignment that changes mid-period, a gap that must be disclosed rather than smoothed over.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Staffing</th><th>To pilot</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>1 engineer</td><td class="num">~24 wk</td><td>And the field track quietly stops when they're deep in a parser and the distributor needs a decision</td></tr>
+        <tr><td>2 engineers + PT coordinator</td><td class="num">~20 wk</td><td><span class="pill mvp">Recommended</span> Fits the schedule above</td></tr>
+        <tr><td>3 engineers</td><td class="num">~19 wk</td><td>Barely helps — P0–P1 don't parallelise and P5 is elapsed time</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <p><strong>The single largest schedule risk is D1 answered late.</strong> Until the program-number enquiry comes back, nothing can be ordered, so the field track slips one-for-one and the pilot date moves with it. Adding engineers does not touch this. Choosing Path C over Path A adds ~4–6 weeks to P1; firmware below 03.27.02 on delivery adds a firmware pass on the critical path; WhatsApp template approval has its own external lead time — submit it during P2, not when P3 needs it.</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Resources &amp; cost</h2>
+  <p>The software is nearly free (section 06); the real spend is hardware, per-machine installation, SIMs and people. The figures below are pulled from your own documents — where they conflict, I've flagged it rather than smoothed it, because two of these numbers move the business case.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Item</th><th>Figure (from your docs)</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Device — FMC130 + CAN adapter</td><td class="num">confirm</td><td>Your docs price the older FMB920 at AED 160–280/unit. The FMC130 + ALL-CAN300 combo for heavy equipment is <strong>higher and not priced anywhere in the repo</strong> — get 10-unit and 100-unit quotes from the UAE distributor</td></tr>
+        <tr><td>Installation (auto-electrician)</td><td class="num">AED 500–1,500</td><td>Per machine, one-time. The real per-unit cost driver. "Installed" = engine hours verified on the server, not "device fitted"</td></tr>
+        <tr><td>M2M SIM</td><td class="num">AED 10–35 / mo</td><td><strong>Conflict in your docs:</strong> expert review says du ~AED 10/device/mo; product doc says AED 25–35. Data use is only ~14–35 MB/mo. Reconcile before modelling</td></tr>
+        <tr><td>Cloud (pilot)</td><td class="num">~AED 55 / mo</td><td>One small VM (Traccar) + Postgres, e.g. a DigitalOcean droplet. AWS me-central-1 costs more but answers UAE data residency — a real enterprise-sales factor (D3)</td></tr>
+        <tr><td>Software licences</td><td class="num">AED 0</td><td>Open-source stack (section 06)</td></tr>
+        <tr><td>People (to pilot)</td><td class="num">~2 FTE · ~4–5 mo</td><td>The dominant cost. Two engineers + part-time coordinator + contracted electrician (section 10)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <h4>The reporting-interval decision swings your data cost 3–6×</h4>
+    <p>Still open (D2). At <strong>10s</strong> a device produces ~3,500 records/day; at <strong>30s</strong> ~1,300; at <strong>60s</strong> (the team's working assumption) ~560. Since your assets move slowly on sites and defined routes, 30–60s almost certainly captures everything operationally useful — and cuts storage and bandwidth several-fold. Even at a few hundred devices that is a few hundred million rows a year — comfortably within one tuned Postgres, which is why the database, not the socket server, is the thing to watch as you scale. Decide the interval before anyone sizes storage.</p>
+  </div>
+
+  <div class="note">
+    <h4>Two commercial figures to pressure-test</h4>
+    <p><strong>Pricing.</strong> Your docs quote AED 80–150/device/month, with tiers at 60/80/100. The expert review flags that the entry tier at AED 60 sits <em>above</em> the observed UAE market band of ~AED 30–50 for basic tracking — a real adoption risk for the "just see it" tier. Hardware-plus-engine-hours justifies a premium; basic location may not.</p>
+    <p><strong>Break-even.</strong> The internal analysis lands around <strong>351 devices</strong> to break even, with a recommended raise of <strong>AED 110–135k</strong> to fund the pilot and early scale. That is the number the business case should be built on, not the MRR-at-1,000-devices headline.</p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>The experts you actually need</h2>
+  <p>Expressed as roles and effort, not headcount — because several are fractions of a person and one is not an engineer at all. This is the whole team, and it is far from nine people.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Role</th><th>Owns</th><th>Effort</th><th>Shape</th></tr></thead>
+      <tbody>
+        <tr><td>Backend / integration</td><td>Terminator, normaliser, consumers, ledger, sealing — the spine</td><td class="num">~14–17 wk</td><td>Full-time throughout. <strong>The one role that cannot be part-time</strong></td></tr>
+        <tr><td>Frontend</td><td>Wiring the seven screens + tracking view to live data</td><td class="num">~6–7 wk</td><td>Concentrated in P3; idle before P2 exists</td></tr>
+        <tr><td>Infrastructure</td><td>Hosting, TLS + certs, backups + tested restore, logging</td><td class="num">~3 wk</td><td>Spikes at P1 and before P5. Not continuous</td></tr>
+        <tr><td>Field coordinator</td><td>Program numbers, procurement, SIMs, electrician scheduling, install verification</td><td class="num">~6–7 wk</td><td>Part-time from week 0. <strong>Most commonly unstaffed — the usual cause of a slipped pilot</strong></td></tr>
+        <tr><td>Auto-electrician</td><td>Physical installation, per machine</td><td class="num">per unit</td><td>Contracted, booked ahead. Availability is the constraint, not cost</td></tr>
+        <tr><td>Tech lead / architect</td><td>The open decisions, review, vendor threads</td><td class="num">~4–5 wk</td><td>Spread thin; front-loaded on the program-number and IMEI-authorisation questions</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note ok">
+    <p><strong>Minimum viable team: two engineers plus a part-time coordinator</strong> — one backend full-time, one frontend at roughly half, coordination alongside. About 33 person-weeks total. If only one engineer is available, the coordinator role still has to belong to someone else, even if they're non-technical — it is the cheapest schedule insurance available, because the field track stalls the moment the one engineer disappears into the parser.</p>
+  </div>
+
+  <h3>Hire, or contract a specialist?</h3>
+  <p>For a project this size, <strong>one experienced telematics engineer is worth more than five generalists</strong> — and easier to find than the market suggests, because the people who've done this are visible. Look where the evidence is, not where the marketing is:</p>
+  <ul>
+    <li><strong>Open-source Codec 8E parser authors and Traccar contributors</strong> — they've demonstrably debugged real device traffic. Many are in Eastern Europe and Latin America rather than India, and several take contract work.</li>
+    <li><strong>The Wialon partner map and Teltonika's software-providers list</strong> — everyone on them has integrated real devices to a real platform.</li>
+    <li><strong>Your device distributor</strong> — the most under-used source of who deploys well locally.</li>
+    <li><strong>The AIS-140 filter for Indian candidates</strong> — "Have you built an AIS-140-compliant backend? Walk me through the packet structure." India's mandatory vehicle-tracking standard requires real protocol work; a firm that's done it answers instantly, a firm that hasn't pivots to describing its dashboard.</li>
+  </ul>
+
+  <div class="note">
+    <h4>The six-question technical screen — anyone who can't answer these hasn't done this work</h4>
+    <ul>
+      <li>Walk me through a Codec 8E session from TCP connect to the device clearing its buffer.</li>
+      <li><strong>When do you send the acknowledgement?</strong> (The most revealing question — a real answer engages with acknowledging only after durable storage.)</li>
+      <li>A device reconnects after four hours offline and replays its buffer — what breaks?</li>
+      <li>How do you get engine hours off a machine that isn't a truck? (CAN adapter, J1939, and program-number dependency.)</li>
+      <li>How do you test before hardware arrives? (A traffic generator — else the schedule has a hole.)</li>
+      <li>What does a completed installation mean? (Data verified on the server, including engine hours.)</li>
+    </ul>
+  </div>
+
+  <div class="note warn">
+    <h4>Red flags in any proposal</h4>
+    <p>No hardware, procurement or installation in the plan · team size quoted before scope is agreed · a first milestone that is a UI · "we'll need to recruit for this" · vagueness about who owns the data model and code · <strong>no questions back</strong> (a supplier who's done this asks about your machine makes, reporting interval, fleet size and where data must live).</p>
+  </div>
+
+  <h3>The cheapest way to choose well</h3>
+  <p>Before any build, pay one specialist for <strong>two weeks</strong> to stand up an ingestion path against two real devices on a bench and report what the hardware actually does. It costs a fraction of a month of a nine-person team, answers the open protocol questions directly, and tells you more about whether someone can do this work than any interview. Run it with two candidates in parallel if the choice is close. Then contract discovery → pilot → scale, with the option to change supplier at each boundary — and keep the telemetry contract, schema and evidence store in-house whoever builds the ingestion.</p>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>The next fourteen days</h2>
+  <p>None of this needs the team hired, the supplier chosen, or the architecture finally settled. It is the set of moves that either unblock the critical path or cost nothing to start — do them in this order.</p>
+
+  <div class="seq">
+    <div class="step"><span class="n">1</span><span class="b"><strong>Send the CAN program-number enquiry to Teltonika — this is the one that can't wait.</strong> List your real fleet by make, model and year and ask which have a supported ALL-CAN300 program and what each exposes (D1). Until this returns you cannot know which machines can bill on engine hours, and nothing can be ordered. It gates the whole field track.</span></div>
+    <div class="step"><span class="n">2</span><span class="b"><strong>Order two test units with live SIMs</strong> — one FMC130 + ALL-CAN300 (heavy) and one FMC920 + LV-CAN200 (light) — so a bench exists the moment an engineer starts. Confirm the firmware shipping is 03.27.02 or later (D9); older units need a firmware pass on the critical path.</span></div>
+    <div class="step"><span class="n">3</span><span class="b"><strong>Get device + adapter quotes at 10-unit and 100-unit volumes</strong> from the UAE distributor — the one price your documents don't contain — and ask the distributor who deploys Teltonika well locally.</span></div>
+    <div class="step"><span class="n">4</span><span class="b"><strong>Reconcile the SIM cost</strong> with du and e& directly (the AED 10 vs 25–35/month conflict) and ask what a private APN into your network would take (D4).</span></div>
+    <div class="step"><span class="n">5</span><span class="b"><strong>Decide the reporting interval</strong> (D2) — 30–60s almost certainly suffices for slow-moving site assets and cuts data cost several-fold. This unblocks every storage and bandwidth estimate.</span></div>
+    <div class="step"><span class="n">6</span><span class="b"><strong>Pin down the hosting and residency direction</strong> (D3) and, with it, confirm exactly what SUDO's engagement covers — the technical pack now has them advising the AWS layer only, with you building the app layer. Make sure both sides read it the same way.</span></div>
+    <div class="step"><span class="n">7</span><span class="b"><strong>Start the two-week bench discovery with a shortlisted specialist</strong> (section 10) — it can run in parallel with the hardware arriving and is the highest-signal, lowest-cost way to choose who builds the ingestion.</span></div>
+    <div class="step"><span class="n">8</span><span class="b"><strong>Write the telemetry contract and traffic generator now</strong> — neither needs hardware. A generator emitting valid Codec 8E frames lets the software track begin against a bench of simulated devices while the real ones are still in a box.</span></div>
+  </div>
+
+  <div class="note ok">
+    <p>Items 1–4 belong to the field track and one of them (the program numbers) sets your earliest possible pilot date. Items 5–8 are decisions and desk work you can complete regardless of hardware. Doing 1 late is the most expensive mistake available on this project; doing 8 early is the cheapest insurance.</p>
+  </div>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Open decisions, consolidated</h2>
+  <p>These are questions to answer, not positions to build on — carried forward from the engineering reference so they sit in one place. Three are urgent; the rest can follow the pilot build.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>What it blocks</th><th>Owner</th></tr></thead>
+      <tbody>
+        <tr><td class="k">D1 <span class="pill">urgent</span></td><td>CAN program numbers for the real fleet — which makes/models/years have a supported ALL-CAN300 program, and what each exposes</td><td>Which machines can produce ECU engine hours at all — and therefore which the pilot goes on</td><td>Tech lead → Teltonika</td></tr>
+        <tr><td class="k">D2 <span class="pill">urgent</span></td><td>Reporting interval — 10s, 30s, or adaptive</td><td>Data volume, storage growth and burst size — roughly 3–6× either way</td><td>Tech lead + owner</td></tr>
+        <tr><td class="k">D3 <span class="pill">urgent</span></td><td>Hosting and region — DigitalOcean / me-central-1 / me-south-1</td><td>Every cost estimate and the data-residency answer</td><td>Owner</td></tr>
+        <tr><td class="k">D4</td><td>Private APN into your network with e& or du</td><td>The network-control ladder</td><td>Owner → carriers</td></tr>
+        <tr><td class="k">D5</td><td>Does the adopted server reject an unknown IMEI at the handshake, or only after accepting data? Verify against Traccar</td><td>Whether baseline ingress control exists on Path A</td><td>Tech lead</td></tr>
+        <tr><td class="k">D6</td><td>Are engine hours ECU-read or software-estimated, per make?</td><td>Evidential weight — an estimated value cannot support a billing record</td><td>Owner</td></tr>
+        <tr><td class="k">D7</td><td>Owner-scope predicate — implemented and tested from the start, or added later?</td><td>Whether the widest access scope is exercised before it's relied on</td><td>Owner</td></tr>
+        <tr><td class="k">D8</td><td>Device buffering limit in writing from Teltonika</td><td>How long an outage is survivable before data is discarded</td><td>Tech lead → Teltonika</td></tr>
+        <tr><td class="k">D9</td><td>Firmware version shipping on new units</td><td>TLS requires 03.27.02+; older units need updating before deployment</td><td>Tech lead → distributor</td></tr>
+        <tr><td class="k">D10</td><td>Trusted time-anchor mechanism for the evidence manifest</td><td>Step 5 of the evidence chain</td><td>Tech lead</td></tr>
+        <tr><td class="k">D11</td><td>Does the device present a client certificate for mutual TLS?</td><td>Whether cryptographic device identity is available at all</td><td>Tech lead → Teltonika</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>Sequence:</strong> D1 first and this week — it decides which machines can produce engine hours, and therefore which the pilot goes on. D2 next, because the interval sets data volume for everything after. D3 before any hosting estimate is accepted. Everything else can follow the pilot build.</p>
+  </div>
+
+  <div class="note ok big">
+    <p><strong>The through-line, one more time.</strong> The technology is proven and mostly free; the schema, the acknowledge-after-durability discipline and the evidence chain are where the engineering actually lives; the critical path is physical, not software; and the team you need is two engineers and a coordinator, not nine people — provided you answer D1 this week and buy the first six weeks before the five months.</p>
+  </div>
+</section>
+
+<footer>
+  Dozr GPS / IoT · expert build review · internal engineering · 30 Aug 2026<br>
+  Scope is the GPS, telematics and device-data layer only — not the Marketplace or Vendor OS. Grounded in the internal corpus and IoT engineering practice; external vendor figures (device pricing, SIM tariffs, platform terms) are flagged in place and should be confirmed directly with the source before they enter the business case.<br>
+  Companions: Kasper_GPS_Architecture.html · Kasper_GPS_Delivery_Plan.html · Kasper_GPS_Dev_Team_Questions.html · Kasper_Telematics_Supplier_Shortlist.html · ROADMAP.md
+</footer>
+
+</main>
+</div>
+
+</body>
+</html>

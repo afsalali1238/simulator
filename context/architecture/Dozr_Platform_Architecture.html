@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dozr Platform Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.set{border-color:var(--green);color:var(--green)}
+.pill.live{border-color:var(--green);color:var(--green);background:transparent}
+
+.stack{display:flex;flex-direction:column;gap:6px;margin:22px 0 26px}
+.layer{display:grid;grid-template-columns:110px minmax(0,1fr);gap:16px;background:var(--panel);border:1px solid var(--rule);border-radius:10px;padding:12px 14px;box-shadow:var(--shadow)}
+.layer-tag{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);border-right:1px solid var(--rule);padding-right:12px;line-height:1.4}
+.layer-tag b{display:block;color:var(--yellow-dark);font-size:11px;font-weight:700;margin-bottom:3px}
+.nodes{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.node{font-family:var(--f-mono);font-size:11px;padding:5px 10px;border-radius:7px;background:var(--panel-2);border:1px solid var(--rule);color:var(--text);white-space:nowrap}
+.node.hi{border-color:var(--yellow-dark);background:var(--yellow-tint);color:var(--yellow-dark);font-weight:700}
+.node.old{border-style:dashed;color:var(--text-3)}
+.node em{font-style:normal;color:var(--text-3)}
+.arrow{color:var(--text-3);font-family:var(--f-mono);font-size:12px}
+.flowdown{text-align:center;color:var(--text-3);font-family:var(--f-mono);font-size:13px;line-height:1}
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px;color:var(--yellow-dark)}
+
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+  .layer{grid-template-columns:1fr;gap:10px}
+  .layer-tag{border-right:none;border-bottom:1px solid var(--rule);padding:0 0 8px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<div class="shell">
+<aside class="toc">
+  <div class="toc-brand">DOZR<span>/</span>PLATFORM</div>
+  <div class="toc-sub">Architecture v1.0</div>
+  <nav>
+    <a href="#s0"><b>00</b>How to read this</a>
+    <a href="#s1"><b>01</b>Overview</a>
+    <a href="#s2"><b>02</b>Two systems, one platform</a>
+    <a href="#s3"><b>03</b>System context</a>
+    <div class="grp">Layers</div>
+    <a href="#s4"><b>04</b>Client layer</a>
+    <a href="#s5"><b>05</b>Application layer</a>
+    <a href="#s6"><b>06</b>Data layer</a>
+    <a href="#s7"><b>07</b>Integration layer</a>
+    <div class="grp">Behaviour</div>
+    <a href="#s8"><b>08</b>Communication paths</a>
+    <a href="#s9"><b>09</b>The job pipeline</a>
+    <a href="#s10"><b>10</b>Key flows</a>
+    <a href="#s11"><b>11</b>Telematics integration</a>
+    <div class="grp">Cross-cutting</div>
+    <a href="#s12"><b>12</b>Tenancy &amp; identity</a>
+    <a href="#s13"><b>13</b>Security</a>
+    <a href="#s14"><b>14</b>Deployment &amp; ops</a>
+    <a href="#s15"><b>15</b>Non-functional targets</a>
+    <div class="grp">Decisions</div>
+    <a href="#s16"><b>16</b>Design decisions</a>
+    <a href="#s17"><b>17</b>Risk register</a>
+    <a href="#s18"><b>18</b>Document map</a>
+    <a href="#s19"><b>19</b>Glossary</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal engineering · architecture of record</div>
+  <h1>Dozr Platform Architecture</h1>
+  <p>One document covering the whole platform: the .NET/Vue system currently in production, the vanilla + Supabase rebuild replacing it, the telematics layer feeding both, and the 13-stage job pipeline that is the actual product.</p>
+  <dl class="meta">
+    <div><dt>Version</dt><dd>1.0 — draft for review</dd></div>
+    <div><dt>Owner</dt><dd>Afsal Ali</dd></div>
+    <div><dt>Audience</dt><dd>Dozr tech team, vendors</dd></div>
+    <div><dt>Supersedes</dt><dd>Kasper Architecture v3</dd></div>
+    <div><dt>Companion</dt><dd>Dozr GPS Build Handbook and PRD</dd></div>
+  </dl>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>How to read this, and what changed</h2>
+  <p>This document is the Dozr successor to <em>Kasper Architecture v3</em>. That document was accurate about the system it described and is still the best record of the .NET platform's internals — but as a picture of Dozr it has three problems, and this version exists to fix them.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Change</th><th>What and why</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><span class="pill">Added</span></td><td><strong>The job pipeline.</strong> v3 described a B2B commerce platform with carts, product galleries and reports. That is the shape of the software, not the shape of the business. Dozr's actual product is a 13-stage operational pipeline from booking to payment — section 09 — and no architecture document that omits it can be used to make decisions.</td></tr>
+      <tr><td class="k"><span class="pill">Added</span></td><td><strong>WhatsApp as a first-class channel.</strong> v3 mentions email via Razor templates and nothing else. In reality quotes, approvals and job updates happen on WhatsApp; the current Marketplace build has no backend at all and uses <code>wa.me</code> deep links by design. A channel that carries the commercial workflow belongs in the architecture.</td></tr>
+      <tr><td class="k"><span class="pill">Added</span></td><td><strong>Multi-tenancy as a dated relationship.</strong> v3 handles tenancy as "role-aware queries filter by <code>currentUser</code>". That is sufficient for a commerce app and insufficient for rented assets that change hands — section 12.</td></tr>
+      <tr><td class="k"><span class="pill">Added</span></td><td><strong>The telematics layer</strong> and its integration points, absent from v3 entirely.</td></tr>
+      <tr><td class="k"><span class="pill">Added</span></td><td><strong>Environments, NFRs, a risk register and a document map.</strong> v3 has none of these, which is why its readers cannot tell what is decided from what is assumed.</td></tr>
+      <tr><td class="k"><span class="pill">Removed</span></td><td><strong>Component-level implementation detail.</strong> v3 §4 names <code>Index.vue</code>, <code>ReportBody</code>, <code>apiStateStore.fetchCart</code>. Source files drift within weeks of being written into a document; this version describes contracts and boundaries and lets the code describe itself.</td></tr>
+      <tr><td class="k"><span class="pill">Removed</span></td><td><strong>Elasticsearch and Kibana as assumed infrastructure.</strong> Kept in section 06, but demoted to a question. At Dozr's catalogue size Postgres full-text search is adequate, and an Elasticsearch cluster is a standing operational cost that has to earn its place.</td></tr>
+      <tr><td class="k"><span class="pill">Removed</span></td><td><strong>Guest checkout and cart semantics as core concepts.</strong> Dozr's equivalent is an RFQ, and an RFQ is not a cart — it has no price until a vendor quotes.</td></tr>
+      <tr><td class="k"><span class="pill">Corrected</span></td><td><strong>"Microservices."</strong> v3 calls the architecture microservices-based. Three deployables sharing two databases behind one ingress is a small service-oriented deployment, and calling it microservices invites decisions — per-service datastores, independent release trains — that the team is not staffed for. Named accurately in section 05.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>Overview</h2>
+  <p><strong>Purpose.</strong> Dozr is a UAE construction and port logistics platform. It rents equipment, books freight, and gives the vendors who own that equipment the software to run their side of the job — with GPS and engine data underneath, so that what was delivered can be proven rather than argued about.</p>
+
+  <h4>Three products, one platform</h4>
+  <div class="grid2">
+    <div class="card">
+      <h4>Marketplace <span class="pill live">Live</span></h4>
+      <p>Client-facing. Browse equipment and freight, request a quote, approve it, track the job, receive proof of delivery. Currently a static multi-page site with WhatsApp deep links in place of a backend.</p>
+    </div>
+    <div class="card">
+      <h4>Vendor OS + Ops <span class="pill live">Live</span></h4>
+      <p>Two faces of the same pipeline. Ops runs the job board internally; Vendor OS is the vendor's own view — their assets, their quotes, their jobs, their invoices.</p>
+    </div>
+    <div class="card">
+      <h4>Fleet / Telematics <span class="pill mvp">Rebuild</span></h4>
+      <p>Seven-screen internal dashboard over live device data: map, fuel, maintenance, geofences, utilisation, cost and ROI, reports. The evidence layer for everything else.</p>
+    </div>
+  </div>
+
+  <h4>Architectural style, stated honestly</h4>
+  <p><strong>A pipeline-centric platform with a thin client tier and a shared operational datastore.</strong> The organising principle is not the service boundary — it is the job. A job moves through thirteen stages; every product is a different actor's view of that same job, and every integration exists to move a job forward or to prove something about it. Design decisions are correct when they make a stage transition cheaper, auditable, or harder to get wrong.</p>
+
+  <div class="note">
+    <h4>The one thing to hold onto</h4>
+    <p>Dozr's defensibility is not the catalogue and not the dashboard. It is that a job's history — who quoted what, when the machine arrived, how many hours it ran, what was signed for — is captured as it happens and can be produced later. Every architectural choice in this document is downstream of that.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Two systems, one platform</h2>
+  <p>There are currently two codebases that both legitimately claim to be "the platform". Documenting only one of them is how teams end up building the same feature twice.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>&nbsp;</th><th>System A — .NET platform</th><th>System B — Dozr rebuild</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Status</td><td>In production. The system of record for commerce, RFQ, quotation, PO and reporting.</td><td>In build. Live on Vercel; Marketplace, Ops and Fleet shells complete.</td></tr>
+      <tr><td class="k">Client</td><td>Vue 3 SPA · TypeScript · Vite · Pinia · TanStack Query · vue-i18n</td><td>Vanilla HTML/CSS/JS, multi-page, no build step</td></tr>
+      <tr><td class="k">Server</td><td>ASP.NET Core (Kestrel), REST/JSON, JWT, clean architecture across API / Application / Infrastructure / Domain</td><td>Supabase — PostgREST over Postgres, Auth, Storage. No custom server tier yet.</td></tr>
+      <tr><td class="k">Data</td><td>SQL Server, EF Core, repositories, materialised report views. Elasticsearch for search, Kibana for logs.</td><td>Postgres (Supabase), 12 migrations, RLS policies written and currently disabled</td></tr>
+      <tr><td class="k">Hosting</td><td>Kubernetes, ingress-routed, behind an application load balancer</td><td>Vercel static hosting with rewrites; Supabase managed</td></tr>
+      <tr><td class="k">Strength</td><td>Real transactional integrity, real auth, real reporting, real audit stamping</td><td>Ships in hours, no build friction, one person can hold all of it</td></tr>
+      <tr><td class="k">Weakness</td><td>Heavy for a solo build; K8s is operational overhead nobody is currently paid to carry</td><td>No server tier means no server-side business rules — and today, no enforced access control at all</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The position</h3>
+  <p><strong>System B is the target. System A is the reference implementation and the fallback, not the enemy.</strong> The rebuild is justified by operating cost and iteration speed, not by any technical failing in the .NET platform — and several things System A does correctly are things System B has not yet had to solve: voucher numbering under concurrency, audit stamping on every write, per-endpoint authorisation, decoupled read projections. Those are requirements, not legacy.</p>
+
+  <div class="note warn">
+    <h4>The migration trap to avoid</h4>
+    <p>The failure mode here is not choosing wrong — it is choosing neither, and running both indefinitely with the pipeline half in each. A job that exists as an RFQ in SQL Server and as a row in Supabase has two truths and no reconciliation. <strong>Pick one system per pipeline stage, migrate whole stages, and write down the date each one moved.</strong> Section 14 sets out the cutover discipline.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>System context</h2>
+  <div class="stack">
+    <div class="layer">
+      <div class="layer-tag"><b>ACTORS</b>Who uses it</div>
+      <div class="nodes">
+        <span class="node">Client <em>contractor, site team</em></span>
+        <span class="node">Vendor <em>fleet owner</em></span>
+        <span class="node">Driver / operator</span>
+        <span class="node">Dozr ops</span>
+        <span class="node">Finance</span>
+      </div>
+    </div>
+    <div class="flowdown">↓</div>
+    <div class="layer">
+      <div class="layer-tag"><b>SURFACES</b>Client tier</div>
+      <div class="nodes">
+        <span class="node hi">Marketplace <em>web</em></span>
+        <span class="node">Vendor OS</span>
+        <span class="node">Ops console</span>
+        <span class="node">Fleet dashboard</span>
+        <span class="node hi">WhatsApp <em>the real interface</em></span>
+        <span class="node old">Vue 3 SPA <em>system A</em></span>
+      </div>
+    </div>
+    <div class="flowdown">↓</div>
+    <div class="layer">
+      <div class="layer-tag"><b>CORE</b>Application</div>
+      <div class="nodes">
+        <span class="node hi">Job pipeline <em>13 stages</em></span>
+        <span class="node">Catalogue</span>
+        <span class="node">RFQ &amp; quoting</span>
+        <span class="node">Documents <em>PO, ePOD, invoice</em></span>
+        <span class="node">Identity &amp; tenancy</span>
+        <span class="node">Notification router</span>
+      </div>
+    </div>
+    <div class="flowdown">↓</div>
+    <div class="layer">
+      <div class="layer-tag"><b>DATA</b>Persistence</div>
+      <div class="nodes">
+        <span class="node">Operational Postgres</span>
+        <span class="node old">SQL Server <em>system A</em></span>
+        <span class="node">Telemetry store</span>
+        <span class="node hi">Evidence store <em>WORM</em></span>
+        <span class="node">Object storage <em>docs, images</em></span>
+      </div>
+    </div>
+    <div class="flowdown">↓</div>
+    <div class="layer">
+      <div class="layer-tag"><b>EDGE</b>External</div>
+      <div class="nodes">
+        <span class="node hi">Telematics devices <em>FMC130 + CAN adapter</em></span>
+        <span class="node">WhatsApp Business API</span>
+        <span class="node">Email / SMTP</span>
+        <span class="node">Maps &amp; geocoding</span>
+        <span class="node">Accounting / VAT</span>
+      </div>
+    </div>
+  </div>
+  <p>Note what sits in the surface layer alongside the web apps: <strong>WhatsApp is not an integration, it is a client.</strong> For most vendors and site teams it is the only Dozr interface they will ever open. Architecturally that means message templates, delivery receipts and inbound parsing are product surfaces with the same status as a page.</p>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Client layer</h2>
+
+  <h3>4.1 Marketplace <span class="pill live">Live</span></h3>
+  <p>Multi-page static site — <code>index</code>, <code>browse</code>, <code>equipment-detail</code>, <code>freight</code>, <code>cart</code>, <code>wishlist</code>, <code>tracking</code>, <code>quote-approval</code>, <code>orders</code>, plus auth and content pages. Vanilla HTML/CSS/JS, no framework, no build step. Brand tokens are CSS custom properties in one shared stylesheet.</p>
+  <p><strong>No backend for v1, by design.</strong> Equipment data is a JavaScript module; every action that would need a server opens a WhatsApp deep link. This is not a stub — it matches how the business actually runs quotes and approvals today. The data-access functions are the seam: Supabase gets wired in behind them without touching page markup.</p>
+
+  <h3>4.2 Ops console <span class="pill live">Live</span></h3>
+  <p>Internal job board: enquiries, a stage-based Kanban, vendor and equipment masters, job detail, invoicing, reports. Reads and writes Supabase directly from the browser via the JS client. Sign-in is currently short-circuited — see section 13, this is the platform's most serious open issue.</p>
+
+  <h3>4.3 Fleet dashboard <span class="pill mvp">Rebuild</span></h3>
+  <p>Seven screens — Fleet Map, Fuel, Maintenance, Geofences, Utilisation, Cost &amp; ROI, Reports — rebranded onto Dozr tokens, running on mock data shaped to match the eventual telemetry contract. Deliberately kept on an independent stylesheet so it can evolve separately from Marketplace.</p>
+
+  <h3>4.4 Vendor OS <span class="pill">Next</span></h3>
+  <p>Not yet rebuilt. The vendor's own view of the same pipeline: their assets, incoming RFQs, quotes submitted, jobs won, documents, invoices, payment status. Treat it as a permission scope over the existing Ops surfaces rather than a separate product, and most of it is configuration rather than new screens.</p>
+
+  <h3>4.5 Shared client conventions</h3>
+  <ul>
+    <li><strong>Brand tokens are non-negotiable and live in one place per product.</strong> Ink, yellow, canvas, slate, line, green, error; Space Grotesk / Hanken Grotesk / Space Mono. A colour outside that set is a bug.</li>
+    <li><strong>Accessibility is a gate, not a pass.</strong> Real <code>&lt;button&gt;</code> elements, labelled inputs, AA contrast, keyboard reachability — already enforced on Marketplace and expected of every new surface.</li>
+    <li><strong>Mobile-first.</strong> The site team on a phone in the sun is the primary reader, not the desktop buyer.</li>
+    <li><strong>No secrets in client code.</strong> Stated here because it is currently violated — section 13.</li>
+  </ul>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Application layer</h2>
+
+  <h3>5.1 System A — clean architecture in .NET</h3>
+  <p>Four projects with enforced dependency direction. This is the part of v3 worth preserving verbatim, because it is a correct description of a sound structure:</p>
+  <div class="tw"><table>
+    <thead><tr><th>Project</th><th>Holds</th><th>May depend on</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Dozr.Domain</td><td>Entities, value objects, projections, repository interfaces, enums, shared contracts</td><td>Nothing</td></tr>
+      <tr><td class="k">Dozr.Application</td><td>Services, DTOs, validators, mapping profiles, email and view rendering, workflow orchestration</td><td>Domain</td></tr>
+      <tr><td class="k">Dozr.Infrastructure</td><td>EF Core <code>DbContext</code>, repository implementations, search integration, DI wiring</td><td>Domain, Application</td></tr>
+      <tr><td class="k">Dozr.API</td><td>Composition root, controllers, middleware, auth, CORS, health checks, OpenAPI</td><td>All of the above</td></tr>
+    </tbody>
+  </table></div>
+  <p>Controllers never touch data access. Application services orchestrate, validate and map. Infrastructure implements the interfaces Domain declares. Request flow: <code>Controller → Application service → repository interface → repository implementation → EF Core → SQL Server</code>.</p>
+
+  <h4>Three patterns worth keeping whatever else changes</h4>
+  <ul>
+    <li><strong>Read projections separate from entities.</strong> Report and list views are their own shapes, built by explicit queries. This is what stops list endpoints from dragging entity graphs across the wire and generating N+1 queries.</li>
+    <li><strong>Centralised audit stamping</strong> on the persistence hook, so created/modified metadata is consistent across every entity and cannot be forgotten at a call site.</li>
+    <li><strong>Voucher numbering as a server-side concern</strong>, derived from configured settings and the last issued number. Document numbers are commercial identifiers; they cannot be generated client-side, and concurrency here is a correctness problem, not a performance one.</li>
+  </ul>
+
+  <h3>5.2 System B — Supabase, and its missing tier</h3>
+  <p>Today the browser talks to PostgREST directly. There is no application tier. That is genuinely fine for CRUD over masters — and genuinely not fine for anything with a rule attached.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Concern</th><th>Direct-from-browser?</th><th>Where it must live</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Read a catalogue</td><td>Yes</td><td>PostgREST + RLS</td></tr>
+      <tr><td class="k">Create/edit masters</td><td>Yes, once RLS is on</td><td>PostgREST + RLS</td></tr>
+      <tr><td class="k">Stage transition</td><td><strong>No</strong></td><td>Edge function — legal transitions, required artefacts, audit entry</td></tr>
+      <tr><td class="k">Voucher / document numbering</td><td><strong>No</strong></td><td>Database function under a transaction</td></tr>
+      <tr><td class="k">Vendor cost vs client price</td><td><strong>No</strong></td><td>Never in a client-readable row. Margin is not the client's business.</td></tr>
+      <tr><td class="k">Sending WhatsApp / email</td><td><strong>No</strong></td><td>Edge function — provider credentials never reach the browser</td></tr>
+      <tr><td class="k">Invoice and payment writes</td><td><strong>No</strong></td><td>Edge function with audit</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Minimum viable server tier:</strong> a small set of Supabase edge functions covering stage transitions, document numbering, outbound messaging, and invoice writes. Everything else can stay direct. This is a few hundred lines, not a rewrite, and it is the difference between a prototype and a platform.</p>
+
+  <div class="note">
+    <h4>On the word "microservices"</h4>
+    <p>Neither system is a microservices architecture, and neither needs to be. System A is three deployables sharing two databases behind one ingress; System B is a static site and a managed Postgres. Both are appropriate. Describing them as microservices imports expectations — per-service datastores, independent release trains, service discovery, distributed tracing — that would add cost without adding capability at this size.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Data layer</h2>
+
+  <h3>6.1 Operational schema — System B</h3>
+  <p>Eight tables carry the pipeline today: <code>staff_profiles</code>, <code>vendors</code>, <code>equipment</code>, <code>rfqs</code>, <code>rfq_vendor_quotes</code>, <code>jobs</code>, <code>invoices</code>, <code>escalations</code>, plus Storage buckets for equipment images and job documents. The shape is right. Four things are missing before it can carry the whole pipeline:</p>
+  <div class="tw"><table>
+    <thead><tr><th>Missing</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td class="k">clients / tenants</td><td>There is no client entity — jobs carry a client as loose fields. Without it there is no tenant to scope by, no client portal, and no way to answer "everything for this contractor".</td></tr>
+      <tr><td class="k">assets + dated assignment</td><td><code>equipment</code> is a vendor's listing. A telemetry-bearing physical asset with a dated hire history is a different thing. Section 12.</td></tr>
+      <tr><td class="k">job_events</td><td>An append-only log of every stage transition with actor, timestamp and artefact. Today stage lives as a single mutable column, so the job's own history is unrecoverable — which is exactly what a dispute asks for.</td></tr>
+      <tr><td class="k">documents</td><td>PO, ePOD, delivery note, invoice as first-class rows with a storage pointer, a hash and an issue date — not files loosely associated with a job.</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note warn">
+    <h4>Vendor cost and client price must not share a readable row</h4>
+    <p><code>equipment.day_rate</code> is annotated in the schema as internal-only, and <code>jobs</code> carries vendor cost. With RLS off and the anon key public, <strong>Dozr's margin on every job is currently readable by anyone who opens the browser console.</strong> This is a commercial exposure, not just a security one — and it is a design problem as much as a configuration one: cost and price should live in separate tables with separate policies, so that "internal only" is enforced rather than annotated.</p>
+  </div>
+
+  <h3>6.2 Telemetry store</h3>
+  <p>Separate from the operational database, by access pattern and by volume. Hot current-state per asset, warm history for playback and reports, cold immutable evidence. Fully specified in the companion GPS Build Handbook and PRD; the store choice is open and is tracked there.</p>
+
+  <h3>6.3 Search — a question, not a component</h3>
+  <p>System A runs Elasticsearch for catalogue search and Kibana for log visualisation. Before either is carried into System B, both should have to justify themselves. Dozr's catalogue is in the hundreds of items, not the millions; Postgres full-text search with a trigram index covers "excavator 20 ton Jebel Ali" comfortably, at zero additional operational surface. A search cluster is a standing cost, a scaling story and a failure mode — worth it at a volume Dozr does not have yet.</p>
+  <p><strong>Recommendation:</strong> Postgres FTS in System B; revisit when catalogue search latency or relevance is an observed complaint rather than an anticipated one. Keep structured logging regardless — that requirement is real, the specific tool is not.</p>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Integration layer</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Integration</th><th>Direction</th><th>Carries</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="k">WhatsApp Business API</td><td>Out and in</td><td>RFQ to vendors, quote to client, approval, dispatch notice, arrival, ePOD, invoice, payment reminder</td><td>Template approval has lead time — submit during build, not at launch. Inbound replies need parsing or a human queue; decide which before shipping.</td></tr>
+      <tr><td class="k">Email / SMTP</td><td>Out</td><td>Formal documents — quotation, PO, invoice, utilisation certificate</td><td>The document of record. WhatsApp notifies; email delivers the artefact.</td></tr>
+      <tr><td class="k">Telematics</td><td>In</td><td>Position, engine hours, fuel, faults, geofence events</td><td>Section 11.</td></tr>
+      <tr><td class="k">Maps / geocoding</td><td>Out</td><td>Route display, site geofences, address resolution</td><td>Geocode on display and at trip endpoints only. Per-record geocoding is the classic runaway cost line.</td></tr>
+      <tr><td class="k">Accounting / VAT</td><td>Out</td><td>Invoice export, 5% VAT treatment, TRN on documents</td><td><span class="pill open">Open</span> — no integration exists. UAE e-invoicing obligations should be checked before the invoice schema hardens.</td></tr>
+      <tr><td class="k">Payments</td><td>Out</td><td>Payment status against invoice</td><td><span class="pill open">Open</span> — currently manual reconciliation.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Notification routing</h3>
+  <p>One rule, applied everywhere: <strong>an event fires a notification intent; a router decides channel and recipient; each attempt is recorded separately.</strong> One row per intent, one row per channel attempt with provider message ID and status. Retries are per attempt — a WhatsApp failure must never re-send the email. Without this the same alert arrives three times, or silently not at all, and nobody can tell which.</p>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Communication paths</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Path</th><th>Transport</th><th>Auth</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Browser → System A</td><td>HTTPS · REST/JSON · <code>application/json; UTF-8</code></td><td><code>Authorization: Bearer &lt;JWT&gt;</code></td><td>Per-endpoint authorisation policies. Public catalogue endpoints unauthenticated. Versioned <code>v1</code>/<code>v2</code> with a deprecation policy.</td></tr>
+      <tr><td class="k">Browser → System B</td><td>HTTPS · PostgREST</td><td>Supabase JWT · RLS as the boundary</td><td><span class="pill open">Currently unauthenticated</span> — section 13.</td></tr>
+      <tr><td class="k">Browser → edge functions</td><td>HTTPS · JSON</td><td>Supabase JWT, verified server-side</td><td>Every write with a rule attached.</td></tr>
+      <tr><td class="k">Device → telematics ingress</td><td>Raw TCP · Codec 8/8E, or via GPS server</td><td>IMEI at handshake + network controls</td><td>Section 11 and the companion document.</td></tr>
+      <tr><td class="k">Platform → WhatsApp</td><td>HTTPS · provider API</td><td>Server-held credentials</td><td>Never from the browser.</td></tr>
+      <tr><td class="k">Marketplace → WhatsApp</td><td><code>wa.me</code> deep link</td><td>None — opens the user's own client</td><td>Current v1 mechanism. Deliberate, and it does not survive contact with a real backend: a deep link cannot be tracked, retried or audited. Replace stage-by-stage.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>Contracts</h4>
+  <ul>
+    <li>Money as a decimal with an explicit currency; AED throughout; never a float.</li>
+    <li>Timestamps in UTC on the wire, rendered in Asia/Dubai. The platform runs in one timezone today and will not forever.</li>
+    <li>Errors carry a stable machine-readable code plus a human message. The code is the contract; the message is UI copy.</li>
+    <li>Idempotency keys on any write that a retry could duplicate — quote submission, invoice creation, payment recording.</li>
+  </ul>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>The job pipeline</h2>
+  <p>This is the section <em>Kasper Architecture v3</em> was missing, and it is the one that makes the rest of the document usable. Every product surface, table and integration exists to move a job through these stages or to prove what happened at one.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th class="num">#</th><th>Stage</th><th>Actor</th><th>Artefact produced</th><th>Channel</th></tr></thead>
+    <tbody>
+      <tr><td class="num">1</td><td>Enquiry / booking</td><td>Client</td><td>Enquiry record</td><td>Marketplace, WhatsApp, phone</td></tr>
+      <tr><td class="num">2</td><td>Qualification</td><td>Dozr ops</td><td>Scope, dates, site, access constraints</td><td>Ops console</td></tr>
+      <tr><td class="num">3</td><td>RFQ issued</td><td>Dozr ops</td><td>RFQ, one per shortlisted vendor</td><td>WhatsApp + email</td></tr>
+      <tr><td class="num">4</td><td>Vendor quote</td><td>Vendor</td><td>Vendor quote with cost</td><td>WhatsApp, Vendor OS</td></tr>
+      <tr><td class="num">5</td><td>Client quotation</td><td>Dozr ops</td><td>Client-facing quotation with margin applied</td><td>Email doc + WhatsApp notice</td></tr>
+      <tr><td class="num">6</td><td>Approval</td><td>Client</td><td>Approval record, timestamped</td><td>Quote-approval link, WhatsApp</td></tr>
+      <tr><td class="num">7</td><td>Purchase order</td><td>Client / Dozr</td><td>PO, linked to the quotation</td><td>Email</td></tr>
+      <tr><td class="num">8</td><td>Vendor confirmation</td><td>Vendor</td><td>Asset and driver assigned</td><td>Vendor OS, WhatsApp</td></tr>
+      <tr><td class="num">9</td><td>Dispatch</td><td>Vendor / driver</td><td>Dispatch record, asset assignment window opens</td><td>WhatsApp</td></tr>
+      <tr><td class="num">10</td><td>In transit &amp; arrival</td><td>System</td><td><strong>GPS-verified arrival</strong> — geofence entry</td><td>Tracking page, WhatsApp</td></tr>
+      <tr><td class="num">11</td><td>On site / execution</td><td>Driver, site team</td><td>Time on site, engine hours accrued</td><td>Telematics</td></tr>
+      <tr><td class="num">12</td><td>ePOD</td><td>Driver + site team</td><td>Signed proof bound to verified position and time</td><td>WhatsApp / mobile</td></tr>
+      <tr><td class="num">13</td><td>Invoice &amp; payment</td><td>Finance</td><td>Invoice with utilisation evidence attached; payment recorded</td><td>Email, accounting</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <h4>Three rules that follow from the pipeline</h4>
+    <ul>
+      <li><strong>Stage is a log, not a column.</strong> Every transition is an append-only <code>job_events</code> row with actor, timestamp, and a pointer to the artefact. The current stage is derived. A mutable stage column destroys exactly the history a dispute needs.</li>
+      <li><strong>Every transition names its required artefact.</strong> You cannot reach stage 7 without an approval at stage 6, or stage 13 without an ePOD at stage 12. Enforce it server-side; a Kanban card that can be dragged anywhere is a data-quality problem waiting to happen.</li>
+      <li><strong>Stages 10 to 12 are where telematics stops being a product and becomes evidence.</strong> That is the integration that matters — not the live map, which is a nice demo.</li>
+    </ul>
+  </div>
+
+  <p class="note ok" style="max-width:72ch"><strong>Note on the ops board.</strong> The live Kanban runs a simplified 7-stage view of these 13. That is correct — an ops board should show the transitions a human drives, not every system-generated one. Keep the 7 stages as a presentation grouping over the 13-stage log; do not simplify the log itself to match the board.</p>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Key flows</h2>
+
+  <h3>10.1 RFQ to approved quotation</h3>
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b>ENQUIRY</b>Client submits from Marketplace or messages on WhatsApp. Ops qualifies: equipment type, dates, site, access constraints, whether transport is included.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b>SHORTLIST</b>Ops selects candidate vendors by category, availability and site proximity. Availability comes from <code>equipment.availability_status</code>, which is only as good as the last vendor update — an honest weakness until Vendor OS makes updating it worth the vendor's time.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b>RFQ OUT</b>One RFQ record per vendor, issued over WhatsApp and email. Each carries a document number generated server-side.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b>QUOTES IN</b>Vendor costs recorded against the RFQ. Cost is internal. It is never present in any row a client-scoped query can reach.</div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b>QUOTATION</b>Ops applies margin and issues the client quotation, traceable to the RFQ it came from. Emailed as the document; WhatsApp carries the notice and the approval link.</div></div>
+    <div class="step"><div class="n">6</div><div class="b"><b>APPROVAL</b>Client approves via the shared link. Recorded with timestamp, identity and the exact quotation version approved. This is a commercial commitment — version it, do not overwrite it.</div></div>
+  </div>
+
+  <h3>10.2 Dispatch to GPS-verified delivery</h3>
+  <div class="seq">
+    <div class="step"><div class="n">1</div><div class="b"><b>ASSIGN</b>Vendor confirms asset and driver. The asset assignment window opens against the job's site geofence — this is the record that later attributes engine hours to this client and this contract.</div></div>
+    <div class="step"><div class="n">2</div><div class="b"><b>TRACK</b>Live position on the client's tracking page; ETA derived from position and route.</div></div>
+    <div class="step"><div class="n">3</div><div class="b"><b>ARRIVE</b>Geofence entry stamps arrival — replacing a phone call with a fact. Notification to client and ops.</div></div>
+    <div class="step"><div class="n">4</div><div class="b"><b>EXECUTE</b>Time on site and engine hours accrue against the job. Idle time separated from productive time.</div></div>
+    <div class="step"><div class="n">5</div><div class="b"><b>ePOD</b>Signature captured and bound to verified position and timestamp. A signature alone proves someone signed; a signature bound to a geofenced position and an engine-hours reading proves the delivery.</div></div>
+    <div class="step"><div class="n">6</div><div class="b"><b>DEPART</b>Geofence exit stamps departure. Assignment window closes; the utilisation period is ready to seal.</div></div>
+  </div>
+
+  <h3>10.3 Monthly Utilisation Certificate</h3>
+  <p>The document the telematics layer exists to produce. For a hire period it states engine hours at start and end, the delta, idle hours, distance, and the source of each figure — ECU-read or estimated, never blended. It resolves through the dated assignment window, so the hours belong to exactly one client for exactly one contract over exactly one period, and it carries a pointer to an immutable evidence object.</p>
+  <p><strong>Once issued, a certificate is sealed.</strong> Corrections are new documents that reference the old one. A reissued certificate must be byte-identical to the original, which means it renders from the sealed period record rather than from a live re-query.</p>
+
+  <h3>10.4 Reporting</h3>
+  <p>Two shapes, as in System A and worth keeping: <strong>summary</strong>, one row per document header — number, date, status, totals; and <strong>detailed</strong>, item-level with rates, amounts, discount and VAT. Filterable by date, client, vendor, item, item type and role, with role-based scoping applied server-side. Export as CSV and PDF. Scheduled delivery is a later phase; the scoping is not.</p>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>Telematics integration — and the ingestion fork</h2>
+  <p>The device, protocol and evidence design live in the companion <em>Dozr GPS Build Handbook and PRD</em>. This section covers where telematics touches the platform, and resolves a genuine three-way disagreement in our own documents.</p>
+
+  <h3>11.1 Integration points</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Platform need</th><th>Telemetry provides</th><th>Pipeline stage</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Live tracking page</td><td>Current position and status per asset</td><td>10</td></tr>
+      <tr><td class="k">Verified arrival / departure</td><td>Geofence entry and exit events</td><td>10, 12</td></tr>
+      <tr><td class="k">ePOD binding</td><td>Position and timestamp at signature</td><td>12</td></tr>
+      <tr><td class="k">Utilisation certificate</td><td>Engine-hour delta over the assignment window</td><td>13</td></tr>
+      <tr><td class="k">Vendor asset health</td><td>Fuel, faults, service-due, device health</td><td>Vendor OS</td></tr>
+      <tr><td class="k">Theft and misuse alerts</td><td>Unauthorised movement, after-hours use, fuel drop</td><td>Any</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Dependency direction:</strong> the pipeline consumes telemetry events; telemetry knows nothing about jobs beyond a site geofence and an assignment window. Keep it that way — a Marketplace deploy must never be able to break ingestion.</p>
+
+  <h3>11.2 Three ingestion designs, all currently written down as ours</h3>
+  <p>Three internal documents propose three different ingestion paths. They are not compatible, and until one is chosen, cost estimates and vendor conversations are being built on different foundations.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>&nbsp;</th><th>A · Traccar</th><th>B · Bridge → IoT Core</th><th>C · Custom gateway</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Source</td><td>Teltonika engineering briefing; ROADMAP Fleet Phase 3</td><td>Telematics Technology Report (for Mohammed)</td><td>SUDO technical pack; GPS Build Handbook</td></tr>
+      <tr><td class="k">Path</td><td>Devices → self-hosted Traccar → TimescaleDB/PostGIS → dashboard via Traccar REST</td><td>Devices → custom bridge → AWS IoT Core (MQTT) → Rules → Lambda → TimescaleDB</td><td>Devices → NLB → Fargate gateway → Kinesis → hot/warm/cold tiers</td></tr>
+      <tr><td class="k">Build cost</td><td><strong>Lowest.</strong> Codec 8E parsing is solved. Weeks, not months.</td><td>Medium — the bridge is custom either way; IoT Core adds managed routing</td><td>Highest — every component is ours to build and operate</td></tr>
+      <tr><td class="k">Run cost</td><td>One VM plus a database. Predictable.</td><td>Bridge compute + IoT Core per message + Shadow reads + Lambda</td><td>NLB + Fargate + Kinesis + three stores</td></tr>
+      <tr><td class="k">Evidence integrity</td><td>Weakest. Traccar acknowledges on its own terms; achieving acknowledge-after-durability means modifying it.</td><td>Medium. The bridge controls the ACK, but the record crosses a managed broker before storage.</td><td><strong>Strongest.</strong> ACK-after-durability by construction; that was the whole point of the design.</td></tr>
+      <tr><td class="k">Multi-tenancy</td><td>Traccar's own model, which is not dated assignment. Would need work around it.</td><td>Ours, in the database</td><td>Ours, by design</td></tr>
+      <tr><td class="k">Lock-in</td><td>Open source, self-hosted. Escapable.</td><td>IoT Core-specific rules and Shadow semantics</td><td>None beyond ordinary AWS primitives</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note">
+    <h4>Recommendation — A then C, and drop B</h4>
+    <p><strong>Run the pilot on Traccar.</strong> It removes months of parser work from a solo build, it validates the hardware, the installation, the SIM and the CAN program numbers — which is where the pilot's real risk sits — and it produces the data history that every later decision depends on. Treat it as scaffolding with a known replacement date, and write the dashboard against our own contract rather than Traccar's REST shapes, so the swap is a data-layer change.</p>
+    <p><strong>Build path C when engine hours start settling invoices</strong>, not before. The custom gateway's justification is acknowledge-after-durability and dated tenancy — real requirements, but requirements that bite at the point where the data becomes billing evidence, not at fifty pilot devices.</p>
+    <p><strong>Path B is the weakest of the three</strong> and should be retired as a proposal. It carries the cost of a custom bridge <em>and</em> the cost and lock-in of a managed broker, while landing between A and C on integrity. IoT Core earns its place when devices speak MQTT natively and you want Shadow, Jobs and fleet provisioning — none of which applies to a Teltonika estate whose firmware is managed by Teltonika's own FOTA service.</p>
+  </div>
+
+  <h3>11.3 Two other conflicts to close</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Conflict</th><th>Positions</th><th>Resolution</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Region</td><td><strong>me-south-1</strong> (Bahrain) in the technology report and the ROADMAP; <strong>me-central-1</strong> (UAE) in the AWS enquiry</td><td>Pick one before any cost estimate is accepted — they have different service availability and different data-residency stories. UAE residency is a commercial asset with government and port clients; Bahrain is older and more complete. <strong>Confirm feature availability in me-central-1 first</strong>, and only fall back to Bahrain if something the design needs is genuinely absent.</td></tr>
+      <tr><td class="k">CAN adapter</td><td>The technology report specifies <strong>ALL-CAN300</strong> as a separate box on the CAN bus; the SUDO pack refers generically to LVCAN/J1939</td><td>The technology report is more specific and more likely current. Adopt ALL-CAN300 as the named adapter, and carry its consequence: a Teltonika <strong>program number per equipment make/model/year</strong>, confirmed against the real fleet list before any installation is scheduled.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Multi-tenancy and identity</h2>
+  <p>Pooled multi-tenancy: one platform, one database, row-level isolation. Not per-customer infrastructure. The reason is commercial — revenue is per device and per job, customers are many and small, and a fixed cost per tenant makes a five-truck vendor loss-making before hardware.</p>
+
+  <h3>12.1 Why assignment is dated</h3>
+  <p>An excavator works for one contractor this quarter and another next. If tenancy is a foreign key on the asset, then re-hiring the machine either rewrites history or exposes the previous client's data. Neither is acceptable when engine hours settle invoices.</p>
+  <pre><code>assets            (asset_id, type, make, model, serial, owner_vendor_id)
+devices           (imei, model, firmware, iccid, status)
+
+device_assignments   -- which box is on which machine
+  (device_imei, asset_id, from_ts, to_ts NULL)
+
+asset_assignments    -- whose machine it is, and when
+  (asset_id, tenant_id, project_id, site_id, from_ts, to_ts NULL, contract_ref)</code></pre>
+  <p>Telemetry resolves to a tenant through <strong>both windows at the record's own timestamp</strong>. A denormalised <code>tenant_id</code> may be stamped for query speed, but authorisation never reads it — records arrive late and assignments get corrected retrospectively, so the stamp can be stale where the window cannot.</p>
+
+  <h3>12.2 Roles</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Role</th><th>Sees</th><th>Products</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Client master</td><td>All their projects, sites, jobs, documents and utilisation</td><td>Marketplace, tracking</td></tr>
+      <tr><td class="k">Client site user</td><td>Only assets and jobs on their assigned sites</td><td>Marketplace, tracking</td></tr>
+      <tr><td class="k">Vendor</td><td>Only their own assets, RFQs addressed to them, their quotes, jobs and invoices. Never another vendor's quote on the same RFQ.</td><td>Vendor OS, Fleet</td></tr>
+      <tr><td class="k">Driver / operator</td><td>Their assigned job only. ePOD capture.</td><td>Mobile / WhatsApp</td></tr>
+      <tr><td class="k">Dozr ops</td><td>All jobs; vendor cost and client price both visible</td><td>Ops, Fleet</td></tr>
+      <tr><td class="k">Dozr admin</td><td>Everything, with every cross-tenant access written to the audit log</td><td>All</td></tr>
+    </tbody>
+  </table></div>
+  <p><strong>Enforce at the database, not in the query.</strong> Postgres row-level security fails closed; an application <code>WHERE</code> clause fails open the first time someone adds an endpoint and forgets it. The policies are already written in migration <code>0001_init.sql</code> — the work is turning them back on, not authoring them.</p>
+  <p>One competitive-integrity rule deserves naming because it is easy to miss: <strong>vendors bidding on the same RFQ must not be able to see each other's quotes.</strong> That is a policy on <code>rfq_vendor_quotes</code>, and getting it wrong destroys vendor trust permanently.</p>
+</section>
+
+<section id="s13">
+  <h2><i>13</i>Security</h2>
+
+  <div class="note warn">
+    <h4>Open finding — the Ops console has no access control</h4>
+    <p>Migrations <code>0003_temp_open_access.sql</code> and <code>0005_temp_open_storage.sql</code> grant the anonymous role full read and write on <code>vendors</code>, <code>equipment</code>, <code>rfqs</code>, <code>rfq_vendor_quotes</code>, <code>jobs</code>, <code>invoices</code>, <code>escalations</code> and the image bucket. The anon key is published in client JavaScript. The migration comments say this plainly and flag it as build-only — the decision was deliberate and correctly documented. It is recorded here because the exposure is larger than "no login screen":</p>
+    <ul>
+      <li>Vendor day rates and Dozr's margin on every job are readable by anyone with the URL.</li>
+      <li>Vendor trade licence and insurance expiry — commercially sensitive third-party data — are readable.</li>
+      <li>Every table is <em>writable</em>. Invoices and job records can be altered or deleted by an anonymous caller.</li>
+      <li>An unlisted URL is not access control. Vercel deployment URLs are enumerable, and the anon key is in the page source of a site that is publicly reachable.</li>
+    </ul>
+    <p><strong>This is the single highest-priority item in this document.</strong> Restore the <code>0001_init.sql</code> policies, put a real sign-in in front of Ops, and rotate the anon key. Until then, treat everything in that database as public.</p>
+  </div>
+
+  <h3>13.1 Identity</h3>
+  <ul>
+    <li>Staff and vendor accounts authenticate; JWT carries role and tenant claims. Clients may browse the catalogue unauthenticated but cannot see a job, a quote or a document without a session or a signed link.</li>
+    <li><strong>Shared approval links are credentials.</strong> The quote-approval flow is a link sent over WhatsApp. Give it a signed, expiring token scoped to one quotation, and record the approving identity. A guessable or permanent link is an authorisation bypass on a commercial commitment.</li>
+    <li>Guest identity, as System A handles it, is a reasonable pattern for pre-account enquiries — a generated identifier that later merges into a real account. Keep it, scope it tightly.</li>
+  </ul>
+
+  <h3>13.2 Data protection</h3>
+  <ul>
+    <li>Vendor cost and client price separated at the table level, not by convention.</li>
+    <li>Trade licences, insurance certificates and Emirates ID scans in object storage under authenticated, time-limited URLs — never public buckets.</li>
+    <li>Encryption at rest on every store; TLS everywhere including internal hops.</li>
+    <li>Secrets server-side only. Provider credentials for WhatsApp, email and maps never reach client code.</li>
+  </ul>
+
+  <h3>13.3 Audit</h3>
+  <p>Centralised created/modified stamping on every entity — System A's <code>SaveChanges</code> hook is the right pattern and its Supabase equivalent is a trigger. Beyond that: every stage transition, every document issued, every cross-tenant admin access, and every permission change is an append-only audit row. Audit is not logging — logs are for debugging and rotate; audit is evidence and does not.</p>
+</section>
+
+<section id="s14">
+  <h2><i>14</i>Deployment and operations</h2>
+
+  <h3>14.1 Environments</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Env</th><th>Purpose</th><th>Data</th></tr></thead>
+    <tbody>
+      <tr><td class="k">local</td><td>Development. Static site served directly; Supabase local or a dev project.</td><td>Seeded</td></tr>
+      <tr><td class="k">preview</td><td>Vercel per-branch deploys for review.</td><td>Dev project — <strong>never production</strong></td></tr>
+      <tr><td class="k">staging</td><td>Full stack including real telematics test units.</td><td>Realistic, non-client</td></tr>
+      <tr><td class="k">production</td><td>Live.</td><td>Real</td></tr>
+    </tbody>
+  </table></div>
+  <p><span class="pill open">Gap</span> There is currently one Supabase project. Preview deploys and local development point at the same database as production, which means a seed script or a careless delete is a production incident. Splitting dev from production is a half-day of work and should happen before the RLS fix, not after.</p>
+
+  <h3>14.2 Deployment</h3>
+  <ul>
+    <li><strong>System B:</strong> Vercel static hosting, git-push deploys, rewrites mapping <code>/</code> to Marketplace and <code>/ops</code> to the ops console. No build step. Rollback is redeploying a previous commit.</li>
+    <li><strong>Database changes</strong> are numbered SQL migrations applied in order — the existing convention. Keep it, and keep migrations forward-only with an explicit note when one supersedes another, as <code>0003</code> already demonstrates.</li>
+    <li><strong>System A:</strong> containerised, Kubernetes-deployed, ingress-routed, stateless API pods scaled horizontally. Per-environment configuration for database, JWT, CORS and origins.</li>
+  </ul>
+
+  <h3>14.3 Observability</h3>
+  <p>Structured logging with request correlation, standardised error reporting, and health checks — all present in System A and all absent in System B, where a static site plus PostgREST produces almost no operational signal. Minimum for System B before it carries real jobs: edge-function logs with correlation IDs, an uptime check on the ops console, and an alert when a stage transition fails.</p>
+
+  <h3>14.4 Migration discipline</h3>
+  <p>The rule from section 02, made concrete: <strong>migrate whole pipeline stages, one at a time, and record the date each moved.</strong> For each stage — which system owns it, what the cutover was, and what happens to in-flight jobs. A stage half-migrated is two sources of truth, and the reconciliation cost exceeds the migration cost.</p>
+</section>
+
+<section id="s15">
+  <h2><i>15</i>Non-functional targets</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Property</th><th>Target</th><th>Rationale</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Page load</td><td>Interactive under 2.5 s on 4G, mid-range Android</td><td>The primary user is on a phone at a site, not on office wifi.</td></tr>
+      <tr><td class="k">Accessibility</td><td>WCAG 2.1 AA on every client surface</td><td>Already achieved on Marketplace. Regression is a bug, not a backlog item.</td></tr>
+      <tr><td class="k">Live position freshness</td><td>Under 60 s from device to tracking page</td><td>Matches a 10–30 s reporting interval plus pipeline latency.</td></tr>
+      <tr><td class="k">Stage transition durability</td><td>No acknowledged transition is ever lost</td><td>The job log is the commercial record.</td></tr>
+      <tr><td class="k">Document immutability</td><td>Issued documents are byte-identical on reissue</td><td>Render from the sealed record, never a live re-query.</td></tr>
+      <tr><td class="k">Availability</td><td>Business hours first; the catalogue may be cached and static</td><td>Honest for the current stage. Do not claim four nines for a solo-operated platform.</td></tr>
+      <tr><td class="k">Backup / recovery</td><td>Daily database backup with a <em>tested</em> restore</td><td><span class="pill open">Open</span> — an untested backup is a belief, not a control.</td></tr>
+      <tr><td class="k">Data residency</td><td>To be decided with the region call</td><td>Section 11.3. Commercially material for government and port clients.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s16">
+  <h2><i>16</i>Design decisions</h2>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Decision</th><th>Status</th><th>Rationale and cost</th></tr></thead>
+    <tbody>
+      <tr><td class="k">AD-1</td><td>Vanilla HTML/CSS/JS, no build step, for the rebuild</td><td><span class="pill set">Decided</span></td><td>Consistent with three existing MVPs; fastest for a solo build. Cost: no component model, so shared UI is copy-paste discipline.</td></tr>
+      <tr><td class="k">AD-2</td><td>WhatsApp deep links instead of a backend for Marketplace v1</td><td><span class="pill set">Decided</span></td><td>Matches how quotes actually happen. Cost: nothing is tracked, retried or audited. Replace per stage as the server tier arrives.</td></tr>
+      <tr><td class="k">AD-3</td><td>Pooled multi-tenancy with dated assignment</td><td><span class="pill set">Decided</span></td><td>Commercial: revenue is per device, customers are small, assets change hands. Isolated deployment stays available as a priced premium tier.</td></tr>
+      <tr><td class="k">AD-4</td><td>Postgres RLS as the tenancy boundary</td><td><span class="pill set">Decided</span></td><td>Fails closed. Currently disabled — section 13.</td></tr>
+      <tr><td class="k">AD-5</td><td>Job stage as an append-only event log</td><td><span class="pill mvp">Proposed</span></td><td>The mutable stage column loses the history a dispute needs. Cost: one table and a derived-state read.</td></tr>
+      <tr><td class="k">AD-6</td><td>Minimum server tier as edge functions</td><td><span class="pill mvp">Proposed</span></td><td>Stage transitions, numbering, messaging, invoice writes. A few hundred lines. Without it, business rules live in the browser, which means they do not exist.</td></tr>
+      <tr><td class="k">AD-7</td><td>Traccar for the telematics pilot, custom gateway when hours bill</td><td><span class="pill mvp">Proposed</span></td><td>Section 11.2. Removes months from the pilot; write the dashboard to our own contract so the swap is a data-layer change.</td></tr>
+      <tr><td class="k">AD-8</td><td>Postgres FTS instead of Elasticsearch</td><td><span class="pill mvp">Proposed</span></td><td>Catalogue is hundreds of items. Revisit on observed complaints, not anticipated scale.</td></tr>
+      <tr><td class="k">AD-9</td><td>Vendor cost and client price in separate tables</td><td><span class="pill mvp">Proposed</span></td><td>Makes "internal only" enforceable rather than annotated.</td></tr>
+      <tr><td class="k">AD-10</td><td>Deployment region</td><td><span class="pill open">Open</span></td><td>me-central-1 vs me-south-1. Blocks telematics cost estimates.</td></tr>
+      <tr><td class="k">AD-11</td><td>Immobiliser / remote engine disable</td><td><span class="pill set">Excluded</span></td><td>Out of scope by prior decision, and correctly so. Needs legal review, a motion interlock, two-person authorisation and its own audit trail before it is ever considered.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s17">
+  <h2><i>17</i>Risk register</h2>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td class="k">R1</td><td>Anonymous read/write on all operational data; margin and vendor documents exposed</td><td><strong>Critical</strong></td><td>Restore RLS, add sign-in, rotate the anon key. Nothing else ships first.</td></tr>
+      <tr><td class="k">R2</td><td>One Supabase project shared by production, preview and local development</td><td>High</td><td>Split environments before the next seed script runs.</td></tr>
+      <tr><td class="k">R3</td><td>Three incompatible telematics ingestion designs circulating externally</td><td>High</td><td>Section 11.2. Choose, then correct the outstanding vendor threads.</td></tr>
+      <tr><td class="k">R4</td><td>Both systems running the same pipeline stage</td><td>High</td><td>Stage-by-stage migration with recorded dates.</td></tr>
+      <tr><td class="k">R5</td><td>CAN program number unavailable for part of the real fleet</td><td>High</td><td>Check the actual make/model/year list against Teltonika support before scheduling installs. Fleet is mixed; assume nothing is uniform.</td></tr>
+      <tr><td class="k">R6</td><td>Connectivity gap silently read as "equipment idle", understating a utilisation certificate</td><td>High</td><td>Gaps must be explicitly flagged as unknown, never inferred as idle. This is a billing-accuracy control, not a UX nicety.</td></tr>
+      <tr><td class="k">R7</td><td>Physical installation is the pilot bottleneck — units, SIMs, licensed auto-electrician</td><td>High</td><td>Named in the engineering briefing. Start procurement and installer scheduling in parallel with software, not after.</td></tr>
+      <tr><td class="k">R8</td><td>Availability data is only as fresh as the last vendor update</td><td>Medium</td><td>Vendor OS must make updating worthwhile; telematics can infer status for instrumented assets.</td></tr>
+      <tr><td class="k">R9</td><td>Approval links are unsigned and non-expiring</td><td>Medium</td><td>Signed, expiring, single-quotation tokens with recorded approver identity.</td></tr>
+      <tr><td class="k">R10</td><td>Key-person concentration — one person holds the whole architecture</td><td>Medium</td><td>This document, the companion, and the ROADMAP are the mitigation. Keep them current.</td></tr>
+      <tr><td class="k">R11</td><td>Untested backups</td><td>Medium</td><td>Schedule a restore rehearsal and record the result.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s18">
+  <h2><i>18</i>Document map</h2>
+  <p>Which document answers which question, so nobody has to guess where the truth lives.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Question</th><th>Document</th></tr></thead>
+    <tbody>
+      <tr><td>How does the platform fit together?</td><td class="k">This document</td></tr>
+      <tr><td>How does telemetry get from a machine to a report?</td><td class="k">Dozr_GPS_Build_Handbook.html</td></tr>
+      <tr><td>What does the device protocol actually require?</td><td class="k">SUDO_Technical_Pack.md</td></tr>
+      <tr><td>What features are in the telematics MVP?</td><td class="k">Kasper_IoT_Feature_List.md</td></tr>
+      <tr><td>How do I explain this to a non-technical stakeholder?</td><td class="k">Kasper_Telematics_Technology_Report.docx — rebrand pending</td></tr>
+      <tr><td>What is the real operational workflow?</td><td class="k">04_Operations/Kasper_Operations_Manual.docx</td></tr>
+      <tr><td>What is being built, in what order, by whom?</td><td class="k">ROADMAP.md</td></tr>
+      <tr><td>What may a design use?</td><td class="k">05_Brand_Design/Dozr_Brand_Guidelines.html</td></tr>
+      <tr><td>How did the .NET platform work?</td><td class="k">Kasper Architecture v3.pdf — superseded by this document, retained as reference</td></tr>
+    </tbody>
+  </table></div>
+  <p>Kasper-named documents are historical, not wrong. They predate the rebrand and should not be renamed without a decision.</p>
+</section>
+
+<section id="s19">
+  <h2><i>19</i>Glossary</h2>
+  <div class="tw"><table>
+    <thead><tr><th>Term</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td class="k">RFQ</td><td>Request for quotation. Issued by Dozr to vendors. Has no price until a vendor answers — which is why it is not a cart.</td></tr>
+      <tr><td class="k">Quotation</td><td>The priced document Dozr issues to the client, derived from vendor quotes with margin applied.</td></tr>
+      <tr><td class="k">PO</td><td>Purchase order. The client's commitment, linked to the quotation it came from.</td></tr>
+      <tr><td class="k">ePOD</td><td>Electronic proof of delivery — signature bound to a verified position and timestamp.</td></tr>
+      <tr><td class="k">Utilisation certificate</td><td>Monthly statement of engine hours, idle time and distance for a hire period, sealed and evidence-backed.</td></tr>
+      <tr><td class="k">Assignment window</td><td>The dated record of which tenant an asset belonged to over a period. The basis of both access control and billing attribution.</td></tr>
+      <tr><td class="k">Pooled tenancy</td><td>One shared platform with row-level separation, as opposed to per-customer infrastructure.</td></tr>
+      <tr><td class="k">RLS</td><td>Row-level security. Access rules enforced by the database rather than by application queries.</td></tr>
+      <tr><td class="k">Codec 8 / 8E</td><td>Teltonika's binary format for a telemetry record.</td></tr>
+      <tr><td class="k">CAN bus</td><td>The machine's internal data network. The CAN adapter reads engine hours, fuel and fault codes from it.</td></tr>
+      <tr><td class="k">Program number</td><td>The Teltonika configuration identifying how to decode a specific machine make, model and year. Per-model, not universal.</td></tr>
+      <tr><td class="k">Traccar</td><td>Open-source GPS server that already speaks Codec 8E. Proposed as the pilot ingestion path.</td></tr>
+      <tr><td class="k">Bridge / gateway</td><td>Custom software that terminates device connections and translates their binary format. Not part of any managed AWS service.</td></tr>
+      <tr><td class="k">System A / System B</td><td>The .NET/Vue platform in production, and the vanilla + Supabase rebuild replacing it.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<hr>
+<footer>
+  Dozr Platform Architecture v1.0 · internal engineering · supersedes Kasper Architecture v3<br>
+  Companion: Dozr GPS Build Handbook and PRD · Sources: Kasper Architecture v3.pdf · Kasper_Telematics_Technology_Report.docx · ROADMAP.md · ops/supabase/migrations · LOGISTICS/03_Engineering<br>
+  Open items are marked in place and consolidated in sections 16 and 17. Update this document before updating a vendor thread.
+</footer>
+
+</main>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telematics Supplier Shortlist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:16ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+.step .b b.dev{color:var(--text-2)}
+.step .b b.srv{color:var(--yellow-dark)}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+.dg-box{fill:var(--panel-2);stroke:currentColor;stroke-width:1;opacity:1}
+.dg-hi{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.6}
+.dg-t{fill:currentColor;font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-s{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9px;letter-spacing:.03em}
+.dg-k{fill:var(--text-3);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700;letter-spacing:.12em}
+.dg-e{fill:currentColor;font-family:var(--f-mono),monospace;font-size:9.5px}
+.dg-acc{fill:var(--yellow-dark);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-acct{fill:var(--yellow-dark);font-family:var(--f-head),sans-serif;font-size:12px;font-weight:600}
+.dg-err{fill:var(--error);font-family:var(--f-mono),monospace;font-size:9.5px;font-weight:700}
+.dg-l{stroke:currentColor;stroke-width:1.2;fill:none;opacity:.8}
+.dg-la{stroke:var(--yellow-dark);stroke-width:2;fill:none}
+.dg-ld{stroke:currentColor;stroke-width:1.1;fill:none;stroke-dasharray:4 3;opacity:.5}
+.dg-life{stroke:currentColor;stroke-width:1;stroke-dasharray:3 4;opacity:.4}
+.dg-ah{fill:currentColor}
+.dg-aha{fill:var(--yellow-dark)}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.dg-bar{fill:var(--panel-2);stroke:currentColor;stroke-width:1}
+.dg-barh{fill:var(--yellow-tint);stroke:var(--yellow-dark);stroke-width:1.4}
+.tier{border:1px solid var(--rule);border-radius:12px;padding:16px 18px;background:var(--panel);margin:14px 0}
+.tier h4{margin:0 0 4px}
+.tier .lede{font-size:14px;color:var(--text-2);margin:0 0 12px;max-width:none}
+.tier.good{border-color:var(--green)}
+.tier.avoid{border-color:var(--error)}
+</style>
+
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">KASPER<span>/</span>GPS</div>
+  <div class="toc-sub">Supplier shortlist</div>
+  <nav>
+    <a href="#s0"><b>00</b>How to read this</a>
+    <a href="#s1"><b>01</b>The prior question</a>
+    <a href="#s2"><b>02</b>Three supplier markets</a>
+    <div class="grp">Candidates</div>
+    <a href="#s3"><b>03</b>Platform vendors</a>
+    <a href="#s4"><b>04</b>Engineering firms</a>
+    <a href="#s5"><b>05</b>Specialists &amp; freelancers</a>
+    <a href="#s6"><b>06</b>Where to source directly</a>
+    <div class="grp">Selection</div>
+    <a href="#s7"><b>07</b>The AIS-140 filter</a>
+    <a href="#s8"><b>08</b>Technical screen</a>
+    <a href="#s9"><b>09</b>Red flags</a>
+    <a href="#s10"><b>10</b>How to engage</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Internal · sourcing note</div>
+  <h1>Telematics Supplier Shortlist</h1>
+  <p>Where to look for people who can actually build this — platform vendors, engineering firms and specialists in India and elsewhere — and how to tell them apart from the firms that will quote nine people for it.</p>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>How to read this</h2>
+  <div class="note warn">
+    <h4>These are starting points, not recommendations</h4>
+    <p>I have not worked with any of these companies and cannot vouch for any of them. Everything below is assembled from public sources — company sites, directories and industry listings — all of which are marketing. <strong>Treat the names as a place to begin a search, and the screening questions in sections 07 to 09 as the part that actually does the work.</strong></p>
+    <p>The most useful thing here is probably not the list. It is the observation in section 01, and the technical screen in section 08.</p>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>The prior question</h2>
+  <p>Before hiring anyone to build a telematics backend, it is worth being clear that <strong>this is a market with mature products in it.</strong> Terminating Codec 8E, managing a device registry, decoding CAN parameters and storing telemetry is not novel work — several companies sell it as a service, and Teltonika devices are among the most widely supported hardware in that market.</p>
+  <ul>
+    <li><a href="https://flespi.com/protocols/teltonika">flespi</a> terminates Teltonika protocols directly and exposes the decoded stream over an API — it exists precisely to remove the parser problem, and Teltonika documents it as a supported route.</li>
+    <li><a href="https://wialon.com/en/platform">Wialon</a> and <a href="https://gurtam.com/">Gurtam</a> run one of the largest telematics platforms in the world, with a partner network of over 2,700 integrators.</li>
+    <li>Several Indian companies sell white-label platforms outright, which is a different purchase again.</li>
+  </ul>
+  <div class="note">
+    <h4>The question worth asking before the hiring question</h4>
+    <p>What does building this ourselves buy that buying it does not? There are legitimate answers — owning the evidence path end to end, controlling the acknowledgement, holding the data and the tenancy model, avoiding a per-device fee that scales with the fleet. But the answer should be stated, because <strong>the alternative to a five-month build is not a longer build, it is a subscription and an integration.</strong></p>
+    <p>A middle path is available and probably the strongest: buy the ingestion, own the model. Let a platform or an adopted server terminate the devices, and keep the telemetry contract, the tenancy model and the evidence store in-house. That is the same reversibility rule the architecture already argues for, applied to procurement.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Three supplier markets</h2>
+<figure class="fig">
+<svg viewBox="0 0 900 336" role="img" aria-label="Decision flow for choosing a supplier type: buy a platform, hire an embedded telematics engineering firm, or use a general application development firm">
+<defs><marker id="sa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-ah"/></marker></defs>
+<defs><marker id="saa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="dg-aha"/></marker></defs>
+<rect x="10" y="128" width="150" height="60" rx="10" class="dg-box"/>
+<text x="85" y="152" class="dg-t" text-anchor="middle">What do you</text>
+<text x="85" y="169" class="dg-t" text-anchor="middle">need to own?</text>
+<line x1="160" y1="158" x2="192" y2="158" class="dg-l" marker-end="url(#sa)"/>
+<polygon points="196,158 300,104 404,158 300,212" class="dg-box"/>
+<text x="300" y="153" class="dg-t" text-anchor="middle">Must the evidence path</text>
+<text x="300" y="169" class="dg-t" text-anchor="middle">and the data be ours?</text>
+<polyline points="300,104 300,58 430,58" class="dg-l" marker-end="url(#sa)"/>
+<text x="312" y="82" class="dg-e">no</text>
+<rect x="434" y="32" width="196" height="54" rx="10" class="dg-box"/>
+<text x="532" y="54" class="dg-t" text-anchor="middle">Buy a platform</text>
+<text x="532" y="71" class="dg-s" text-anchor="middle">Wialon · flespi · Navixy · Trakzee</text>
+<line x1="404" y1="158" x2="434" y2="158" class="dg-la" marker-end="url(#saa)"/>
+<text x="419" y="150" class="dg-acc" text-anchor="middle">yes</text>
+<polygon points="438,158 546,104 654,158 546,212" class="dg-box"/>
+<text x="546" y="153" class="dg-t" text-anchor="middle">Is CAN / device</text>
+<text x="546" y="169" class="dg-t" text-anchor="middle">protocol in scope?</text>
+<polyline points="546,212 546,262 690,262" class="dg-l" marker-end="url(#sa)"/>
+<text x="558" y="238" class="dg-e">no</text>
+<rect x="694" y="236" width="196" height="54" rx="10" class="dg-box"/>
+<text x="792" y="258" class="dg-t" text-anchor="middle">App-dev firm is fine</text>
+<text x="792" y="275" class="dg-s" text-anchor="middle">screens, API, reporting only</text>
+<line x1="654" y1="158" x2="690" y2="158" class="dg-la" marker-end="url(#saa)"/>
+<text x="672" y="150" class="dg-acc" text-anchor="middle">yes</text>
+<rect x="694" y="126" width="196" height="64" rx="10" class="dg-hi"/>
+<text x="792" y="148" class="dg-acct" text-anchor="middle">Embedded / telematics</text>
+<text x="792" y="164" class="dg-acct" text-anchor="middle">engineering firm</text>
+<text x="792" y="180" class="dg-acc" text-anchor="middle">or a proven specialist</text>
+<text x="10" y="320" class="dg-err">Most &ldquo;fleet management software development&rdquo; firms sit in the bottom-right box and quote for the top-right one.</text>
+</svg>
+<figcaption>The sourcing question is not "who builds fleet software" — hundreds of firms answer yes to that. It is which of these three boxes you are actually buying from. The distinction that matters is whether device protocol and CAN work is in scope: that is embedded engineering, and it is a different supplier market from web application development, with different people in it.</figcaption>
+</figure>
+
+  <p>The firms in the third box are numerous, well-marketed, and dominate search results for &ldquo;fleet management software development company&rdquo;. They build good web applications. They are usually not the right people to hand a binary protocol, a CAN bus and an acknowledgement-durability requirement — and a proposal that treats the whole thing as a dashboard project is the signature of that mismatch.</p>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>Platform vendors</h2>
+  <p>Buy rather than build. Worth a conversation even if the answer is ultimately no, because their pricing sets the ceiling on what building is worth.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Company</th><th>Where</th><th>What it is</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><a href="https://flespi.com/">flespi</a></td><td>EU</td><td>Telematics backend as a service — terminates Teltonika protocols, decodes and streams the data on. The closest thing to buying the ingestion tier alone, which is exactly the piece with the most risk.</td></tr>
+      <tr><td class="k"><a href="https://wialon.com/en/platform">Wialon</a> (Gurtam)</td><td>EU · global</td><td>Full platform, very large device library, sold through integrators. Their <a href="https://wialon.com/en/dealers">partner map</a> is filterable by country and marks &ldquo;Recommended&rdquo; partners.</td></tr>
+      <tr><td class="k"><a href="https://uffizio-telematics.com/">Uffizio</a> (Trakzee)</td><td>Valsad, Gujarat</td><td>Indian white-label GPS platform vendor, long-established in this specific market. Sells the platform and the integrations rather than a dev team.</td></tr>
+      <tr><td class="k"><a href="https://trackobit.com/">TrackoBit</a></td><td>Noida</td><td>Indian white-label fleet platform with published device-integration lists.</td></tr>
+      <tr><td class="k"><a href="https://www.traccar.org/">Traccar</a></td><td>Open source</td><td>Not a vendor — the reference implementation. Self-hosted, and commercial support exists around it.</td></tr>
+    </tbody>
+  </table></div>
+  <p>For a platform vendor the screening question is narrow and answerable in one call: <strong>do you support the FMC130 with the ALL-CAN300 adapter, and can you show engine hours decoded from our machine models?</strong> If the answer is a demo on your own equipment, that is worth more than any proposal.</p>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Engineering firms</h2>
+  <p>For the case where the ingestion tier, CAN decoding and the data model are genuinely being built.</p>
+  <div class="tier good">
+    <h4>Embedded / automotive engineering</h4>
+    <p class="lede">The right shape of firm for device-protocol and CAN work. Smaller market, harder to search for, worth the effort.</p>
+    <p><a href="https://www.embitel.com/product-engineering-2/automotive/telematics-platform">Embitel Technologies</a> (Bangalore, with a UAE presence) is the clearest example found: automotive and embedded product engineering, telematics control units, CAN and J1939 work, and published <a href="https://www.embitel.com/iot-insights/ais-140-software-stack-development-for-telematics-applications">AIS-140 stack development</a>. Their case studies are about protocol stacks and control units rather than dashboards, which is the distinction that matters here.</p>
+    <p>Look for the same signature elsewhere: automotive Tier-1 clients, ECU or TCU work, CAN and J1939 named explicitly, and case studies about protocols rather than screens.</p>
+  </div>
+  <div class="tier">
+    <h4>Telematics product companies with services arms</h4>
+    <p class="lede">Companies that run their own platforms and also take custom work. They have already solved the hard parts for themselves.</p>
+    <p>Uffizio, TrackoBit, <a href="https://watsoo.com/">Watsoo</a> and <a href="https://www.sensel.in/">Sensel Telematics</a> all operate in this space in India. The advantage is obvious — they have terminated device protocols in production. The thing to check is whether they will build something you own, or only resell their own platform with a different logo.</p>
+  </div>
+  <div class="tier avoid">
+    <h4>General application development firms</h4>
+    <p class="lede">Numerous, heavily marketed, and the default result of any search in this area.</p>
+    <p>Industry listicles of &ldquo;top fleet management software development companies in India&rdquo; are dominated by large general app-dev houses — <a href="https://xchange.avixa.org/posts/top-10-fleet-management-software-development-companies-in-india-2026">this list</a> is a representative example, naming firms of 200 to 1,500 people in Jaipur, Ahmedabad, Noida, Pune and Gurugram. Several are competent at what they do. But these lists are SEO placements rather than assessments, and none of the entries demonstrates device-protocol work.</p>
+    <p><strong>This is the category that produces a nine-person, five-month quote for a ten-device pilot.</strong> They are appropriate for the screens, the reporting and the API — after someone else has solved the ingestion.</p>
+  </div>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Specialists and freelancers</h2>
+  <p>For a project of this size, one experienced telematics engineer is worth more than a team of five generalists — and easier to find than the market suggests, because the people who have done this are visible.</p>
+  <ul>
+    <li><strong>Open-source contributors.</strong> Teltonika Codec 8 and 8E parsers exist publicly in several languages — for example <a href="https://github.com/filipkroca/teltonikaparser">filipkroca/teltonikaparser</a> and <a href="https://github.com/Justas1988/codec8e-parser-tcp-server">a Codec 8E TCP server</a>, and the <a href="https://github.com/topics/teltonika">Teltonika topic</a> collects more. The people who wrote and maintain these have demonstrably done the exact work, which is a stronger signal than any proposal. Several take contract work; many are in Eastern Europe and Latin America rather than India.</li>
+    <li><strong>The Traccar community.</strong> Contributors who have added or fixed device protocols in Traccar are, by definition, people who have debugged real device traffic.</li>
+    <li><strong>Marketplaces.</strong> <a href="https://www.freelancer.com/job-search/traccar-teltonika/">Freelancer</a> and <a href="https://www.upwork.com/hire/gps-development-freelancers/">Upwork</a> both carry Traccar and Teltonika work; quality is highly variable and the screen in section 08 matters more here than anywhere else.</li>
+  </ul>
+  <div class="note ok">
+    <h4>A cheap, high-signal first engagement</h4>
+    <p>Pay one specialist for two weeks to stand up an ingestion path against two real devices on a bench and report what the hardware actually does. It costs a fraction of a month of a nine-person team, it answers the open protocol questions directly, and <strong>it tells you more about whether someone can do this work than any interview will.</strong> Run it with two candidates in parallel if the choice is close.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Where to source directly</h2>
+  <p>Better than search results, because entry requires something more than a marketing budget.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Source</th><th>Why it is higher signal</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><a href="https://wialon.com/en/dealers">Wialon partner map</a></td><td>2,700+ integrators, filterable by country, with a &ldquo;Recommended&rdquo; tier. Everyone on it has integrated real devices to a real platform. Filter to India and to the UAE — a local partner is worth considering for the install and support side regardless of who writes code.</td></tr>
+      <tr><td class="k"><a href="https://www.teltonika-gps.com/software-providers">Teltonika software providers</a></td><td>Teltonika's own list of platforms proven against their devices. Short, and being on it means device-level integration work has been done.</td></tr>
+      <tr><td class="k">Your device distributor</td><td>The UAE distributor selling you FMC130s knows which integrators in the region actually deploy them and which installs come back broken. This is the single most under-used source of information available to you, and it costs one phone call.</td></tr>
+      <tr><td class="k">GitHub</td><td>People who have published working Codec 8E parsers. No marketing layer between you and the evidence.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>The AIS-140 filter</h2>
+  <p>The most useful India-specific screening test found, and worth knowing about.</p>
+  <p><strong>AIS-140</strong> is India&#39;s mandatory standard for vehicle tracking on commercial and public service vehicles. Meeting it requires real device-protocol work: binary packet handling, device provisioning, prescribed message formats, and integration with government backend systems. It is not a dashboard exercise, and it is externally verified.</p>
+  <div class="note">
+    <h4>How to use it</h4>
+    <p>Ask any Indian candidate: <strong>have you built or integrated an AIS-140 compliant backend, and can you talk me through the packet structure?</strong> A firm that has done it will answer immediately and in detail. A firm that has not will pivot to describing their fleet dashboard. It is a fast, non-confrontational way to separate the two markets in section 02, and it works on the phone.</p>
+  </div>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>Technical screen</h2>
+  <p>Six questions. Any candidate — company or individual — who cannot answer these has not done this work, whatever their proposal says.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Ask</th><th>What a real answer sounds like</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Walk me through a Codec 8E session from TCP connect to the device clearing its buffer.</td><td>IMEI handshake, single-byte accept or reject, the AVL packet, CRC validation, the four-byte record-count acknowledgement. Immediate and unprompted.</td></tr>
+      <tr><td class="k">When do you send the acknowledgement?</td><td><strong>The most revealing question in the list.</strong> A real answer engages with acknowledging only after the record is durably stored, and why acknowledging early loses data silently.</td></tr>
+      <tr><td class="k">A device reconnects after four hours offline and replays its buffer. What breaks?</td><td>Out-of-order timestamps, duplicate records, trip reconstruction, stale alerts firing. Someone who has lived through it lists these without thinking.</td></tr>
+      <tr><td class="k">How do you get engine hours off a machine that is not a truck?</td><td>CAN adapter, J1939, and — critically — that support depends on a program number for that specific make, model and year. If they think engine hours are simply available, they have never done it.</td></tr>
+      <tr><td class="k">How do you test before hardware arrives?</td><td>A traffic generator built from the protocol specification. If the answer is &ldquo;we wait for devices&rdquo;, the schedule has a hole in it.</td></tr>
+      <tr><td class="k">What does a completed installation mean?</td><td>Data verified as arriving on the server — including engine hours — before sign-off. Anything less means the failures surface months later.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>Red flags</h2>
+  <ul>
+    <li><strong>A proposal with no hardware, procurement or installation in it.</strong> The most reliable single indicator that a supplier has not built a telematics system before.</li>
+    <li><strong>Team size quoted before scope is agreed.</strong> Headcount arriving ahead of a written scope means the number came from a staffing template.</li>
+    <li><strong>A first milestone that is a UI.</strong> It defers every question that could invalidate the design.</li>
+    <li><strong>&ldquo;We will need to recruit for this.&rdquo;</strong> Not disqualifying, but it means you are funding a team build and carrying the hiring risk. Price it accordingly.</li>
+    <li><strong>Vagueness about who owns the data model and the code.</strong> Establish before signing that the telemetry contract and the schema are yours.</li>
+    <li><strong>No questions back.</strong> A supplier who has done this before will ask about machine makes and models, reporting interval, fleet size and where the data must live. One who quotes without asking is quoting a template.</li>
+  </ul>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>How to engage</h2>
+  <ol>
+    <li><strong>Write the scope first.</strong> One page: ten machines, FMC130 with CAN adapter, these capabilities, this data ownership requirement. Send the same page to everyone. Differences in the responses become meaningful rather than noise.</li>
+    <li><strong>Buy a paid discovery before a build.</strong> Two to four weeks, fixed price, delivering an ingestion path against two real devices and a written report on what the hardware actually does. Cheap, and it converts sales conversations into evidence.</li>
+    <li><strong>Run two in parallel if the choice is close.</strong> At discovery scale the cost of doing this twice is far below the cost of choosing wrong for five months.</li>
+    <li><strong>Never let the first phase be the whole commitment.</strong> Contract the discovery, then the pilot, then scale — with the option to change supplier at each boundary.</li>
+    <li><strong>Keep the contract, the schema and the evidence store in-house</strong> whoever builds the ingestion. That is the same reversibility rule the architecture argues for, and it is what makes changing supplier survivable.</li>
+  </ol>
+</section>
+
+<hr>
+<footer>
+  Telematics Supplier Shortlist · internal sourcing note · August 2026<br>
+  Assembled from public sources. No company listed here has been worked with or independently verified — treat as a starting point for search, not as a recommendation.<br>
+  Companions: Kasper_GPS_Architecture.html · Kasper_GPS_Delivery_Plan.html · Kasper_GPS_Proposal_Review.html
+</footer>
+
+</main>
+</div>
+</body>
+</html>

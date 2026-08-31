@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dozr GPS / Telematics — Build Handbook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --ink:#141518; --yellow:#FFC400; --yellow-tint:#FFF6D6; --yellow-dark:#E6AF00;
+  --canvas:#F6F6F3; --surface:#FFFFFF; --slate:#5B5F66; --line:#E8E8E3;
+  --green:#1F9A6D; --error:#D64545;
+  --text:#141518; --text-2:#5B5F66; --text-3:#8A8E94;
+  --bg:#F6F6F3; --panel:#FFFFFF; --panel-2:#FBFBF9; --rule:#E8E8E3;
+  --code-bg:#F1F1EC; --rail:#141518; --shadow:0 1px 2px rgba(20,21,24,.05);
+  --f-head:'Space Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-body:'Hanken Grotesk','Segoe UI',system-ui,sans-serif;
+  --f-mono:'Space Mono',ui-monospace,'Courier New',monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+    --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+    --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+    --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+    --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --text:#EDEDEA; --text-2:#A2A6AD; --text-3:#767B83;
+  --bg:#0E0F11; --panel:#17181B; --panel-2:#1C1E21; --rule:#2A2C30;
+  --canvas:#0E0F11; --surface:#17181B; --line:#2A2C30; --slate:#A2A6AD;
+  --code-bg:#101114; --rail:#FFC400; --yellow-tint:#2A2312;
+  --green:#3CBB8B; --error:#E86A6A; --shadow:none;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f-body);background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--yellow-dark);outline-offset:2px;border-radius:3px}
+
+.shell{display:grid;grid-template-columns:246px minmax(0,1fr);max-width:1280px;margin:0 auto}
+.toc{position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;padding:36px 20px 60px 28px;border-right:1px solid var(--rule)}
+.toc-brand{font-family:var(--f-mono);font-size:13px;font-weight:700;letter-spacing:.16em;margin-bottom:2px}
+.toc-brand span{color:var(--yellow-dark)}
+.toc-sub{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:24px}
+.toc nav{display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:9px;text-decoration:none;font-size:12.5px;color:var(--text-2);padding:5px 8px;border-radius:6px;line-height:1.4}
+.toc a:hover{background:var(--panel);color:var(--text)}
+.toc a b{font-family:var(--f-mono);font-size:10.5px;font-weight:400;color:var(--text-3);padding-top:1px;min-width:16px}
+.toc .grp{font-family:var(--f-mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);margin:18px 0 6px 8px}
+.doc{padding:0 44px 120px;min-width:0}
+
+.mast{padding:56px 0 34px;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow-dark)}
+h1{font-family:var(--f-head);font-size:42px;font-weight:600;letter-spacing:-.025em;line-height:1.08;margin:12px 0 14px;text-wrap:balance;max-width:18ch}
+.mast p{font-size:16.5px;color:var(--text-2);max-width:62ch}
+.meta{display:flex;flex-wrap:wrap;gap:0 34px;margin-top:26px;font-family:var(--f-mono);font-size:11px}
+.meta div{display:flex;flex-direction:column;gap:2px}
+.meta dt{color:var(--text-3);letter-spacing:.08em;text-transform:uppercase;font-size:9.5px}
+.meta dd{color:var(--text)}
+
+section{padding-top:52px;scroll-margin-top:20px}
+h2{font-family:var(--f-head);font-size:25px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:baseline;gap:14px;margin-bottom:16px;text-wrap:balance}
+h2 i{font-family:var(--f-mono);font-style:normal;font-size:12px;font-weight:700;color:var(--yellow-dark)}
+h3{font-family:var(--f-head);font-size:16.5px;font-weight:600;letter-spacing:-.01em;margin:30px 0 10px}
+h4{font-family:var(--f-mono);font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin:24px 0 8px}
+p{max-width:68ch;margin-bottom:12px}
+ul,ol{max-width:68ch;margin:0 0 14px 20px}
+li{margin-bottom:6px}
+strong{font-weight:600}
+em{font-style:italic}
+code{font-family:var(--f-mono);font-size:.85em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--rule)}
+
+.note{border-left:3px solid var(--rail);background:var(--panel);padding:14px 18px;margin:20px 0;max-width:72ch;box-shadow:var(--shadow);border-radius:0 8px 8px 0}
+.note.warn{border-left-color:var(--error)}
+.note.ok{border-left-color:var(--green)}
+.note.big{max-width:78ch}
+.note p{margin:0;max-width:none;font-size:14.5px}
+.note p+p{margin-top:8px}
+.note h4{margin:0 0 5px}
+.note ul{margin:8px 0 0 18px;font-size:14.5px}
+
+.tw{overflow-x:auto;margin:18px 0 22px;border:1px solid var(--rule);border-radius:10px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th{font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:11px 14px;border-bottom:1px solid var(--rule);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--rule);vertical-align:top;line-height:1.5}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:nth-child(even){background:var(--panel-2)}
+td.k{font-family:var(--f-mono);font-size:12px;white-space:nowrap}
+td.num,th.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+td.pos{color:var(--green)}
+td.neg{color:var(--error)}
+
+.pill{display:inline-block;font-family:var(--f-mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--rule);color:var(--text-2);background:var(--panel-2);white-space:nowrap}
+.pill.mvp{background:var(--yellow-tint);border-color:var(--yellow-dark);color:var(--yellow-dark)}
+.pill.open{border-color:var(--error);color:var(--error)}
+.pill.prop{border-color:var(--text-2);color:var(--text);background:var(--panel-2)}
+.pill.ref{border-color:var(--rule);color:var(--text-3)}
+.pill.buy{border-color:var(--green);color:var(--green)}
+
+.seq{margin:20px 0 24px;border-left:2px solid var(--rule);max-width:74ch}
+.step{display:grid;grid-template-columns:26px minmax(0,1fr);gap:14px;padding:9px 0 9px 18px;position:relative}
+.step::before{content:'';position:absolute;left:-5px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--bg);border:2px solid var(--rail)}
+.step .n{font-family:var(--f-mono);font-size:11px;color:var(--text-3);padding-top:2px}
+.step .b{font-size:14px}
+.step .b b{font-family:var(--f-mono);font-size:11.5px;font-weight:700;display:block;margin-bottom:2px}
+
+figure.fig{margin:22px 0 26px;background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:20px 18px 12px;box-shadow:var(--shadow);overflow-x:auto}
+figure.fig svg{display:block;max-width:100%;height:auto;margin:0 auto;color:var(--text)}
+figure.fig figcaption{font-family:var(--f-mono);font-size:10.5px;line-height:1.65;color:var(--text-3);margin-top:16px;max-width:none}
+pre{font-family:var(--f-mono);font-size:12px;line-height:1.6;background:var(--code-bg);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;overflow-x:auto;margin:16px 0 20px}
+pre code{background:none;border:none;padding:0;font-size:inherit}
+
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin:18px 0 22px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow)}
+.card h4{margin:0 0 6px}
+.card p{font-size:14px;margin:0;max-width:none;color:var(--text-2)}
+.card p+p{margin-top:8px}
+.card .big{font-family:var(--f-mono);font-size:20px;font-weight:700;color:var(--text);letter-spacing:-.02em;display:block;margin-bottom:4px}
+
+hr{border:none;border-top:1px solid var(--rule);margin:44px 0 0}
+footer{padding:34px 0 0;font-family:var(--f-mono);font-size:11px;color:var(--text-3);line-height:1.7}
+footer .fine{font-size:10px;color:var(--text-3);opacity:.85;margin-top:10px;border-top:1px solid var(--rule);padding-top:12px}
+
+@media (max-width:960px){
+  .shell{grid-template-columns:1fr}
+  .toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--rule);padding:26px 24px}
+  .toc nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
+  .doc{padding:0 24px 90px}
+  h1{font-size:33px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<aside class="toc">
+  <div class="toc-brand">DOZR<span>/</span>GPS</div>
+  <div class="toc-sub">Build handbook</div>
+  <nav>
+    <a href="#s0"><b>00</b>How to read this</a>
+    <a href="#s1"><b>01</b>What we're building</a>
+    <div class="grp">What it takes</div>
+    <a href="#s2"><b>02</b>Resources at a glance</a>
+    <a href="#s3"><b>03</b>Hardware &amp; field resources</a>
+    <a href="#s4"><b>04</b>Toolkit &amp; infrastructure</a>
+    <div class="grp">Who builds it</div>
+    <a href="#s5"><b>05</b>Modules &amp; who owns them</a>
+    <a href="#s6"><b>06</b>Roles &amp; skills</a>
+    <a href="#s7"><b>07</b>Team shape &amp; how to run it</a>
+    <div class="grp">The plan</div>
+    <a href="#s8"><b>08</b>The schedule</a>
+    <div class="grp">Build, or hand off?</div>
+    <a href="#s9"><b>09</b>What Claude can build</a>
+    <a href="#s10"><b>10</b>Self-build vs the dev team</a>
+    <div class="grp">Ship it</div>
+    <a href="#s11"><b>11</b>Production-grade non-negotiables</a>
+    <a href="#s12"><b>12</b>Recommendation &amp; first 30 days</a>
+  </nav>
+</aside>
+
+<main class="doc">
+
+<header class="mast">
+  <div class="eyebrow">Dozr GPS / Telematics · build handbook · device-data layer only</div>
+  <h1>How to build the GPS &amp; telematics platform</h1>
+  <p>The people, the resources, the modules, the plan — and an honest read on what you can build with Claude, what needs a human expert, and whether to build it yourself at all. A companion to the PRD and the independent build review.</p>
+  <div class="meta">
+    <div><dt>Scope</dt><dd>GPS / telematics backend</dd></div>
+    <div><dt>Status</dt><dd>Pre-code · greenfield</dd></div>
+    <div><dt>Dashboard</dt><dd>fleet-v2/ (already built)</dd></div>
+    <div><dt>Companions</dt><dd>PRD · CLAUDE.md · Review</dd></div>
+    <div><dt>Date</dt><dd>30 Aug 2026</dd></div>
+  </div>
+</header>
+
+<section id="s0">
+  <h2><i>00</i>How to read this</h2>
+  <p>This handbook answers a single practical question: <strong>what does it actually take to build Dozr's GPS and telematics platform to production grade, and who should build it?</strong> It is the resourcing-and-delivery companion to two other documents. The <strong>PRD</strong> says <em>what</em> the system must do; the repo's <strong>CLAUDE.md</strong> encodes the rules any builder (human or AI) must never break; and the earlier <strong>independent build review</strong> argued the technical positions this handbook now turns into a plan. Where those overlap, this document defers to them and points rather than repeats.</p>
+
+  <p>One boundary worth stating plainly: this is <strong>only the device-data layer</strong> — the backend that turns Teltonika hardware into trustworthy engine-hours, positions, and evidence, plus the API that feeds the fleet dashboard. The dashboard itself (<code>fleet-v2/</code>, nine screens) is already built on mock data. The Marketplace and Vendor OS are out of scope here entirely.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>If you want to know…</th><th>Go to</th></tr></thead>
+      <tbody>
+        <tr><td>What we're actually building, in one page</td><td class="k">01</td></tr>
+        <tr><td>Everything it costs — people, hardware, cloud, money</td><td class="k">02 · 03 · 04</td></tr>
+        <tr><td>The open-source tools and code you can reuse</td><td class="k">04</td></tr>
+        <tr><td>Which expert owns which module, and the skills each needs</td><td class="k">05 · 06</td></tr>
+        <tr><td>How to run the project and the schedule</td><td class="k">07 · 08</td></tr>
+        <tr><td>How much of this Claude can build vs a human expert</td><td class="k">09</td></tr>
+        <tr><td>Whether to build it yourself or hand it to the dev team</td><td class="k">10</td></tr>
+        <tr><td>What "production grade" concretely requires</td><td class="k">11</td></tr>
+        <tr><td>What to do in the first 30 days</td><td class="k">12</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p>A note on sourcing, so you can weigh every figure. Live web access is blocked in this environment, so this handbook is grounded in your own internal corpus (the engineering architecture, delivery plan, requirements, supplier shortlist, SUDO pack, product docs and ROADMAP) plus general IoT and telematics practice. <strong>Every external number — device prices, SIM tariffs, tool versions, licences — is flagged to confirm at its source.</strong> Treat this as a decision-grade plan, not a procurement quote.</p>
+  </div>
+</section>
+
+<section id="s1">
+  <h2><i>01</i>What we're building</h2>
+  <p>Dozr already has a telematics <em>dashboard</em>. What it does not have is anything behind it. <code>fleet-v2/</code> renders nine screens — Fleet Map, Fuel, Maintenance, Geofences, Utilisation, Cost &amp; ROI, Reports, Timesheet, Alerts Center — entirely from mock data. This project builds the real thing underneath: the layer that takes bytes off a Teltonika device on an excavator and turns them into a number you can put on an invoice and defend.</p>
+
+  <p>The cleanest way to hold the whole system in your head is as a chain of five capabilities, each depending on the one before it. This is the spine the PRD is organised around, and every module in section 05 slots onto it.</p>
+
+  <div class="seq">
+    <div class="step"><span class="n">1</span><span class="b"><b>LOCATE</b>Receive each device's transmission without loss and know where every asset is now. The socket server, the protocol handshake, the acknowledgement discipline.</span></div>
+    <div class="step"><span class="n">2</span><span class="b"><b>RECONSTRUCT</b>Store history so any asset's past — routes, stops, states — can be replayed exactly. Time-series storage, trip building.</span></div>
+    <div class="step"><span class="n">3</span><span class="b"><b>DETECT</b>Turn raw signals into events: geofence entry/exit, idling, movement, fault codes, tampering. Rules and enrichment.</span></div>
+    <div class="step"><span class="n">4</span><span class="b"><b>ATTRIBUTE</b>Tie every record to the right asset and the right customer at the moment it happened — dated assignment windows, multi-tenant isolation.</span></div>
+    <div class="step"><span class="n">5</span><span class="b"><b>EVIDENCE</b>Produce engine-hours a customer will be billed on, sealed so the figure can be trusted and audited months later. The utilisation ledger and evidence chain.</span></div>
+  </div>
+
+  <p>The reason this ordering matters — and the reason the project is harder than "put dots on a map" — is that the money is at the far end. Dozr's GPS-as-a-Service sells <strong>utilisation billing</strong>: a customer pays for the hours a hired machine actually ran, read from its engine ECU. That single fact drives almost every hard decision in this handbook. It is why acknowledgement-after-durability is non-negotiable, why an estimated engine-hour is worthless where an ECU-read one is gold, and why the least glamorous modules (the ledger, the evidence seal) are the ones that most need a careful hand.</p>
+
+  <div class="note ok">
+    <p><strong>The one-sentence version:</strong> you are building a small, reliable pipe from a construction machine's ECU to a billing-grade number — and the engineering difficulty lives in <em>trust and correctness</em>, not in volume or fancy features. Get five capabilities right in order and the dashboard you already have lights up with real data.</p>
+  </div>
+</section>
+
+<section id="s2">
+  <h2><i>02</i>Resources at a glance</h2>
+  <p>Everything the project consumes, in one table, so the shape of the spend is visible before the detail. The pattern to notice: the software is essentially free, the cloud is trivial at pilot scale, and the real money is people-time and the per-machine cost of physically fitting and verifying a device.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Resource</th><th>What you need</th><th>At pilot (~10 machines)</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td class="k">People</td><td>1 backend engineer (full-time), 1 frontend (part-time), 1 field coordinator (part-time), 1 auto-electrician (contract)</td><td class="num">~2 FTE · 4–5 mo</td><td>The dominant cost. See 06–07</td></tr>
+        <tr><td class="k">Devices</td><td>Teltonika FMC130 (heavy) + FMC920 (light) + CAN adapter per unit</td><td class="num">confirm price</td><td>FMC130+ALL-CAN300 not priced in your docs — quote it (03)</td></tr>
+        <tr><td class="k">Installation</td><td>Licensed auto-electrician, per machine, one-time</td><td class="num">AED 500–1,500 ea</td><td>The real per-unit driver. Not "fitted" — "verified"</td></tr>
+        <tr><td class="k">Connectivity</td><td>M2M SIM per device, ~14–35 MB/mo of data</td><td class="num">AED 10–35/mo ea</td><td>Tariff conflict in your docs — reconcile (03)</td></tr>
+        <tr><td class="k">Cloud</td><td>1 small VM (ingestion) + 1 Postgres + object storage</td><td class="num">~AED 55/mo+</td><td>me-central-1 costs more but answers residency (D3)</td></tr>
+        <tr><td class="k">Software</td><td>Traccar, PostgreSQL/PostGIS, Supabase, MapLibre, Grafana</td><td class="num">AED 0</td><td>All open-source (04)</td></tr>
+        <tr><td class="k">Messaging</td><td>WhatsApp Business / Cloud API for alerts &amp; reports</td><td class="num">usage-based</td><td>Template approval has lead time — start early</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>Read the table this way:</strong> if you doubled the pilot fleet, the cloud line barely moves and the software line stays zero — but installation and SIMs scale one-for-one with machines, and people-time is fixed regardless. So the questions that decide your budget are "how many machines" and "how many months of engineer," not "which database." Don't let a stack debate distract from the two numbers that matter.</p>
+  </div>
+</section>
+
+<section id="s3">
+  <h2><i>03</i>Hardware &amp; field resources</h2>
+  <p>This is the half of the project a pure software plan forgets, and it is the half that sets your earliest possible date. None of it is exotic, but all of it has a lead time measured in someone else's calendar.</p>
+
+  <h3>Devices &amp; adapters</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Part</th><th>For</th><th>Reads engine data via</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Teltonika FMC130</td><td>Heavy equipment — excavators, cranes, loaders, backhoes, generators</td><td>ALL-CAN300 adapter (construction/ag CAN)</td></tr>
+        <tr><td class="k">Teltonika FMC920</td><td>Light &amp; support vehicles — pickups, trucks</td><td>LV-CAN200 adapter (light-vehicle CAN)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Your fleet spans nine asset types (trailers, tippers, cranes, excavators, generators, boom lifts / loaders, backhoes, forklifts, plus support vehicles). The device reads position and ignition on almost anything; it reads <strong>engine hours</strong> only when the machine's make/model/year has a supported CAN program <em>and</em> the machine actually broadcasts the value. That gap is the whole of decision <span class="pill open">D1</span> and is covered below.</p>
+
+  <div class="note warn">
+    <h4>The gating item: CAN program numbers (D1)</h4>
+    <p>Teltonika decodes CAN data using a per-make/model/year "program number." A machine that isn't on the supported list yields position and ignition only — no engine hours, which means no utilisation billing for that unit. <strong>You cannot know which of your real machines can be billed until you send your fleet list to Teltonika and get the programs back.</strong> This is the single most schedule-critical piece of paper in the project, and it is a field/procurement task, not a software one. Send it first.</p>
+  </div>
+
+  <h3>The test bench — order two units now</h3>
+  <p>Before any installs, one heavy rig (FMC130 + ALL-CAN300) and one light rig (FMC920 + LV-CAN200) with live SIMs, sitting on a desk, lets the software track begin against real device traffic instead of only a simulator. Confirm the firmware shipping is <code>03.27.02</code> or later — TLS support starts there, and older units need a firmware pass you'd rather not discover mid-pilot <span class="pill open">D9</span>.</p>
+
+  <h3>Connectivity &amp; installation</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Item</th><th>Figure (from your docs)</th><th>To confirm</th></tr></thead>
+      <tbody>
+        <tr><td class="k">M2M SIM</td><td class="num">AED 10–35 / mo</td><td>Conflict: expert review ~AED 10 (du); product doc AED 25–35. Reconcile with e&amp; / du directly</td></tr>
+        <tr><td class="k">Data / device</td><td class="num">~14–35 MB / mo</td><td>Scales with reporting interval (D2)</td></tr>
+        <tr><td class="k">Private APN</td><td class="num">—</td><td>Optional; routes devices onto your private network for a stronger security posture (D4)</td></tr>
+        <tr><td class="k">Install / machine</td><td class="num">AED 500–1,500</td><td>Licensed auto-electrician, one-time. Book ahead — availability is the constraint</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <p><strong>Define "installed" as "verified," not "fitted."</strong> A device can be wired in, powered, and reporting a healthy position while producing no engine data at all — and it looks perfectly fine on a map. An installation is only complete when engine hours for that machine have been seen arriving on the server. Make that the electrician's sign-off criterion and the coordinator's checklist item, or you will discover dead CAN links one invoice cycle too late.</p>
+  </div>
+</section>
+
+<section id="s4">
+  <h2><i>04</i>Toolkit &amp; infrastructure — the open-source you can build on</h2>
+  <p>You asked specifically for tools, code, and open-source you can use. Here is the working set, grouped by layer, with licences called out because two or three of them carry conditions worth understanding before you build a paid product on them. The headline: a complete, production-capable stack exists for free, and it is the same lineage your three MVPs already use.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Layer</th><th>Tool / code</th><th>Licence</th><th>Why it's here</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Ingestion</td><td>Traccar</td><td><span class="pill buy">Apache-2.0</span></td><td>Terminates Teltonika Codec 8/8E out of the box — skips ~3–4 months of custom parser work. Your fastest path to real data</td></tr>
+        <tr><td class="k">Protocol (code)</td><td>filipkroca/teltonikaparser &amp; similar</td><td><span class="pill ref">MIT?</span></td><td>Reference Codec 8E parsers you can read or reuse if you build a custom gateway. Confirm each repo's licence</td></tr>
+        <tr><td class="k">Relational DB</td><td>PostgreSQL</td><td><span class="pill buy">PostgreSQL</span></td><td>The system of record. One instance covers the realistic pilot range comfortably</td></tr>
+        <tr><td class="k">Geo</td><td>PostGIS</td><td><span class="pill ref">GPL-2.0</span></td><td>Spatial queries, geofences. GPL is fine for SaaS — you use it over a socket, you don't distribute it</td></tr>
+        <tr><td class="k">Time-series</td><td>TimescaleDB</td><td><span class="pill ref">Apache-2.0 core</span></td><td>Postgres extension for the position history hypertable. Advanced features are under the source-available TSL — free to self-host, can't resell as a DBaaS</td></tr>
+        <tr><td class="k">Backend platform</td><td>Supabase</td><td><span class="pill buy">Apache-2.0</span></td><td>Postgres + auth + row-level security + storage + APIs. Already used across your MVPs — lowest-friction choice for the app layer</td></tr>
+        <tr><td class="k">Maps</td><td>MapLibre GL JS</td><td><span class="pill buy">BSD-3</span></td><td>Fully open map rendering for the Fleet Map. No per-load fees, unlike Mapbox GL JS v2+ (proprietary, free only under load limits)</td></tr>
+        <tr><td class="k">Dashboards</td><td>Grafana</td><td><span class="pill ref">AGPL-3.0</span></td><td>Internal ops/health dashboards fast. AGPL is fine used unmodified and internally; matters only if you modify and expose it as a service</td></tr>
+        <tr><td class="k">Metrics</td><td>Prometheus</td><td><span class="pill buy">Apache-2.0</span></td><td>Scrapes ingestion health — records/sec, buffer depth, reject rate. Pairs with Grafana</td></tr>
+        <tr><td class="k">Cold store</td><td>S3-compatible object storage</td><td><span class="pill ref">service</span></td><td>Immutable 7-year evidence archive (raw frames + sealed records). DO Spaces, AWS S3, or MinIO (AGPL-3.0) if self-hosted</td></tr>
+        <tr><td class="k">Packaging</td><td>Docker &amp; Docker Compose</td><td><span class="pill buy">Apache-2.0</span></td><td>One-command bring-up of the whole stack; the unit of deploy</td></tr>
+        <tr><td class="k">CI</td><td>GitHub Actions</td><td><span class="pill ref">service</span></td><td>Test + build + deploy on push. Free tier covers a small team</td></tr>
+        <tr><td class="k">IaC (optional)</td><td>OpenTofu / Terraform</td><td><span class="pill ref">MPL-2.0 / BUSL</span></td><td>Reproducible infra later. Terraform is now BUSL-licensed; OpenTofu is the open (MPL-2.0) fork if that matters to you</td></tr>
+        <tr><td class="k">Messaging</td><td>WhatsApp Cloud API</td><td><span class="pill prop">Meta</span></td><td>Alert &amp; report delivery, matching your WhatsApp-native pattern. Templates need pre-approval — start that early</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Code you don't have to write</h3>
+  <p>Three things are worth reusing rather than building. <strong>Traccar itself</strong> is the big one — even if you eventually replace it, its device-protocol handling is a working reference implementation of exactly the handshake and acknowledgement behaviour you must get right. The <strong>open Codec 8E parsers</strong> on GitHub save you from decoding the binary format from the spec by hand. And for engine hours specifically, the <strong>ISO 15143-3 (AEMP 2.0)</strong> standard and OEM telematics feeds — Cat Product Link, Komatsu KOMTRAX, Volvo CareTrack, John Deere JDLink — give you manufacturer-authoritative engine hours for machines that have them, with no CAN wiring at all. On a mixed fleet, the best answer is often "OEM feed where it exists, Teltonika CAN where it doesn't."</p>
+
+  <div class="note warn">
+    <h4>Licence conditions that actually matter for a paid product</h4>
+    <p>Most of the stack is permissive (Apache/BSD/MIT) — use freely. Three carry conditions: <strong>PostGIS (GPL-2.0)</strong> and <strong>Grafana (AGPL-3.0)</strong> are safe as long as you run them unmodified behind your service and don't redistribute modified copies; standard SaaS use does not trigger their copyleft. <strong>TimescaleDB</strong>'s advanced features sit under a source-available licence that only forbids reselling it <em>as</em> a database service — irrelevant to you. None of these block a commercial Dozr product; they only mean "don't fork-and-resell the tool itself." When in doubt on a specific repo (especially the community parsers), read its LICENSE file before shipping.</p>
+  </div>
+
+  <h3>Environments &amp; hosting</h3>
+  <p>Three environments — local (Docker Compose on a laptop), staging (one small cloud VM), production (the same, hardened) — is enough through pilot. The one decision with weight is region <span class="pill open">D3</span>: a DigitalOcean droplet is cheapest, but if UAE data-residency becomes a sales requirement, AWS <code>me-central-1</code> (UAE) or <code>me-south-1</code> (Bahrain) is the answer, at higher cost. Decide it before you accept any hosting estimate, because it changes every one of them.</p>
+</section>
+
+<section id="s5">
+  <h2><i>05</i>Modules &amp; who owns them</h2>
+  <p>The system breaks into nine modules. Read the "primary owner" column as a role, not a headcount — in the recommended team one person wears several of these hats. What matters is that each module has a single accountable owner and that the <em>hard part</em> is understood before work starts, because in this system the hard parts are correctness traps, not size problems.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Module</th><th>What it does</th><th>Primary owner</th><th>The hard part</th></tr></thead>
+      <tbody>
+        <tr><td class="k">1 · Device contract &amp; ingestion</td><td>TCP socket, IMEI handshake, Codec 8/8E parse, CRC check, acknowledge frames</td><td>Backend</td><td>Never ACK before the record is durably stored — the device deletes its only copy on ACK</td></tr>
+        <tr><td class="k">2 · Decode &amp; normalise</td><td>Raw frame → canonical record; program-number → engine hours; label source</td><td>Backend</td><td>Unlisted machine yields position + ignition only; <code>ecu</code> and <code>estimated</code> hours must never merge</td></tr>
+        <tr><td class="k">3 · Data model &amp; tenancy</td><td>Postgres schema, history hypertable, row-level security, dated assignment windows</td><td>Backend (senior)</td><td>Resolve each record against the assignment true at <em>its own</em> timestamp; NULL ≠ zero</td></tr>
+        <tr><td class="k">4 · Enrichment &amp; rules</td><td>Geofences, idle / movement / working detection, alert rules</td><td>Backend + Frontend</td><td>"Working vs idle vs moving" is inference — it must be explainable, not a black box</td></tr>
+        <tr><td class="k">5 · Utilisation ledger &amp; evidence</td><td>Billing-grade engine hours, sealed immutable records, dispute pack, 7-yr retention</td><td>Backend / lead</td><td>This is the money. Evidence must stand up to a customer dispute; the ignition-counter fallback is inadmissible</td></tr>
+        <tr><td class="k">6 · Surfaces (dashboard wiring)</td><td>Connect the nine <code>fleet-v2</code> screens to the real API</td><td>Frontend</td><td>The screens exist; the work is data contracts and honest empty / stale / error states</td></tr>
+        <tr><td class="k">7 · Messaging</td><td>WhatsApp alert &amp; report delivery</td><td>Frontend / Backend</td><td>Template pre-approval has lead time; "delivered" is not "read"</td></tr>
+        <tr><td class="k">8 · Infra &amp; observability</td><td>Docker, CI, hosting, Grafana / Prometheus, backups &amp; restore</td><td>Infra (can be Backend)</td><td>The pilot must be restorable from day one — a lost buffer is lost billing evidence</td></tr>
+        <tr><td class="k">9 · Field &amp; device ops</td><td>CAN programs (D1), procurement, install scheduling, verification</td><td>Field coordinator + auto-electrician</td><td>D1 gates everything orderable; "installed" must mean "engine hours seen on the server"</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>The spine is modules 1 → 2 → 3 → 5.</strong> Ingestion feeds decode feeds the model feeds the ledger, and each depends on the one before being correct. That's why this is a small-team job: the core is a single, careful line of work that does not parallelise cleanly across many people. Modules 6 (surfaces) and 9 (field ops) <em>do</em> run in parallel once the record schema is frozen and the devices arrive — those are your two genuine parallel tracks.</p>
+  </div>
+</section>
+
+<section id="s6">
+  <h2><i>06</i>Roles &amp; the skills each one needs</h2>
+  <p>Six roles cover the whole build. Only one is full-time. The effort figures are the working estimate from the expert review (~33 person-weeks total across roles); treat them as planning inputs, not a contract.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Role</th><th>Owns</th><th>Must-have skills</th><th>Effort</th><th>Mode</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Backend engineer</td><td>Modules 1, 2, 3, 5</td><td>Binary / TCP protocols; PostgreSQL + row-level security; one of Go / Node / Python; a data-integrity mindset above all</td><td class="num">14–17 pw</td><td><strong>Full-time</strong></td></tr>
+        <tr><td class="k">Frontend engineer</td><td>Modules 6, 7</td><td>Vanilla HTML / CSS / JS (matches your MVPs); MapLibre; consuming REST APIs; comfort reading the existing <code>fleet-v2</code> code</td><td class="num">6–7 pw</td><td>Part-time</td></tr>
+        <tr><td class="k">Infra / DevOps</td><td>Module 8</td><td>Docker; Linux; a cloud (AWS or DO); CI; Grafana / Prometheus; backup &amp; restore discipline</td><td class="num">~3 pw</td><td>Part-time — can be the backend eng early on</td></tr>
+        <tr><td class="k">Field coordinator</td><td>Module 9</td><td>Vendor liaison (Teltonika, telco); install scheduling; procurement; verification discipline; solid spreadsheet ops</td><td class="num">6–7 pw</td><td>Part-time</td></tr>
+        <tr><td class="k">Auto-electrician</td><td>Install portion of 9</td><td>CAN-bus wiring; 12 / 24 V vehicle electrical; adapter fitting; test-and-verify on the machine</td><td class="num">per unit</td><td>Contract</td></tr>
+        <tr><td class="k">Tech lead / architect</td><td>Invariants across 2, 3, 5 + review</td><td>Systems design; evidence &amp; billing correctness; code review; the authority to say "not durable yet, don't ship"</td><td class="num">4–5 pw</td><td>Part-time — afzl or the backend eng steps up</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <h4>The one role you cannot make part-time</h4>
+    <p>The backend engineer owns the spine — ingestion, decode, model, ledger — and those modules must be held in one head as a coherent whole, because a mistake in any of them silently corrupts the billing number at the end. This is the seat to hire well and protect from context-switching. Everything else can flex around it. If budget forces a single hire, it is this one; the frontend, infra, and even some lead work can be part-time, deferred, or Claude-assisted (see 09).</p>
+  </div>
+
+  <p>Notice what is <em>not</em> on this list: no data-science role (the analytics here is arithmetic and rules, not modelling), no dedicated QA head at pilot scale (the backend engineer and lead own correctness), and no separate mobile team (delivery is WhatsApp, not a native app). Adding those is how a two-person job becomes a nine-person one.</p>
+</section>
+
+<section id="s7">
+  <h2><i>07</i>Team shape &amp; how to run it</h2>
+  <p>The recommendation is a <strong>two-engineer team plus a part-time field coordinator</strong> — one backend full-time, one frontend part-time, the coordinator running procurement and installs in parallel — with the lead/architect hat worn by afzl or the backend engineer. That is roughly 33 person-weeks of work, or about four to five calendar months to a validated pilot once hardware arrives.</p>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="big">2 + PT</div>
+      <p>Recommended team: two engineers and a part-time coordinator. The backend seat is the only full-time one.</p>
+    </div>
+    <div class="card">
+      <div class="big">~5×</div>
+      <p>How much larger the dev team's nine-person, five-month plan is than the work actually requires.</p>
+    </div>
+  </div>
+
+  <div class="note warn">
+    <h4>Why nine people would be slower, not faster</h4>
+    <p>The instinct that a bigger team ships sooner is wrong for this system, because the core is serial and correctness-critical. Ingestion, decode, model, and ledger have to be built in order and held consistent — you cannot put four engineers on one socket and one schema without them spending more time coordinating than building. A nine-person team here mostly generates meetings, merge conflicts, and diffusion of the one thing that matters (who is accountable for the billing number). The work is ~9 person-months; spread over the right two people it lands in ~4–5 calendar months. Spread over nine, it takes longer <em>and</em> costs five times as much.</p>
+  </div>
+
+  <h3>The seam: what runs in series, what runs in parallel</h3>
+  <div class="seq">
+    <div class="step"><span class="n">Day 1</span><span class="b"><strong>D1 goes out immediately.</strong> The CAN-program request to Teltonika runs in the background for the whole project — nothing hardware-related can be finalised until it returns, so it must not wait for anything.</span></div>
+    <div class="step"><span class="n">Serial</span><span class="b"><strong>The spine — ingestion → decode → model → ledger.</strong> One line of work, mostly one engineer, each stage validated before the next leans on it.</span></div>
+    <div class="step"><span class="n">Parallel A</span><span class="b"><strong>Surfaces.</strong> Once the canonical record schema is frozen, the frontend wires <code>fleet-v2</code> against that contract (mocked at first, live as the spine delivers) without blocking on it.</span></div>
+    <div class="step"><span class="n">Parallel B</span><span class="b"><strong>Field ops.</strong> Once devices and CAN programs arrive, procurement, install, and verification proceed alongside the software — a different person, a different calendar.</span></div>
+  </div>
+
+  <h3>How to run it: thin slice first, then widen</h3>
+  <p>The single most useful piece of process advice from the review: <strong>buy the first six weeks, not the five months.</strong> Instead of a month-one display prototype that proves nothing risky, spend the opening weeks driving one thin vertical slice all the way through — a single real device, sending real CAN data, terminating on your server, stored durably, surfacing engine hours on one real screen. That slice touches every hard part once and retires the biggest risks (D1, the ACK discipline, engine-hours decoding) before you scale the width. Everything after is widening a proven pipe, which is the easy part.</p>
+
+  <p>Run it on a weekly demo cadence: every week ends with something observable working, not a status update. Use phase gates (section 08) that are defined by a <em>proof</em> — "a record survived a server restart," "engine hours matched the machine's own meter" — never by a calendar date alone. And keep the four documents in their lanes: this handbook is the <em>who and how</em>, the PRD is the <em>what</em>, CLAUDE.md is the <em>rules a coding agent must obey</em>, and the expert review is the <em>why</em> behind the positions. When they disagree, the PRD wins on scope and CLAUDE.md wins on invariants.</p>
+</section>
+
+<section id="s8">
+  <h2><i>08</i>The schedule</h2>
+  <p>Seven phases, each ending on a <em>proof</em> rather than a date. The week numbers assume the recommended team and start counting when work begins — but note that P0 fires a request (D1) whose return time is outside your control, so the honest calendar is "≈4–5 months once hardware is in hand." Do not let a phase close on "we wrote the code"; close it on the exit proof in the last column.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Phase</th><th>Weeks</th><th>Goal</th><th>Exit proof (the gate)</th></tr></thead>
+      <tbody>
+        <tr><td class="k">P0 · Contract</td><td class="num">1–2.5</td><td>Freeze the canonical record schema; send D1 to Teltonika; order two test units + SIMs</td><td>Schema frozen &amp; written down; D1 request sent; units on order</td></tr>
+        <tr><td class="k">P1 · Ingestion</td><td class="num">2.5–6</td><td>Socket, IMEI handshake, Codec 8E parse, CRC, ACK-after-durable-write; one device → durable store</td><td><strong>A record survives a server restart</strong> — durability proven, not assumed</td></tr>
+        <tr><td class="k">P2 · Model &amp; decode</td><td class="num">6–9</td><td>Canonical model, program-number decode, engine hours, <code>ecu</code>/<code>estimated</code> labels, RLS, assignment windows</td><td><strong>Engine hours from a real machine match its own meter</strong></td></tr>
+        <tr><td class="k">P3 · Surfaces</td><td class="num">9–13</td><td>Wire the nine <code>fleet-v2</code> screens to the live API; honest empty / stale / error states</td><td>Fleet Map + Utilisation show live end-to-end data</td></tr>
+        <tr><td class="k">P4 · Ledger &amp; evidence</td><td class="num">13–16</td><td>Utilisation ledger, sealed immutable records, dispute pack, retention</td><td><strong>A billing-grade utilisation record is produced and sealed</strong></td></tr>
+        <tr><td class="k">P5 · Pilot</td><td class="num">16–20</td><td>Install on ~10 machines, verify each, full-cycle observation</td><td>One full billing cycle observed with no correctness incident</td></tr>
+        <tr><td class="k">P6 · Scale</td><td class="num">post-pilot</td><td>Widen the fleet; migrate ingestion to a custom gateway only when engine hours bill externally</td><td>Steady-state SLOs met at the wider device count</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <p><strong>The un-compressible month.</strong> P5 cannot be rushed — you have to watch a real device through a real billing cycle to trust the number, and that is roughly a month of calendar you cannot buy back with more people or more code. Plan for it rather than being surprised by it: it is the difference between "the demo worked" and "we can invoice a customer on this."</p>
+  </div>
+</section>
+
+<section id="s9">
+  <h2><i>09</i>What Claude can build — and where you need a human</h2>
+  <p>This is the heart of your question. The short answer: Claude can carry a large share of the software, a human must own <em>review</em> on all of it, and two areas are irreducibly human — the billing-evidence correctness call and everything physical. The failure mode of this system is a <em>silently wrong number</em>, and no coding agent can self-certify that its output is billing-grade. That single fact sets the whole split below.</p>
+
+  <div class="note">
+    <p style="margin:0"><span class="pill buy">Claude-led</span> Claude writes it, a human reviews &nbsp;·&nbsp; <span class="pill mvp">Claude-assisted</span> Claude drafts, a human owns correctness &nbsp;·&nbsp; <span class="pill open">Human expert</span> must be built or validated by an experienced human</p>
+  </div>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Module</th><th>Split</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td class="k">1 · Ingestion</td><td><span class="pill mvp">Claude-assisted</span></td><td>Claude can scaffold the socket and parser or configure Traccar — but a human must own the ACK-after-durable-write discipline and concurrency, because the device deletes its only copy on ACK and the cost of getting it subtly wrong is silent data loss</td></tr>
+        <tr><td class="k">2 · Decode &amp; normalise</td><td><span class="pill mvp">Claude-assisted</span></td><td>Claude decodes Codec 8E from the spec well; the program-number → engine-hours mapping and <code>ecu</code>/<code>estimated</code> labelling must be judged against real device output by a human</td></tr>
+        <tr><td class="k">3 · Data model &amp; tenancy</td><td><span class="pill buy">Claude-led</span></td><td>Schema, RLS policies, and dated-assignment queries are squarely Claude's strength; a human reviews the temporal-resolution logic (resolve at each record's own timestamp)</td></tr>
+        <tr><td class="k">4 · Enrichment &amp; rules</td><td><span class="pill buy">Claude-led</span></td><td>Geofence queries, idle / movement detection, and alert rules are well-specified logic Claude writes reliably; human reviews the "working vs idle" definitions</td></tr>
+        <tr><td class="k">5 · Ledger &amp; evidence</td><td><span class="pill open">Human expert</span></td><td>The highest-stakes module. Claude can draft the sealing and hashing mechanics, but a human must own "will this stand up to a customer dispute?" — admissibility is a judgment, not a function</td></tr>
+        <tr><td class="k">6 · Surfaces</td><td><span class="pill buy">Claude-led</span></td><td>Wiring existing screens to an API, empty / stale / error states, and MapLibre integration are exactly where Claude is fastest and safest</td></tr>
+        <tr><td class="k">7 · Messaging</td><td><span class="pill buy">Claude-led</span></td><td>WhatsApp Cloud API integration and templating; Claude writes it, a human does the Meta business-account approval and phone-number setup</td></tr>
+        <tr><td class="k">8 · Infra &amp; observability</td><td><span class="pill mvp">Claude-assisted</span></td><td>Claude writes the Docker / CI / Grafana config; a human owns production hardening, secrets, and — non-negotiably — actually running a restore drill</td></tr>
+        <tr><td class="k">9 · Field &amp; device ops</td><td><span class="pill open">Human expert</span></td><td>Physical installs, CAN wiring, vendor negotiation, and on-machine verification. Claude cannot touch a machine — this is entirely human and field</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note ok">
+    <p><strong>The honest bottom line:</strong> Claude can lead modules 3, 4, 6, and 7 outright and materially assist on 1, 2, and 8 — realistically well over half of the software, and the parts that are tedious rather than dangerous. What Claude cannot do is own the billing-evidence correctness call (module 5) or anything physical (module 9), and it cannot be the last set of eyes on its own work anywhere. So the shape that works is <strong>Claude for breadth and speed, one experienced human owning the spine's durability and the evidence chain, and a human review gate on every module.</strong></p>
+  </div>
+</section>
+
+<section id="s10">
+  <h2><i>10</i>Build it yourself, or hand it to the dev team?</h2>
+  <p>You asked what the issue is with building it yourselves rather than giving it to the development team. Here are the three honest paths, then a recommendation — because "undecided, help me choose" is exactly the right place to be before committing real money.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Path</th><th>What it is</th><th>Upside</th><th>The real risk</th></tr></thead>
+      <tbody>
+        <tr><td class="k">A · Self-build with Claude</td><td>afzl + Claude, pulling in a specialist only for the hard parts</td><td>Cheapest; full control; you keep the billing-integrity knowledge in-house — your actual moat</td><td>The correctness-critical modules (ingestion durability, the evidence ledger) need real expertise; slow if afzl is effectively solo</td></tr>
+        <tr><td class="k">B · Small team</td><td>The 2-engineer + part-time-coordinator team in this handbook</td><td>Right-sized; builds the capability in-house; moderate cost (raise ~AED 110–135k)</td><td>Everything rides on hiring one backend engineer who genuinely understands device durability <em>and</em> billing evidence — that hire is the bottleneck</td></tr>
+        <tr><td class="k">C · Hand to a dev team</td><td>The nine-person, five-month agency-style plan</td><td>Least founder time day-to-day</td><td>≈5× overspend; you don't own the knowledge; and a team unfamiliar with the device-deletes-on-ACK and evidence-admissibility traps will get exactly the subtle, load-bearing things wrong</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <h4>Why handing the whole thing off is the riskiest option here</h4>
+    <p>For most products, "give it to a competent dev team" is the safe choice. This product is the exception, and the reason is specific: its value lives in a handful of subtle correctness properties — acknowledge only after durable write, never merge <code>ecu</code> with <code>estimated</code>, resolve every record against the assignment true at its own timestamp, produce evidence that survives a dispute. A generalist team that has never shipped telematics will treat these as ordinary CRUD, build something that demos beautifully, and leave you with a billing number you can't defend. You would pay five times as much to <em>lose</em> control of the one thing that makes the product sellable. The correctness traps are not where an outside team adds value; they are where an outside team costs you the most.</p>
+  </div>
+
+  <p><strong>Recommendation — a hybrid.</strong> Self-build the thin vertical slice with Claude to de-risk and learn (P0–P2), leaning on Claude for the modules it leads (3, 4, 6, 7). Bring in <em>one</em> experienced backend engineer — hire or contract — to own the spine's durability and the ledger/evidence module (5). Keep the field coordinator and auto-electrician part-time/contract. Do not hand the whole build to a generalist dev team. This is path A and B fused: Claude for breadth and speed, one strong human for the dangerous parts, the knowledge staying with you. It is the best balance of cost, control, and — the thing that actually matters here — correctness you can stand behind when a customer disputes an invoice.</p>
+</section>
+
+<section id="s11">
+  <h2><i>11</i>Production-grade non-negotiables</h2>
+  <p>"Production grade" for a telematics billing system is not a longer feature list — it is a short list of properties that, if any one is missing, quietly makes the product unsellable. Treat this as the definition-of-done gate for the pilot. Every item is a "must," not a "should."</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Area</th><th>Non-negotiable</th><th>Why it bites</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Durability</td><td>ACK only after the record is durably stored; ingest is idempotent (dedupe on device + sequence); back-pressure never drops data silently</td><td>The device deletes its only copy on ACK — a premature ACK is permanent, invisible data loss</td></tr>
+        <tr><td class="k">Evidence integrity</td><td>Utilisation records are immutable once sealed; hash-chained or manifested; 7-year retention; <code>ecu</code> and <code>estimated</code> never merged; NULL ≠ zero</td><td>A record you can't prove is unchanged is a record a customer can dispute away</td></tr>
+        <tr><td class="k">Tenancy</td><td>Row-level security enforced <em>and</em> tested; every record resolved against the assignment true at its own timestamp</td><td>One tenant seeing another's machines — or billing the wrong owner for a period — is a trust-ending bug</td></tr>
+        <tr><td class="k">Security</td><td>TLS from the device (firmware 03.27.02+); secrets managed, not in code; least-privilege access; private APN / mutual TLS considered</td><td>Location and utilisation data is commercially sensitive; a device is an untrusted edge until proven otherwise</td></tr>
+        <tr><td class="k">Observability</td><td>Live metrics: records/sec, buffer depth, CRC-fail &amp; reject rate, per-device last-seen; alert on device <em>silence</em></td><td>A device that stops reporting is lost revenue and a blind spot — you must notice within minutes, not at invoice time</td></tr>
+        <tr><td class="k">Testing</td><td>A device-traffic simulator (replay real frames); a kill-the-server-mid-stream durability test; an RLS isolation test; engine-hours reconciliation vs the machine meter</td><td>These four tests exercise the exact properties that make or break billing trust; nothing else proves them</td></tr>
+        <tr><td class="k">Backups &amp; DR</td><td>Automated backups from day one; a <em>tested</em> restore; documented RTO / RPO</td><td>An untested backup is not a backup — and here the data being backed up <em>is</em> the billing evidence</td></tr>
+        <tr><td class="k">SLOs</td><td>Defined ingestion availability, a near-zero acceptable data-loss window, and a dashboard-freshness target</td><td>Without a number, "is it working?" has no answer — and customers will ask</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <p><strong>If you cut anything, do not cut these two:</strong> the durability discipline (module 1) and the tested restore (backups). Everything else degrades gracefully — a missing dashboard state is ugly, a missing alert is inconvenient. But a premature ACK or an unrestorable backup destroys billing evidence permanently and silently, and you will only discover it when a customer disputes an invoice you can no longer defend. Those two are the floor.</p>
+  </div>
+</section>
+
+<section id="s12">
+  <h2><i>12</i>Recommendation &amp; the first 30 days</h2>
+  <p>Pulling it together: build with Claude plus <strong>one</strong> experienced backend engineer and a part-time field coordinator; run Traccar in front of a single Postgres/PostGIS (matching your MVP stack via Supabase) and migrate to a custom gateway only when engine hours start billing externally; and above all, <strong>buy the first six weeks, not the five months</strong> — prove one thin vertical slice end-to-end before you scale the width. Do not hand the whole thing to a generalist dev team; the correctness traps are exactly what an unfamiliar team gets wrong, at five times the cost.</p>
+
+  <p>Here is what that looks like starting tomorrow. None of it needs the full team — most of it needs a request sent and a decision made.</p>
+
+  <div class="seq">
+    <div class="step"><span class="n">Day 1</span><span class="b"><strong>Send D1 to Teltonika</strong> (CAN program numbers for your real make/model/year list) and <strong>order two test units</strong> — one FMC130 + ALL-CAN300 (heavy), one FMC920 + LV-CAN200 (light) — with live SIMs. Both have lead times outside your control; start the clock today.</span></div>
+    <div class="step"><span class="n">Week 1</span><span class="b"><strong>Freeze the canonical record schema</strong> — the contract every other module hangs off. In parallel: reconcile the SIM tariff (AED 10 vs 25–35), get a firm FMC130 + ALL-CAN300 quote, and decide region D3 (DO vs AWS UAE/Bahrain for residency).</span></div>
+    <div class="step"><span class="n">Week 2–3</span><span class="b"><strong>Stand up Traccar + Postgres in Docker</strong> and terminate the first real device. Prove durability the hard way: kill the server mid-stream and confirm the record survives a restart. This retires the biggest software risk early.</span></div>
+    <div class="step"><span class="n">Week 3–4</span><span class="b"><strong>Decode engine hours from the heavy rig and reconcile against the machine's own meter</strong>, then wire one screen (Fleet Map or Utilisation) to live data. Now the slice is end-to-end.</span></div>
+    <div class="step"><span class="n">Day 30</span><span class="b"><strong>Decide scale-up from evidence, not guesswork.</strong> You'll have a working thin slice and the three biggest risks (D1, ACK durability, engine-hours decoding) retired — the right moment to commit to the hire and the pilot fleet.</span></div>
+  </div>
+
+  <div class="note big ok">
+    <p><strong>The whole plan in one line:</strong> prove one machine → one durable store → one real number on one real screen in the first month, with Claude doing the breadth and one strong engineer owning the dangerous parts — then widen a pipe you already trust.</p>
+  </div>
+</section>
+
+<footer>
+  <p><strong>Dozr · GPS &amp; Telematics Build Handbook</strong> — device-data layer only. Companion documents: the PRD (<em>what</em> to build), CLAUDE.md (the <em>rules</em> a coding agent must obey), and the Expert Build Review (the <em>why</em> behind these positions). Prepared 30 August 2026.</p>
+  <p class="fine">Every external figure in this document — device and adapter prices, SIM tariffs, licence terms, break-even counts — is drawn from your internal corpus and general practice and is flagged to confirm at its source (Teltonika distributor, e&amp;/du, and each project's own quotes) before it drives a spending decision. Web access was unavailable during preparation, so no live pricing was retrieved.</p>
+</footer>
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# telematics tests — the P0 merge gate.
+#
+# Runs the suite in MEMORY mode, which needs no services, no secrets, and no
+# `npm install`: `pg` is only imported on the Postgres path, so the whole
+# pipeline and every invariant that can be proven at the application layer run
+# on a bare runner. That is the entire point of the two-adapter design.
+#
+# The gate is `npm run test:gate`, not a bare `npm test`. It additionally fails
+# when the test COUNT drops below the floor or when anything is skipped/todo —
+# the two ways a suite silently retires an invariant's proof. See
+# src/tools/test-gate.js.
+#
+# ⚠ PATH CAVEAT: GitHub Actions only reads workflows from `.github/workflows/`
+# at the REPOSITORY ROOT. This file is at `gps-build/.github/workflows/` because
+# gps-build is designed to be handed off as its own repo. If gps-build is
+# instead committed as a subfolder of a larger repo, move this file to that
+# repo's root `.github/workflows/` and keep the `working-directory` below
+# pointing at `gps-build/telematics`. Until it sits at a repo root, this gate is
+# not actually enforcing anything.
+# ─────────────────────────────────────────────────────────────────────────────
+name: telematics tests
+
+on:
+  push:
+  pull_request:
+
+# Don't burn runners on superseded pushes to the same branch.
+concurrency:
+  group: telematics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  memory:
+    name: memory mode (P0 gate)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: telematics
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 is the documented floor in package.json engines; 22 is what the
+        # slice was built on. Both must stay green.
+        node: ['20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      # No `npm ci` on purpose: there is no lockfile and memory mode has zero
+      # runtime dependencies. Installing would only prove the registry is up.
+      - name: Show environment
+        run: |
+          node --version
+          echo "store mode: memory (default)"
+
+      - name: Test gate (37+ tests, no skips, serial)
+        run: npm run test:gate
+
+      - name: Demo — end-to-end proof on live data
+        run: npm run demo
+
+      - name: Replay the handover scenario against a live ingestion server
+        run: |
+          node src/ingestion/server.js &
+          INGEST_PID=$!
+          # Wait for the TCP port instead of sleeping blindly.
+          for i in $(seq 1 40); do
+            if node -e "require('node:net').connect(5027,'127.0.0.1').on('connect',function(){this.destroy();process.exit(0)}).on('error',()=>process.exit(1))"; then
+              break
+            fi
+            sleep 0.25
+          done
+          npm run sim -- --scenario handover --interval 0
+          # SIGTERM must drain cleanly and exit 0 (P0 graceful shutdown).
+          kill -TERM $INGEST_PID
+          wait $INGEST_PID
+        env:
+          LOG_FORMAT: kv
+
+  postgres:
+    name: postgres mode (P1 — informational until P1 is claimed)
+    runs-on: ubuntu-latest
+    # P1 is a later phase: this job proves RLS and the immutability trigger in
+    # the database itself. It must not block a P0 merge, so it is opt-in.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.head_commit.message, '[pg]')
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: telematics
+    services:
+      db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: dozr
+          POSTGRES_PASSWORD: dozr
+          POSTGRES_DB: dozr_telematics
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://dozr:dozr@localhost:5432/dozr_telematics
+      DB: pg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install
+      - run: npm run db:reset
+      - run: npm run test:gate
+      - run: npm run demo
