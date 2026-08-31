@@ -22,7 +22,7 @@ no `npm install`. The default store is an in-process memory adapter.
 
 ```bash
 npm run demo    # simulator → ingestion → store → API, end-to-end, with a proof summary
-npm test        # the full suite (68 tests)
+npm test        # the full suite (85 tests; 91 under DB=pg)
 npm run verify  # spawn the servers for real, replay a scenario, SIGTERM them
 ```
 
@@ -47,7 +47,10 @@ interchangeable adapters. Pick with the `DB` environment variable.
 | **Postgres** | `pg` | Docker + `npm install pg` | The same pipeline with the invariants enforced **in the database** — row-level security for tenancy, triggers for evidence immutability, unique keys for idempotency. |
 
 The memory adapter faithfully models what Postgres enforces, so tests pass in both
-modes. Postgres mode is where you confirm the schema itself is correct.
+modes. Postgres mode is where you confirm the schema itself is correct — and it has
+been: `DB=pg npm test` is **91/91**, with `test:rls` and `test:immutability` proving
+that RLS and the immutability trigger, not application code, do the enforcing. Both
+were checked by dropping the policy/trigger and confirming the suites fail.
 
 ---
 
@@ -98,7 +101,7 @@ Full detail: `docs/MODULES.md` § Module 9.
 ## Testing
 
 ```bash
-npm test                 # everything, run serially (68 tests)
+npm test                 # everything, run serially (85 tests; 91 under DB=pg)
 npm run test:gate        # THE MERGE GATE: also fails on a dropped count or any skip
 npm run verify           # real processes, real SIGTERM, /health probes
 
@@ -114,6 +117,11 @@ npm run test:scenarios   # the scenario engine: determinism, the handover bounda
 npm run test:replay      # scenarios through the WHOLE pipeline over real TCP
 npm run test:operability # logging redaction, graceful drain, LB-shaped /health
 npm run test:config      # .env.example is complete; no secrets committed
+npm run test:engine-hours # D1: AVL 102 is minutes; 103/449/200 are refused
+
+# P1 — register tests only under DB=pg (they need a real database)
+DB=pg npm run test:rls          # tenant isolation enforced by the DB, not the app
+DB=pg npm run test:immutability # raw_frames append-only, enforced by a trigger
 ```
 
 `npm test` is for humans. **`npm run test:gate` is what CI runs** — it fails the

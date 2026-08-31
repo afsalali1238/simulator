@@ -11,13 +11,12 @@
 # the two ways a suite silently retires an invariant's proof. See
 # src/tools/test-gate.js.
 #
-# ⚠ PATH CAVEAT: GitHub Actions only reads workflows from `.github/workflows/`
-# at the REPOSITORY ROOT. This file is at `gps-build/.github/workflows/` because
-# gps-build is designed to be handed off as its own repo. If gps-build is
-# instead committed as a subfolder of a larger repo, move this file to that
-# repo's root `.github/workflows/` and keep the `working-directory` below
-# pointing at `gps-build/telematics`. Until it sits at a repo root, this gate is
-# not actually enforcing anything.
+# This file sits at the repository root's `.github/workflows/`, which is the only
+# place GitHub Actions reads workflows from. gps-build IS its own repo
+# (github.com/afsalali1238/simulator) — that decision is settled; the docs' "zip
+# this folder and hand it to a dev team" model is what it implements. If this
+# slice is ever vendored into a larger repo instead, this file must move to that
+# repo's root and every `working-directory` below gains a `gps-build/` prefix.
 # ─────────────────────────────────────────────────────────────────────────────
 name: telematics tests
 
@@ -50,14 +49,16 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      # No `npm ci` on purpose: there is no lockfile and memory mode has zero
-      # runtime dependencies. Installing would only prove the registry is up.
+      # No install on purpose: memory mode has ZERO runtime dependencies (`pg` is
+      # dynamic-imported only on the Postgres path), so a bare runner can prove the
+      # whole pipeline. Installing here would only prove the npm registry is up.
+      # The lockfile IS committed — the `postgres` job below uses `npm ci`.
       - name: Show environment
         run: |
           node --version
           echo "store mode: memory (default)"
 
-      - name: Test gate (37+ tests, no skips, serial)
+      - name: Test gate (floor + no skips, serial)
         run: npm run test:gate
 
       - name: Demo — end-to-end proof on live data
@@ -82,10 +83,16 @@ jobs:
           LOG_FORMAT: kv
 
   postgres:
-    name: postgres mode (P1 — informational until P1 is claimed)
+    name: postgres mode (P1 gate)
     runs-on: ubuntu-latest
-    # P1 is a later phase: this job proves RLS and the immutability trigger in
-    # the database itself. It must not block a P0 merge, so it is opt-in.
+    # Proves RLS and the immutability trigger in the database itself — the P1
+    # gate. Opt-in so a Postgres outage can never block a memory-mode merge:
+    # triggers on workflow_dispatch or a '[pg]' commit message.
+    # NOTE: the credentials here are the throwaway local-dev roles from
+    # docker-compose.yml / db/schema.sql (dozr / dozr_app), not secrets.
+    # APP_DATABASE_URL must point at the RESTRICTED role — if it fell back to
+    # the owner, RLS would be bypassed and test/rls.test.js's role guard
+    # (no SUPERUSER, no BYPASSRLS) would correctly fail the job.
     if: >-
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.head_commit.message, '[pg]')
@@ -108,13 +115,14 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgres://dozr:dozr@localhost:5432/dozr_telematics
+      APP_DATABASE_URL: postgres://dozr_app:dozr_app@localhost:5432/dozr_telematics
       DB: pg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm install
+      - run: npm ci
       - run: npm run db:reset
       - run: npm run test:gate
       - run: npm run demo

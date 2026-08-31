@@ -29,7 +29,14 @@ import { spawn } from 'node:child_process';
 import { listTestFiles, ROOT } from './test-files.js';
 
 // The floor. Raise this when you add tests; see TESTING.md for the breakdown.
-const DEFAULT_MIN_TESTS = 83;
+//
+// This is the MEMORY-mode count, because memory mode is what CI's merge gate
+// runs. Under DB=pg the count is higher (91): test/rls.test.js and
+// test/immutability.test.js register their 4 tests each only when config.db ===
+// 'pg'. In memory mode each of those files registers no subtests, so node --test
+// reports the FILE itself as one passing test — hence 85, not 83. That is why
+// the floor moved by 2 rather than by 8.
+const DEFAULT_MIN_TESTS = 85;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 

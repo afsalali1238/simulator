@@ -15,7 +15,7 @@ the database layer.
 ```bash
 cd telematics
 
-npm test                 # everything, serially — 83 tests today
+npm test                 # everything, serially — 85 tests (91 under DB=pg)
 npm run test:gate        # what CI runs: the same suite + count/skip enforcement
 npm run demo             # end-to-end proof on live data
 npm run verify           # real processes, real SIGTERM, /health probes
@@ -33,6 +33,10 @@ npm run test:replay      # scenarios driven through the WHOLE pipeline over TCP
 npm run test:operability # logging redaction, graceful drain, LB-shaped /health
 npm run test:config      # .env.example is complete; no secrets committed
 npm run test:engine-hours # D1: the CAN engine-hours mapping, units, and refusals
+
+# P1 — these register tests ONLY under DB=pg (they need a real database)
+DB=pg npm run test:rls          # tenant isolation enforced by the DB, not the app
+DB=pg npm run test:immutability # raw_frames is append-only, enforced by a trigger
 ```
 
 Tests run **serially** (`--test-concurrency=1`) because several bind real TCP/HTTP
@@ -50,7 +54,8 @@ is not a gate.
 the merge gate**, and it additionally fails when:
 
 - the number of passing tests drops **below the floor** (`DEFAULT_MIN_TESTS` in
-  `src/tools/test-gate.js`, currently **83**), or
+  `src/tools/test-gate.js`, currently **85** — the memory-mode count, since that
+  is what CI gates on), or
 - anything is **skipped** or marked **todo** — a skip is not a pass.
 
 That is there because the quiet failure mode in this repo is not a red test; it
@@ -72,7 +77,7 @@ or in CI for the full set.
 
 ---
 
-## The test suites (83 tests today)
+## The test suites (85 memory / 91 under DB=pg)
 
 | Suite | Tests | What it covers |
 |-------|------:|----------------|
@@ -88,6 +93,8 @@ or in CI for the full set.
 | `test/operability.test.js` | 11 | **P0.** Structured logging (shape, levels, credential/secret redaction, no tenant payloads, no probe spam); graceful shutdown (runs once, bounded by the deadline, reports a failed drain); `/health` (200 ready / 503 draining, **zero** store I/O on the probe path); the API drain waits for in-flight requests; the ingestion drain finishes an in-flight write **and** its ACK, and refuses a device that arrives mid-drain. |
 | `test/config.test.js` | 5 | **P0.** `.env.example` documents every env var the code reads and nothing it doesn't; the slice has working defaults with no `.env`; `.env` is git-ignored and no real credentials are committed; the shutdown deadline stays under a 30s orchestrator grace period. |
 | `test/engine-hours.test.js` | 14 | **D1.** The CAN engine-hours mapping, where every failure mode is silent: the documented FMC130 IDs are what the code uses; only **AVL 102** (the machine's own hour-meter) is billable; the retired **AVL 200** stand-in produces nothing (200 is `Sleep Mode`); **102 is minutes** — asserted with exact arithmetic, because reading it as seconds is a 60× billing error no other test would catch; **AVL 103** (tracker-counted) is refused, not relabelled `ecu`; **AVL 449** (ignition counter) is forbidden as billing evidence; invariant 9 still gates everything; and `reconcile()` catches a unit error against the dashboard hour-meter and **names** it. |
+| `test/rls.test.js` | 4 *(DB=pg only)* | **P1.** Tenant isolation enforced by **the database**, not by application code. RLS is `ENABLED` on all three tenant-scoped tables; the reader role is neither SUPERUSER nor BYPASSRLS (so RLS actually applies — a mis-pointed `APP_DATABASE_URL` would otherwise make every assertion vacuous); with **no** tenant context set the app role sees **zero** rows (default-deny, not all rows); and each tenant sees its own side of the D1 handover and not the other's, asserted both through the store's read path and with bare `SELECT count(*)` at the DB layer. |
+| `test/immutability.test.js` | 4 *(DB=pg only)* | **P1.** `raw_frames` is append-only, enforced by a trigger. INSERT is allowed; UPDATE and DELETE are both rejected with an error matching `/append-only/` (proving it is the *trigger*, not a permission error); and the sealed row is byte-unchanged afterwards. Runs as the **owner**, not the restricted role — a `dozr_app` mutation would fail on privileges alone and would still fail with the trigger removed, which is a false proof. |
 
 ---
 
@@ -106,8 +113,8 @@ depend on not-yet-built modules (5) or on the database layer (8's trigger) have 
 | 4 | **ecu vs estimated never merge** | `test:decode` (engine hours only produced for CAN assets, always tagged `source: 'ecu'`) · `test:replay` (the only readings that reach the API are `source: 'ecu'`) · `test:engine-hours` (a **tracker-counted** meter, AVL 103, is dropped rather than relabelled `ecu`) | ✅ proven now |
 | 5 | **Ignition counters never billing evidence** | `test:engine-hours` (**AVL 449 `Ignition On Counter` is refused by the decoder**, and the retired AVL 200 stand-in produces nothing) — the ingestion-side half is now proven. Turning a refused signal into an invoice is still `test:ledger` | 🟡 decode side proven now; ledger side 🔒 **P2** |
 | 6 | **Attribution at each record's own timestamp** | `test:tenancy` (D1 splits between Tenant A and B by timestamp) · `test:decode` (attribution fallback) · `test:scenarios` (the `handover` scenario emits either side of `2025-06-01T00:00:00Z` and resolves to two different tenants) · `test:replay` (**end-to-end over TCP**: every record each tenant can see is on its own side of the boundary) | ✅ proven now, end-to-end |
-| 7 | **Tenancy always** | `test:store` (tenant-scoped reads) · `test:tenancy` · `test:api` (400 without header, isolated positions) · `test:replay` (the two tenants' record sets are disjoint; an unassigned device falls back to its owner) · `test:operability` (no tenant id ever reaches a log line) | ✅ proven now (app layer); DB-layer RLS proven in **P1** |
-| 8 | **Sealed, immutable evidence chain** | `test:store` (raw frame persisted as evidence) · `test:replay` (a de-duplicated resend still seals its own frame) . Trigger-enforced immutability = a DB-layer test | ✅ evidence written now; 🔒 trigger enforcement gated to **P1** (pg mode) |
+| 7 | **Tenancy always** | `test:store` (tenant-scoped reads) · `test:tenancy` · `test:api` (400 without header, isolated positions) · `test:replay` (the two tenants' record sets are disjoint; an unassigned device falls back to its owner) · `test:operability` (no tenant id ever reaches a log line) · **`test:rls` under `DB=pg` (RLS enabled, default-deny with no tenant context, cross-tenant read blocked by the database itself)** | ✅ proven now at **both** layers |
+| 8 | **Sealed, immutable evidence chain** | `test:store` (raw frame persisted as evidence) · `test:replay` (a de-duplicated resend still seals its own frame) · **`test:immutability` under `DB=pg` (UPDATE and DELETE on `raw_frames` rejected by the trigger, even as the owner; row byte-unchanged)** | ✅ proven now, trigger-enforced |
 | 9 | **Unlisted machine ⇒ position + ignition only** | `test:tenancy` (unassigned D2 → no engine hours) · `test:decode` (no CAN ⇒ no engine hours) · `test:scenarios` + `test:replay` (**the trap**: after the handover the device keeps sending AVL 102, and the system still produces no engine data for Generator Y) · `test:engine-hours` (the gate holds for every billable ID) | ✅ proven now, end-to-end |
 
 **What D1 changed here.** Invariant 5 was previously "enforced by design" — nothing
@@ -124,12 +131,26 @@ wrong bills 60× wrong while every other test stays green, because the pipeline 
 unit-agnostic. The unit is now asserted with exact arithmetic in both the decoder and
 the simulator's wire output.
 
-**Honest reading of this table:** seven invariants (1, 2, 3, 4, 6, 7, 9) are fully
-proven today in memory mode. Invariant 7's *database-level* enforcement (RLS) and
-invariant 8's *trigger-level* immutability are code-complete but only execute under
-`DB=pg` — proving them is the **P1 testing gate**. Invariant 5's live test needs the
-ledger, which is **P2** by design (the ledger is a throwing stub until a human builds
-it). Nothing is hand-waved: the gaps are named and scheduled in `BUILD_PLAN.md`.
+**Honest reading of this table:** eight invariants (1, 2, 3, 4, 6, 7, 8, 9) are fully
+proven today, and 7 and 8 are proven at **both** layers — application code in memory
+mode and the database itself under `DB=pg`. Invariant 5 is half done: the decoder now
+*refuses* ignition-derived and tracker-counted values (`test:engine-hours`), but
+proving nothing forbidden can reach an invoice needs the ledger, which is **P2** by
+design (Module 5 is a throwing stub until a human builds it). Nothing is hand-waved:
+the one remaining gap is named and scheduled in `BUILD_PLAN.md`.
+
+### The P1 negative tests — proven by deliberately breaking the database
+
+An enforcement test that would pass with the enforcement removed is worthless. Both
+P1 suites were checked by dropping the thing they test, against the live Postgres:
+
+| What was dropped | Result |
+|---|---|
+| `DROP POLICY` ×3 + `DISABLE ROW LEVEL SECURITY` ×3 | `test:rls` **3 of 4 failed** (the 4th is the role-privilege guard, which is unrelated to the policies) — exit 1 |
+| `DROP TRIGGER raw_frames_immutable` | `test:immutability` **3 of 4 failed** (the 4th asserts INSERT is *allowed*, which it still is) — the owner's UPDATE and DELETE both succeeded, and the sealed row changed |
+
+`npm run db:reset` restored both, and each suite went back to 4/4. So the tests are
+load-bearing, not decorative.
 
 **What P0 changed here.** Invariants 6 and 9 were previously proven by *unit*
 tests calling `resolveAssignment` and `normalizeRecord` directly. They are now
@@ -141,7 +162,7 @@ the failure mode a rolling deploy or an NLB target drain would otherwise expose.
 
 ---
 
-## Testing against real Postgres (P1 gate)
+## Testing against real Postgres (P1 gate — MET)
 
 Memory mode models the invariants at the application layer. Postgres mode proves the
 schema itself enforces them.
@@ -151,25 +172,54 @@ cd telematics
 npm install                       # pulls `pg` (the only dependency)
 npm run db:up                     # docker compose: postgres:16
 npm run db:reset                  # apply db/schema.sql then db/seed.sql
-DB=pg APP_DATABASE_URL=postgres://dozr_app:dozr_app@localhost:5432/dozr_telematics npm run test:tenancy
-DB=pg npm run test:ingestion
-DB=pg npm run demo                # should match memory-mode output exactly
+DB=pg npm test                    # the whole suite against the real database
+DB=pg npm run test:rls            # tenant isolation, enforced by the DB
+DB=pg npm run test:immutability   # raw_frames append-only, enforced by a trigger
+DB=pg npm run demo                # matches memory-mode output exactly
 npm run db:down
 ```
 
-`test:tenancy` and `test:ingestion` are the two worth re-running under `DB=pg` —
-that's where **row-level security** and the **evidence-immutability trigger** do the
-work instead of the application. The P1 gate adds two explicit DB-layer tests:
+`test/rls.test.js` and `test/immutability.test.js` are the two DB-layer suites the P1
+gate calls for. They register their tests **only** when `config.db === 'pg'`: in memory
+mode each file contributes zero subtests and zero skips, so the memory-mode merge gate
+stays green and needs no services. `pg` is dynamic-imported on the pg path only, so
+memory mode still needs no `npm install`.
 
-1. **RLS blocks cross-tenant reads** — a query as Tenant A cannot see Tenant B's rows,
-   proven to fail if the RLS policy is removed.
-2. **`raw_frames` is append-only** — an UPDATE or DELETE against a sealed frame is
-   rejected by the trigger, proven to fail if the trigger is removed.
+Two design notes worth knowing before editing them:
 
-> ⚠️ Postgres mode was **not** executed in the build sandbox (no Docker, npm registry
-> blocked). The pg adapter, `db/schema.sql` (RLS + trigger), `db/seed.sql`, and
-> `docker-compose.yml` are code-complete and pass `node --check`, but running them on
-> a real machine is the first task of P1.
+1. **`rls.test.js` reads as `dozr_app`** and asserts that role is neither SUPERUSER nor
+   BYPASSRLS. Without that guard, a mis-pointed `APP_DATABASE_URL` (aimed at the owner)
+   would bypass RLS and make every isolation assertion pass vacuously.
+2. **`immutability.test.js` mutates as the OWNER**, not as `dozr_app`. The restricted
+   role has no privileges on `raw_frames`, so its UPDATE would fail on permissions —
+   which would pass `assert.rejects` even with the trigger dropped. Testing as the owner
+   proves the *trigger* stops even the most privileged connection, and the assertions
+   match `/append-only/` so it is provably the trigger raising.
+
+### Executed on this machine
+
+Docker Desktop 4.88.1, `postgres:16` → **PostgreSQL 16.15**, Windows/Node v24.13.0:
+
+```
+npm run db:up                → dozr_telematics_db healthy in 1s
+npm run db:reset             → ✔ db/schema.sql  ✔ db/seed.sql
+npm test                     → 85/85 pass, 0 fail, 0 skipped   (memory)
+DB=pg npm test               → 91/91 pass, 0 fail, 0 skipped   (real Postgres)
+npm run test:gate            → gate: store=memory pass=85 floor=85  GATE PASSED
+DB=pg npm run test:gate      → gate: store=pg     pass=91 floor=85  GATE PASSED
+DB=pg npm run demo           → byte-identical to memory-mode demo output (diff clean)
+```
+
+The demo comparison is a literal `diff` of both runs' ACK/positions/engine-hours lines,
+not an eyeball: ACK 20 / 5 / 0-new, Tenant A 20 positions + 1.0000 h `source=ecu`,
+Tenant B 5 positions and no engine hours, missing `X-Tenant-Id` → HTTP 400.
+
+**One real bug found by running it.** `test:config`'s "the whole slice has working
+defaults with no `.env`" asserted `config.db === 'memory'` against the *ambient*
+environment, so it failed under `DB=pg` — the test meant to prove zero-setup works was
+broken by the environment it was run in. It now loads `config.js` in a child process
+with every documented env var stripped, which is the claim it was always trying to
+make. Passes in both modes.
 
 ---
 
@@ -180,9 +230,9 @@ gate is green.
 
 | Phase | Testing gate |
 |-------|--------------|
-| **P0 Harden** | `npm run test:gate` green (**68/68**, no skips, floor enforced) on a clean checkout that is not the build machine + `npm run demo` shows ACK counts 20 / 5 / 0-new + `npm run verify` green (14/14 on Linux/macOS: both servers spawn, replay a scenario over TCP, SIGTERM drains and exits 0). |
-| **P1 Postgres** | `DB=pg npm test` green + RLS cross-tenant-block test + `raw_frames` immutability-trigger test + `DB=pg npm run demo` matches memory output. |
-| **P2 Ledger + D1** | `test:ledger` green (exact utilisation from ECU-only on the seed scenario) + evidence-tamper detection test + a test refusing ignition-derived values as billing evidence. |
+| **P0 Harden** | ✅ **MET.** `npm run test:gate` green (no skips, floor enforced) on a clean checkout that is not the build machine + `npm run demo` shows ACK counts 20 / 5 / 0-new + `npm run verify` green (14/14 on Linux/macOS: both servers spawn, replay a scenario over TCP, SIGTERM drains and exits 0). Enforced **in CI** since the repo went live — see below. |
+| **P1 Postgres** | ✅ **MET.** `DB=pg npm test` 91/91 + `test:rls` (RLS cross-tenant block, 4 tests) + `test:immutability` (`raw_frames` trigger, 4 tests) + `DB=pg npm run demo` byte-identical to memory output. Both DB-layer suites verified by dropping the policy/trigger and watching them fail. |
+| **P2 Ledger + D1** | 🟡 D1 resolved at the parameter level (AVL 102, minutes — `test:engine-hours`, 14 tests) and the decode-side refusal of ignition-derived values is proven. Still open: `test:ledger` (exact utilisation from ECU-only on the seed scenario), evidence-tamper detection, and per-machine hardware verification. |
 | **P3 Rules + Messaging** | `test:rules` green (each event type on a crafted scenario) + WhatsApp integration test against a Meta sandbox + alert de-duplication test. |
 | **P4 AWS + pilot** | End-to-end acceptance with real hardware (or a production-rate simulator soak): zero lost/duplicated records across an instance restart, correct attribution, reproducible dispute pack. |
 
@@ -204,23 +254,29 @@ under `DB=pg`. It is `continue-on-error` and triggers only on `workflow_dispatch
 or a `[pg]` commit message, because Postgres mode is the **P1** gate and must not
 block a P0 merge.
 
-> ### ⚠ The workflow is not enforcing anything yet
->
-> Two things are still true and neither is fixable from inside this folder:
->
-> 1. **`gps-build/` is not tracked by git.** `git ls-files gps-build` returns
->    nothing; the parent Kasper repo lists it as untracked. There is no commit, so
->    there is no push, so the workflow has never run.
-> 2. **GitHub Actions only reads `.github/workflows/` at the repository root.**
->    This file sits at `gps-build/.github/workflows/`, which is correct if
->    gps-build becomes its own repo (as `README.md` intends — "can be zipped and
->    handed to a development team as-is"). If it is instead committed as a
->    subfolder, the file must move to the parent repo's root and keep
->    `working-directory: gps-build/telematics`.
->
-> Until one of those is resolved, every gate in `BUILD_PLAN.md` is an honour-system
-> checkbox. The gate script itself is real and runs locally — see the P0 evidence
-> below.
+### The gate is live in CI
+
+`gps-build` is now its own repository — **github.com/afsalali1238/simulator** — which is
+what the workflow's path assumed and what `README.md` always intended ("can be zipped
+and handed to a development team as-is"). So the file sits at the repository root's
+`.github/workflows/`, the only place GitHub Actions reads from, and the gate actually
+gates.
+
+Two runs, both green, both on GitHub's runners rather than this machine — which is
+exactly what the P0 gate asks for ("a clean checkout that is not the build machine"):
+
+| Commit | What | Node 20 | Node 22 |
+|---|---|---|---|
+| `bb0f4f2` | P0 hardening | ✅ | ✅ |
+| `ac7ac9a` | D1 mapping | ✅ | ✅ |
+
+Every step passed in both: the test gate, the demo, and the live-server replay ending
+in a `kill -TERM` that must exit 0. The `postgres` job shows as `skipped`, which is
+correct — it is opt-in via `workflow_dispatch` or a `[pg]` commit message so the P1
+gate cannot block a P0 merge.
+
+P1 was instead run locally against real Docker Postgres; see "Executed on this machine"
+above. Running it in CI too is a `[pg]` commit away.
 
 ---
 
@@ -276,9 +332,10 @@ Two bugs were found by running this rather than by reading it, both now fixed:
    pending, which stranded the caller's promise on Node 18 (6 tests cancelled).
    Both orderings corrected; the tests that caught it are in `test:operability`.
 
-**Not executed, and not claimed:** anything under `DB=pg`. There is no Docker and
-no PostgreSQL on this machine (`docker: command not found`). That is the P1 gate,
-unchanged.
+**Executed under `DB=pg`, and claimed.** Docker Desktop 4.88.1 + `postgres:16`
+(PostgreSQL 16.15) now run on this machine: 91/91 under `DB=pg`, the gate green in
+both modes, and the pg demo byte-identical to memory. See "Testing against real
+Postgres" above for the full transcript and the two negative tests.
 
 ---
 
@@ -286,9 +343,10 @@ unchanged.
 
 A change is done when **all** of these hold:
 
-1. `npm run test:gate` is green (**68/68** today; more as modules land) — no
-   skipped tests, and the floor in `src/tools/test-gate.js` was raised if you
-   added tests.
+1. `npm run test:gate` is green (**85/85** in memory mode today, **91/91** under
+   `DB=pg`; more as modules land) — no skipped tests, and the floor in
+   `src/tools/test-gate.js` was raised if you added tests. The floor tracks the
+   **memory** count, because that is what CI gates on.
 2. No invariant lost its test. If you touched decode, store, ingestion, or attribution,
    the relevant invariant test still fails when you deliberately break the behaviour.
 3. New behaviour has a test in the matching suite, and (if it touches an invariant) a

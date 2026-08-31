@@ -9,7 +9,8 @@ It contains three things and nothing else:
 
 1. **`telematics/`** — a working, tested code slice. It emits and receives **real
    Teltonika Codec 8/8E binary over TCP**, decodes it, stores it, and serves it over
-   HTTP. It runs today with zero setup (`npm run demo`, `npm test` — 68 tests green).
+   HTTP. It runs today with zero setup (`npm run demo`, `npm test` — 85 tests green,
+   91 against real Postgres).
 2. **`context/`** — every reference document the build depends on: the PRD, the BRD,
    the architecture set, the expert reviews, the Teltonika technical packs, and the
    correctness invariants. Indexed in `context/README.md`.
@@ -78,7 +79,7 @@ gps-build/
 │
 ├── telematics/              ← THE CODE (working, tested — see telematics/README.md)
 │   ├── src/                 ← modules 0–9 + logging/, lifecycle/, tools/
-│   ├── test/                ← 68 tests, each suite independently runnable
+│   ├── test/                ← 85 tests (91 under DB=pg), each suite independently runnable
 │   ├── db/                  ← Postgres schema (RLS + immutability triggers) + seed
 │   ├── docs/                ← MODULES.md, PROTOCOL.md (byte-level), RUNBOOKS.md
 │   └── README.md, CLAUDE.md
@@ -100,7 +101,7 @@ Requires only **Node.js ≥ 20** (built on 22). No Docker, no Postgres, no insta
 ```bash
 cd telematics
 npm run demo      # simulator → ingestion → store → API, end-to-end, with a proof summary
-npm test          # 68 tests: protocol, decode, store, tenancy, ingestion, API, scenarios, operability
+npm test          # 85 tests: protocol, decode, D1 engine-hours, store, tenancy, ingestion, API, scenarios, operability
 npm run verify    # spawn the servers for real, replay a scenario, SIGTERM them
 npm run sim:list  # the named device scenarios and what each one proves
 ```

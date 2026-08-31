@@ -21,7 +21,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
 - [x] Module 9 Simulator — device client + scenarios + runner **@integration-engineer**
 - [x] Modules 5 & 7 defined-only throwing stubs **@ledger-owner / @integration-engineer**
 - [x] 37 tests green in memory mode; `npm run demo` proves invariants 1,2,6,7,9 **@qa-test-engineer**
-      *(now 68 after P0 — see the P0 section and `TESTING.md`)*
+      *(now **85** in memory mode and **91** under `DB=pg` after P0, D1, and P1 — see those sections and `TESTING.md`)*
 
 ---
 
@@ -29,7 +29,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
 
 - [x] Stand up CI: `.github/workflows/telematics-tests.yml`, Node 20+22 matrix, memory mode, runs `test:gate` + `demo` + a live scenario replay with a SIGTERM check **@qa-test-engineer**
   - [x] Merge gate is **count- and skip-proof** (`npm run test:gate`, floor in `src/tools/test-gate.js`); verified it fails when the floor is raised
-  - [ ] 🔒 **BLOCKED — needs a human decision.** `gps-build/` is **untracked in git** (`git ls-files gps-build` → 0 files) and the workflow sits at `gps-build/.github/`, which GitHub only reads from a **repo root**. Own repo, or subfolder with the workflow moved up? Until then the gate runs locally only. See `TESTING.md` § CI.
+  - [x] ✅ **RESOLVED.** `gps-build` is its own repo — **github.com/afsalali1238/simulator** — so the workflow sits at the repository root's `.github/workflows/`, which is the only place GitHub Actions reads from. Two commits have run green on Node 20 **and** 22 on GitHub's runners. See `TESTING.md` § CI.
 - [x] Confirm `.env.example` complete; no secrets committed; ports/codec configurable **@integration-engineer**
   - [x] Enforced by a test, not by eye: `test:config` fails on an undocumented var, a fossil var, a real-looking password, or `.env` not being git-ignored
 - [x] Structured logging + LB-shaped `/health` probe **@ingestion-engineer**
@@ -41,36 +41,41 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
   - [x] Verified on real processes with real signals: `npm run verify` → 14/14 on Linux
 - [x] Run-books: run a single sim device against a live server; how to read demo output **@integration-engineer**
   - [x] `telematics/docs/RUNBOOKS.md` — 8 sections; every command in it was executed, and §3 documents the memory-mode gotcha found by doing so
-- [x] **GATE:** `test:gate` green (68/68, no skips) on a non-build machine (WSL2 Linux, Node 18) + `npm run demo` shows ACK 20/5/0-new + `npm run verify` 14/14
-  - [ ] ⚠ Gate met **locally on two platforms**; not yet met *in CI*, which is blocked on the git/repo decision above. `@qa-test-engineer` to sign off once CI runs.
+- [x] **GATE:** `test:gate` green (no skips) on a non-build machine + `npm run demo` shows ACK 20/5/0-new + `npm run verify` 14/14
+  - [x] ✅ Met **in CI**, not just locally: GitHub-hosted runners, Node 20 and 22, both green — a genuinely clean checkout on a machine that is not the build machine. Also green locally on Windows/Node 24 and WSL2 Linux/Node 18.
 
 ### P0 additions to Module 9 (simulator → scenario engine)
 
 - [x] `src/simulator/phases.js` — phase vocabulary (`off`/`startup`/`travel`/`work`/`idle`/`shutdown`/`unplugged`), seeded PRNG, track geometry. Deterministic: no `Math.random`, no `Date.now` **@integration-engineer**
 - [x] `src/simulator/scenarios.js` — named scenario registry: `day-cycle`, `handover`, `yard-idle`, `after-hours`, `geofence-cross`, `tamper` **@integration-engineer**
-- [x] `handover` emits on **both sides** of the seeded instant `2025-06-01T00:00:00Z` from one IMEI, and keeps sending IO 200 afterwards so invariant 9 is genuinely exercised **@integration-engineer**
+- [x] `handover` emits on **both sides** of the seeded instant `2025-06-01T00:00:00Z` from one IMEI, and keeps sending AVL 102 afterwards so invariant 9 is genuinely exercised **@integration-engineer**
 - [x] CLI: `--scenario` / `--list` / `--interval` / `--records` / `--seed` / `--codec` / `--stream`, plus `SIM_*` env equivalents; graceful shutdown retained **@integration-engineer**
 - [x] `test:scenarios` (10) + `test:replay` (5, whole pipeline over real TCP) — invariants 6 and 9 are now proven **end-to-end**, not just as unit calls **@qa-test-engineer**
 - [x] Legacy `makeScenario()` kept byte-identical, so `npm run demo` and `test:ingestion` output did not move **@integration-engineer**
 
 ---
 
-## Phase P1 — Real PostgreSQL  **@database-engineer**  🔒 after P0 gate
+## Phase P1 — Real PostgreSQL  **@database-engineer**  ✅ GATE MET
 
-> P0's code work is done and its gate passes locally on two platforms; the only
-> thing outstanding is the **git/CI decision** noted above. P1 also needs a host
-> decision: this machine has **no Docker and no PostgreSQL** (`docker: command not
-> found`), so `db:up` cannot run here. Options: install Docker Desktop, install
-> Postgres 16 natively and skip `db:up`, or point `DATABASE_URL` at a hosted
-> instance (Supabase is already used elsewhere in Kasper).
+> Ran on **Docker Desktop 4.88.1** + `postgres:16` (PostgreSQL 16.15) on this
+> machine. `DB=pg npm test` → **91/91**, gate green in both modes, pg demo
+> byte-identical to memory. Both DB-layer enforcement tests were verified by
+> dropping the policy/trigger and watching them fail. Full transcript in
+> `TESTING.md` § "Testing against real Postgres".
 
-- [ ] `npm install`, `db:up`, `db:reset` on a real Docker host **@database-engineer**
-- [ ] Run `DB=pg npm test`; focus `test:tenancy` + `test:ingestion` **@database-engineer**
-- [ ] New test: **RLS blocks cross-tenant reads** at the DB layer (fails if policy removed) **@database-engineer**
-- [ ] New test: **`raw_frames` UPDATE/DELETE rejected** by the immutability trigger **@database-engineer**
-- [ ] `DB=pg npm run demo` matches memory-mode output byte-for-byte **@database-engineer**
+- [x] `npm install`, `db:up`, `db:reset` on a real Docker host — container healthy in 1s; schema + seed applied **@database-engineer**
+- [x] Run `DB=pg npm test` — **91/91 pass, 0 fail, 0 skipped** (85 in memory mode; the two pg-only suites add 4 tests each) **@database-engineer**
+- [x] New test: **RLS blocks cross-tenant reads** at the DB layer — `test/rls.test.js`, 4 tests. Proven load-bearing: dropping the three policies + `DISABLE ROW LEVEL SECURITY` fails 3 of 4 (the 4th is the role-privilege guard) **@database-engineer**
+- [x] New test: **`raw_frames` UPDATE/DELETE rejected** by the immutability trigger — `test/immutability.test.js`, 4 tests, run as the **owner** (the restricted role would fail on privileges alone, which is a false proof). Dropping the trigger fails 3 of 4 **@database-engineer**
+- [x] `DB=pg npm run demo` matches memory-mode output byte-for-byte — verified by literal `diff`, not by eye **@database-engineer**
 - [ ] Note the TimescaleDB hypertable migration path for P4 (no interface change) **@database-engineer**
-- [ ] **GATE:** `DB=pg npm test` green + both DB-layer enforcement tests green + demo matches
+- [x] **GATE:** `DB=pg npm test` green + both DB-layer enforcement tests green + demo matches ✅
+
+> **Found by running it:** `test:config`'s "works with no `.env`" test asserted
+> `config.db === 'memory'` against the *ambient* environment, so it failed under
+> `DB=pg` — the test meant to prove zero-setup was broken by the environment it ran
+> in. It now loads `config.js` in a child process with every documented env var
+> stripped. Passes in both modes.
 
 ---
 

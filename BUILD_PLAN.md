@@ -35,29 +35,44 @@ and shape the plan:
 
 ## Status today
 
-✅ **P0 code complete; its gate passes locally on two platforms.** **68 tests pass**
-(37 → 68), `npm run demo` proves invariants 1, 2, 6, 7, 9 on live data, and
-`npm run verify` proves the operability claims on real processes with real signals
-(14/14 on Linux). Verified on Windows/Node 24 **and** WSL2 Linux/Node 18 — a
-different machine and a lower Node than the slice was built on.
+✅ **P0 and P1 gates are both MET. D1 is resolved at the parameter level.**
 
-P0 added: the simulator scenario engine (6 named scenarios, deterministic —
+**85 tests pass in memory mode, 91 under `DB=pg`** (from 37). `npm run demo` proves
+invariants 1, 2, 6, 7, 9 on live data, and `npm run verify` proves the operability
+claims on real processes with real signals (14/14 on Linux). Green on Windows/Node 24,
+WSL2 Linux/Node 18, and — since `gps-build` became its own repo
+(**github.com/afsalali1238/simulator**) — on GitHub-hosted runners on Node 20 and 22.
+The merge gate is genuinely gating now, not an honour-system checkbox.
+
+P0 added: the simulator scenario engine (7 named scenarios, deterministic —
 `handover` and `yard-idle` are the ones that prove invariants 6 and 9 **end-to-end
 over real TCP**), structured logging with secret redaction, an LB-shaped `/health`,
 graceful SIGTERM drains that cannot cut between commit and ACK, a count- and
 skip-proof merge gate, and `docs/RUNBOOKS.md`.
 
-Modules 0–4, 6, 9 implemented; 5, 7 remain throwing stubs; 8 is specified. The pg
-adapter is still **code-complete but not executed** — no Docker or PostgreSQL on
-this machine.
+**D1** replaced the IO-200 stand-in with the real parameter: **AVL 102 "Engine
+Worktime", in MINUTES**, converted to canonical seconds in one audited place. AVL 103
+(tracker-counted), AVL 449 (ignition counter) and AVL 200 (`Sleep Mode`) are explicitly
+refused rather than relabelled. The old code was reading a minutes value as seconds — a
+60× billing error that every invariant test passed straight through.
 
-⚠ **One P0 item is blocked on a human decision, not on code:** `gps-build/` is not
-tracked by git, so the CI workflow has never run and the phase gates remain
-honour-system. See `TASKS.md` P0 and `TESTING.md` § CI.
+**P1** ran for real: Docker Desktop + `postgres:16` (PostgreSQL 16.15). Tenancy is now
+proven at the **database** layer by row-level security (`test:rls`) and evidence
+immutability by a trigger (`test:immutability`), each verified by dropping the
+policy/trigger and watching the suite fail. `DB=pg npm run demo` is byte-identical to
+memory mode.
+
+Modules 0–4, 6, 9 implemented and now exercised against real Postgres; 5 (ledger) and
+7 (messaging) remain throwing stubs; 8 is specified.
+
+**Next is P2**, and its remaining blockers are physical, not architectural: the ledger
+(human-led by design) and per-machine hardware verification of D1 — a live AVL 102
+reading reconciled against the machine's own dashboard hour-meter. See `TASKS.md` P2
+and `D1_CAN_ENGINE_HOURS.md` § 6.
 
 ---
 
-## Phase P0 — Harden the slice  ✅ code complete (CI blocked on a git decision)
+## Phase P0 — Harden the slice  ✅ GATE MET (green in CI)
 
 **Goal:** make what already exists production-grade and CI-gated, so every later
 change is protected. No new features.
@@ -94,22 +109,20 @@ change is protected. No new features.
   construction, aligned with the seed fixtures, and honest about absence (a signal
   with no reading is omitted, never sent as `0`).
 
-**Done-criteria:** met, except CI actually running. 68 tests green from a clean
-checkout on a second machine; a new engineer can go from clone to `npm run demo`
-with no install and no `.env`; no secret material in the repo.
+**Done-criteria:** met. 85 tests green from a clean checkout on machines that are not
+the build machine; a new engineer can go from clone to `npm run demo` with no install
+and no `.env`; no secret material in the repo.
 
-**Testing gate:** ✅ locally — `npm run test:gate` 68/68 with no skips, `npm run
-demo` showing ACK 20 / 5 / 0-new, and `npm run verify` 14/14, on **WSL2 Linux with
-Node 18** as well as Windows with Node 24. ⚠ **Not yet green *in CI*.**
+**Testing gate:** ✅ **MET, in CI.** `npm run test:gate` with no skips, `npm run demo`
+showing ACK 20 / 5 / 0-new, and `npm run verify` 14/14 — green on GitHub-hosted runners
+(Node 20 and 22), on WSL2 Linux with Node 18, and on Windows with Node 24.
 
-> **The one thing still open, and it needs you, not code.** `gps-build/` is
-> **untracked in git** — `git ls-files gps-build` returns nothing. No commit means
-> no push means the workflow has never run, so every gate in this document is
-> currently an honour-system checkbox. Also, GitHub only reads workflows from
-> `.github/workflows/` at a **repository root**; the file is at
-> `gps-build/.github/workflows/`, which is right if gps-build becomes its own repo
-> (what `README.md` intends) and wrong if it stays a subfolder — in which case move
-> it up and keep `working-directory: gps-build/telematics`.
+> **The repo question is settled:** `gps-build` is its own repository —
+> **github.com/afsalali1238/simulator** — which is what `README.md` always intended
+> ("can be zipped and handed to a development team as-is") and what the workflow's path
+> already assumed. The workflow therefore sits at the repository root's
+> `.github/workflows/`, GitHub reads it, and the gate actually gates. Two commits have
+> run green across the full Node matrix.
 >
 > **Two things found by running the code rather than reading it**, both fixed:
 > `npm run start:ingest` and `start:api` silently exited 0 without binding on
@@ -119,7 +132,7 @@ Node 18** as well as Windows with Node 24. ⚠ **Not yet green *in CI*.**
 
 ---
 
-## Phase P1 — Real PostgreSQL (prove the invariants in the database)
+## Phase P1 — Real PostgreSQL (prove the invariants in the database)  ✅ GATE MET
 
 **Goal:** run the `pg` adapter for real and confirm the invariants are enforced by
 **the database itself** — row-level security for tenancy, the trigger for evidence
@@ -127,24 +140,49 @@ immutability, unique keys for idempotency — not just by application code.
 
 **Owner:** `database-engineer`
 
-**Work items**
+**Work items** — all ✅ except the P4 note
 
-- `npm install` (pulls `pg`), `npm run db:up` (Docker Postgres 16), `npm run db:reset`
-  (apply `db/schema.sql` + `db/seed.sql`).
-- Run the suite under `DB=pg`, especially `test:tenancy` and `test:ingestion` — the
-  two that actually exercise RLS and the immutability trigger.
-- Add a test that **proves RLS blocks cross-tenant reads** at the DB layer (not just
-  app layer) and that **UPDATE/DELETE on `raw_frames` is rejected** by the trigger.
-- Confirm `DB=pg npm run demo` produces byte-identical results to memory mode.
-- Decide the time-series path: plain Postgres now; note the TimescaleDB hypertable
-  migration for P4 (interface unchanged).
+- ✅ `npm install` (pulls `pg`), `npm run db:up` (Docker Postgres 16), `npm run db:reset`
+  (apply `db/schema.sql` + `db/seed.sql`). Ran on Docker Desktop 4.88.1; container
+  healthy in 1s; PostgreSQL 16.15.
+- ✅ Ran the whole suite under `DB=pg`: **91/91 pass, 0 fail, 0 skipped** (85 in memory
+  mode — the two pg-only suites add 4 tests each).
+- ✅ `test/rls.test.js` (4 tests) proves **RLS blocks cross-tenant reads at the DB
+  layer**, and `test/immutability.test.js` (4 tests) proves **UPDATE/DELETE on
+  `raw_frames` is rejected by the trigger**. Both are pg-only by construction: they
+  register nothing in memory mode, so the memory gate stays services-free with no skips.
+- ✅ `DB=pg npm run demo` is **byte-identical** to memory mode — verified by a literal
+  `diff` of both runs' output, not by eye.
+- ⬜ Time-series path: plain Postgres now; the TimescaleDB hypertable migration note for
+  P4 is still to be written up (interface unchanged either way).
 
-**Done-criteria:** every test that passes in memory mode also passes under `DB=pg`;
-RLS and the immutability trigger are demonstrably doing the enforcement (a test fails
-if you remove the policy/trigger).
+**Done-criteria:** met. Every test that passes in memory mode also passes under `DB=pg`,
+and the enforcement is demonstrably the database's:
 
-**Testing gate:** `DB=pg npm test` green + the two new DB-layer enforcement tests
-green + `DB=pg npm run demo` matches memory-mode output.
+| Enforcement removed | Suite result |
+|---|---|
+| `DROP POLICY` ×3 + `DISABLE ROW LEVEL SECURITY` ×3 | `test:rls` fails 3 of 4, exit 1 |
+| `DROP TRIGGER raw_frames_immutable` | `test:immutability` fails 3 of 4 — the owner's UPDATE and DELETE both succeed and the sealed row changes |
+
+`npm run db:reset` restored both and each suite returned to 4/4.
+
+**Testing gate:** ✅ **MET.** `DB=pg npm test` 91/91 + both DB-layer enforcement suites
+green + `DB=pg npm run demo` byte-identical to memory-mode output. `DB=pg npm run
+test:gate` → `gate: store=pg pass=91 fail=0 skipped=0 todo=0 floor=85  GATE PASSED`.
+
+> **Two design decisions worth keeping.** `rls.test.js` asserts the reading role is
+> neither SUPERUSER nor BYPASSRLS, because a mis-pointed `APP_DATABASE_URL` would
+> otherwise bypass RLS and make every isolation assertion pass vacuously.
+> `immutability.test.js` mutates as the **owner**, not the restricted role — `dozr_app`
+> has no privileges on `raw_frames`, so its UPDATE would fail on permissions and
+> `assert.rejects` would pass even with the trigger dropped. That would be a false
+> proof.
+>
+> **Found by running it:** `test:config`'s "works with no `.env`" test asserted
+> `config.db === 'memory'` against the *ambient* environment, so it failed under
+> `DB=pg` — the test meant to prove zero-setup was itself broken by the environment it
+> ran in. It now loads `config.js` in a child process with every documented env var
+> stripped, which is the claim it was always trying to make.
 
 ---
 

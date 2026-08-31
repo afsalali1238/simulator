@@ -20,6 +20,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from '../src/config.js';
@@ -86,20 +87,42 @@ test('config: .env.example documents nothing the code has stopped reading', () =
   assert.deepEqual(fossils, [], `stale vars in .env.example: ${fossils.join(', ')}`);
 });
 
-test('config: the whole slice has working defaults with no .env present', () => {
-  // config.js is imported above; if it needed a .env it would already have
-  // thrown. Assert the values the demo and the tests actually depend on.
-  assert.equal(config.db, 'memory'); // zero-setup default
-  assert.equal(typeof config.ingest.port, 'number');
-  assert.ok(config.ingest.port > 0);
-  assert.equal(typeof config.api.port, 'number');
-  assert.ok(config.api.port > 0);
-  assert.equal(typeof config.sim.intervalMs, 'number');
-  assert.ok(config.sim.scenario, 'a default scenario must be set');
-  assert.ok(['json', 'kv'].includes(config.log.format));
-  assert.ok(['debug', 'info', 'warn', 'error', 'silent'].includes(config.log.level));
-  assert.ok(config.shutdownTimeoutMs > 0);
-  assert.equal(config.failBeforeCommit, false); // never on by default
+test('config: the whole slice has working defaults with no .env and no env vars', () => {
+  // This must assert the DEFAULTS, not whatever the ambient environment happens
+  // to be set to — otherwise `DB=pg npm test` fails the test that is supposed to
+  // prove zero-setup works. So load config.js in a CHILD process with every var
+  // the slice reads stripped out. That is the actual claim: a bare checkout with
+  // no .env and no exported vars runs.
+  const stripped = { ...process.env };
+  for (const v of varsDocumented()) delete stripped[v];
+  delete stripped.DATABASE_URL; // read via the appDatabaseUrl fallback chain
+
+  const out = execFileSync(
+    process.execPath,
+    [
+      '-e',
+      "import('./src/config.js').then(({config}) => " +
+        'process.stdout.write(JSON.stringify(config)))',
+    ],
+    { cwd: ROOT, env: stripped, encoding: 'utf8' },
+  );
+  const fresh = JSON.parse(out);
+
+  assert.equal(fresh.db, 'memory'); // zero-setup default
+  assert.equal(typeof fresh.ingest.port, 'number');
+  assert.ok(fresh.ingest.port > 0);
+  assert.equal(typeof fresh.api.port, 'number');
+  assert.ok(fresh.api.port > 0);
+  assert.equal(typeof fresh.sim.intervalMs, 'number');
+  assert.ok(fresh.sim.scenario, 'a default scenario must be set');
+  assert.ok(['json', 'kv'].includes(fresh.log.format));
+  assert.ok(['debug', 'info', 'warn', 'error', 'silent'].includes(fresh.log.level));
+  assert.ok(fresh.shutdownTimeoutMs > 0);
+  assert.equal(fresh.failBeforeCommit, false); // never on by default
+
+  // And the ambient config object imported at the top of this file is still
+  // internally consistent, whatever DB mode the suite is being run in.
+  assert.ok(['memory', 'pg'].includes(config.db));
 });
 
 test('config: no secret material is committed', () => {

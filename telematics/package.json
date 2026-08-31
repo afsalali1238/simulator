@@ -33,7 +33,9 @@
     "test:replay": "node --test test/replay.test.js",
     "test:operability": "node --test test/operability.test.js",
     "test:config": "node --test test/config.test.js",
-    "test:engine-hours": "node --test test/engine-hours.test.js"
+    "test:engine-hours": "node --test test/engine-hours.test.js",
+    "test:rls": "node --test test/rls.test.js",
+    "test:immutability": "node --test test/immutability.test.js"
   },
   "dependencies": {
     "pg": "^8.13.1"
