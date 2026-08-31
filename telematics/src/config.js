@@ -81,33 +81,54 @@ export const config = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The IO-parameter map = our stand-in for a Teltonika "CAN program number" (the
-// open decision D1). On real hardware, which IO IDs carry which signal depends
-// on the FMC + CAN adapter program for that exact make/model/year. Here we fix
-// a small, documented set so the simulator and decoder agree.
+// The Teltonika AVL IO IDs this harness speaks. All of these are now the REAL
+// documented IDs for an FMC130 — decision D1 is resolved at the parameter level
+// (see src/decode/engine-hours.js and ../D1_CAN_ENGINE_HOURS.md).
 //
-//   239, 240, 69 are the REAL Teltonika standard IO IDs for these signals.
-//   ENGINE_HOURS_S is SIMULATED: a real total-engine-hours signal comes over
-//   CAN and its ID is program-dependent — the dev team maps it per D1. We use a
-//   1-byte-safe ID so it encodes in both Codec 8 and 8E, carried as a 4-byte
-//   unsigned "engine-on seconds" counter (monotonic, like an hour-meter).
+//   239, 240, 69          Teltonika standard permanent I/O elements.
+//   100                   the CAN program number the adapter is running.
+//   102                   Engine Worktime — the MACHINE's lifetime hour-meter,
+//                         in MINUTES. This is the billing parameter.
+//   103                   Engine Worktime (counted) — counted by the TRACKER
+//                         from adapter installation, also minutes. NOT billable.
+//
+// ⚠ 200 is **Sleep Mode** on real firmware. Earlier versions of this harness
+// used 200 as an "engine-on seconds" stand-in while D1 was open; that stand-in
+// is gone. Anything still reading 200 as engine hours is a bug — the decoder
+// refuses it, and a test asserts the refusal.
+//
+// Which of these a given machine actually reports depends on its CAN program
+// (AVL 100). The per-machine program numbers are in ../D1_CAN_ENGINE_HOURS.md;
+// the decoder's behaviour does not change with them, only the data does.
 // ─────────────────────────────────────────────────────────────────────────────
 export const IO = {
   IGNITION: 239, // 1 byte, 0/1 — Teltonika standard
   MOVEMENT: 240, // 1 byte, 0/1 — Teltonika standard
   GNSS_STATUS: 69, // 1 byte — Teltonika standard
-  ENGINE_HOURS_S: 200, // 4 bytes, engine-on seconds — SIMULATED CAN param (D1)
+
+  // ── CAN adapter (LV-CAN200 / ALL-CAN300 / CAN-CONTROL) ──
+  CAN_PROGRAM_NUMBER: 100, // 4 bytes — which program the adapter is running
+  ENGINE_WORKTIME_MIN: 102, // 4 bytes, MINUTES — billable (machine's hour-meter)
+  ENGINE_WORKTIME_COUNTED_MIN: 103, // 4 bytes, MINUTES — tracker-counted, NOT billable
 
   // Power/tamper signals the simulator can emit so the P3 rules engine has
-  // realistic data to fire on. These are the documented FMB-series standard AVL
-  // IDs; they are NOT decoded into canonical rows yet (no rule consumes them),
-  // so nothing downstream depends on the exact numbers.
-  //   ⚠ protocol-engineer: confirm against context/teltonika/ before any rule
-  //   or decode path starts reading them.
+  // realistic data to fire on. Documented FMB-series standard AVL IDs; they are
+  // NOT decoded into canonical rows yet, so nothing downstream depends on them.
   EXTERNAL_VOLTAGE_MV: 66, // 2 bytes, mV — external (vehicle) supply
   BATTERY_LEVEL_PCT: 113, // 1 byte, % — internal backup battery
   UNPLUG_DETECTED: 252, // 1 byte, 0/1 — power-cut / unplug event
+
+  // Present so nobody re-discovers it as a shortcut: accumulated ignition-on
+  // seconds. Invariant 5 — it may inform a display, never an invoice.
+  IGNITION_ON_COUNTER_S: 449,
 };
+
+/**
+ * The retired stand-in. Kept as a named constant purely so the decoder can
+ * refuse it loudly instead of silently treating Sleep Mode as engine hours.
+ */
+export const RETIRED_ENGINE_HOURS_STANDIN_ID = 200;
+
 
 // Reverse lookup used by the decoder for readable logs.
 export const IO_NAME = Object.fromEntries(

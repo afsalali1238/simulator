@@ -73,11 +73,23 @@ const DOZR_YARD = { lat: 25.1279, lon: 55.2265 };
  * `undefined` is OMITTED — that absence is how the simulator models "no
  * reading", which is what exercises the decoder's NULL-vs-zero handling
  * (invariant 3). Do not "tidy" an omission into a 0.
+ *
+ * Engine hours: the simulator tracks engine time in SECONDS because per-tick
+ * arithmetic is natural that way, but a real Teltonika reports AVL 102 in
+ * MINUTES — so that is what goes on the wire, floored, exactly as an hour-meter
+ * behaves. See src/decode/engine-hours.js for why the unit matters (a 60×
+ * billing error that no invariant test would catch).
+ *
+ * `engineCountedSeconds` emits AVL 103, the TRACKER-counted accumulator. Only
+ * the `ecu-counted-only` scenario sets it, to prove the decoder refuses it as
+ * billing evidence rather than relabelling it 'ecu'.
  */
 export function buildIo({
   ignition,
   movement,
   engineSeconds,
+  engineCountedSeconds,
+  programNumber,
   gnssStatus,
   externalVoltageMv,
   batteryPct,
@@ -87,7 +99,23 @@ export function buildIo({
   if (ignition != null) io.push({ id: IO.IGNITION, size: 1, value: ignition ? 1 : 0 });
   if (movement != null) io.push({ id: IO.MOVEMENT, size: 1, value: movement ? 1 : 0 });
   if (gnssStatus != null) io.push({ id: IO.GNSS_STATUS, size: 1, value: gnssStatus });
-  if (engineSeconds != null) io.push({ id: IO.ENGINE_HOURS_S, size: 4, value: engineSeconds });
+  if (programNumber != null) {
+    io.push({ id: IO.CAN_PROGRAM_NUMBER, size: 4, value: programNumber });
+  }
+  if (engineSeconds != null) {
+    io.push({
+      id: IO.ENGINE_WORKTIME_MIN,
+      size: 4,
+      value: Math.floor(engineSeconds / 60), // AVL 102 is minutes
+    });
+  }
+  if (engineCountedSeconds != null) {
+    io.push({
+      id: IO.ENGINE_WORKTIME_COUNTED_MIN,
+      size: 4,
+      value: Math.floor(engineCountedSeconds / 60), // AVL 103 is minutes
+    });
+  }
   if (externalVoltageMv != null) {
     io.push({ id: IO.EXTERNAL_VOLTAGE_MV, size: 2, value: Math.round(externalVoltageMv) });
   }
@@ -102,8 +130,14 @@ export function buildIo({
 /**
  * The original one-note generator: ignition wired on, a mechanical idle blip
  * every 10th tick, an engine meter that only climbs. Superseded by the named
- * scenarios below, but kept byte-for-byte identical because `npm run demo` and
- * test/ingestion.test.js pin its output. New work should use buildScenario().
+ * scenarios below, but kept because `npm run demo` and test/ingestion.test.js
+ * pin its shape. New work should use buildScenario().
+ *
+ * `engineSeconds0` is still expressed in seconds for readability; buildIo puts
+ * it on the wire as AVL 102 in minutes, like a real unit. So `npm run demo`
+ * reports fewer decoded hours than it used to — that is the D1 fix, not a
+ * regression: the old number was a seconds value being billed as if the
+ * parameter were seconds, which no real Teltonika reports.
  */
 export function makeScenario({
   startTsMs = Date.parse('2025-03-01T06:00:00Z'), // inside D1 -> Excavator X (Tenant A)
@@ -159,10 +193,15 @@ const SHORT_SHIFT = [
 ];
 
 // ── The scenario registry ────────────────────────────────────────────────────
-// A track = one device's stream. `emitEngine` = a CAN adapter is fitted and the
-// unit reports its engine-second counter (see the header note — this is NOT a
-// claim of billable truth). `power` = emit external-voltage/battery IO, which
-// only the tamper scenario needs.
+// A track = one device's stream. Per-track flags:
+//   emitEngine      a CAN adapter is fitted and the unit reports AVL 102, the
+//                   machine's own hour-meter (minutes on the wire).
+//   emitCountedOnly report ONLY AVL 103, the tracker-counted accumulator — used
+//                   to prove the decoder refuses it as billing evidence.
+//   programNumber   the CAN program the adapter runs (AVL 100), so a record can
+//                   say which mapping produced it. Real numbers per machine are
+//                   in ../../D1_CAN_ENGINE_HOURS.md.
+//   power           emit external-voltage/battery IO (the tamper scenario only).
 export const SCENARIOS = {
   'day-cycle': {
     description:
@@ -179,6 +218,7 @@ export const SCENARIOS = {
         heading0: 70,
         engineSeconds0: 3600,
         emitEngine: true,
+        programNumber: 1261, // ALL-CAN300 program for a CAT 320-class excavator
         plan: DAY_PLAN,
       },
     ],
@@ -220,7 +260,7 @@ export const SCENARIOS = {
       'the system must still produce NO engine data for Generator Y.',
     proves: [
       'invariant 6 — records attribute by their own timestamp, not "as of now"',
-      'invariant 9 — a non-CAN asset yields position + ignition only, even though the device still reports IO 200',
+      'invariant 9 — a non-CAN asset yields position + ignition only, even though the device still reports AVL 102',
     ],
     tracks: [
       {
@@ -234,6 +274,7 @@ export const SCENARIOS = {
         heading0: 45,
         engineSeconds0: 250_000,
         emitEngine: true,
+        programNumber: 1261, // Excavator X's ALL-CAN300 program
         plan: SHORT_SHIFT,
       },
       {
@@ -246,7 +287,8 @@ export const SCENARIOS = {
         heading0: 200,
         // The unit carries its own accumulated counter over to the new machine.
         // Reporting it is realistic AND is the point: nothing downstream may
-        // turn it into engine data for an asset with no CAN program.
+        // turn it into engine data for an asset with no CAN program. No program
+        // number is reported, because the generator has no supported program.
         engineSeconds0: 253_000,
         emitEngine: true,
         plan: SHORT_SHIFT,
@@ -311,6 +353,35 @@ export const SCENARIOS = {
         // Turn the vehicle around after the outbound leg so it drives back to
         // the site instead of away from it. Applied by tick index.
         headingFlipAtTick: 12,
+      },
+    ],
+  },
+
+  // ── D1: the parameter that looks right and must not be billed ─────────────
+  'ecu-counted-only': {
+    description:
+      'D1 on Excavator X where the CAN program exposes ONLY AVL 103 — the ' +
+      'engine-hours counter the TRACKER accumulates from adapter installation, ' +
+      "not the machine's own hour-meter. It looks exactly like usable engine " +
+      'data and must NOT become billing evidence: it cannot be reconciled ' +
+      'against the dashboard meter and it resets if the adapter is swapped.',
+    proves: [
+      'invariant 5 — a tracker-side accumulator is refused as billing evidence',
+      'invariant 4 — it is dropped, not relabelled source:ecu',
+    ],
+    tracks: [
+      {
+        imei: D1,
+        label: 'D1 / Excavator X (only AVL 103 available)',
+        startTsIso: '2025-04-20T05:00:00Z',
+        stepMs: 60_000,
+        origin: { lat: 25.2048, lon: 55.2708 },
+        heading0: 60,
+        engineSeconds0: 140_000,
+        emitEngine: false, // no AVL 102 at all
+        emitCountedOnly: true, // AVL 103 only
+        programNumber: 1261,
+        plan: SHORT_SHIFT,
       },
     ],
   },
@@ -385,11 +456,14 @@ function materializeTrack(track, { seed, stepMs, limit }) {
       pos = advance(pos, { speedKmh: s.speedKmh, stepMs: step, headingDeg: heading });
     }
 
-    // Engine counter: reported only when a CAN adapter is fitted AND the unit
+    // Engine counters: reported only when a CAN adapter is fitted AND the unit
     // can read the bus (key on). Otherwise the element is omitted — absence,
-    // not zero (invariant 3).
-    const canRead = track.emitEngine === true && s.ignition === true;
-    const engineIo = canRead ? engineSeconds : null;
+    // not zero (invariant 3). buildIo converts seconds → the minutes a real
+    // Teltonika puts on the wire.
+    const canRead = s.ignition === true;
+    const engineIo = canRead && track.emitEngine === true ? engineSeconds : null;
+    const engineCountedIo =
+      canRead && track.emitCountedOnly === true ? engineSeconds : null;
 
     // Power/tamper IO only where a scenario asks for it, so the ordinary
     // scenarios stay minimal and easy to pin in tests.
@@ -419,6 +493,8 @@ function materializeTrack(track, { seed, stepMs, limit }) {
         ignition: s.ignition,
         movement: s.movement,
         engineSeconds: engineIo,
+        engineCountedSeconds: engineCountedIo,
+        programNumber: canRead ? (track.programNumber ?? null) : null,
         gnssStatus: s.ignition == null ? null : GNSS_FIX,
         externalVoltageMv,
         batteryPct,

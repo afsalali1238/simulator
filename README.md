@@ -118,12 +118,17 @@ happen on live data. Full detail in `telematics/README.md`; operating procedures
 handshake, the Codec 8/8E record layout, the CRC-16/IBM, the 4-byte ACK, and the
 standard IO IDs 239 (ignition), 240 (movement), 69 (GNSS).
 
-**Simulated placeholder** — needs a hardware decision: total **engine hours**. On
-real machines these arrive over the vehicle **CAN bus**, and the IO ID that carries
-them depends on the FMC model + CAN adapter *program* for that exact make/model/year.
-Choosing and mapping those programs is **open decision D1** (see `ARCHITECTURE.md`
-and `BUILD_PLAN.md`). Until D1 is resolved, engine hours are a stand-in counter under
-IO ID 200. **Everything else is production-shaped.**
+**Engine hours are now the real parameter too** (decision **D1**, resolved at the
+parameter level — `D1_CAN_ENGINE_HOURS.md`). They arrive over the vehicle **CAN bus**
+via an adapter running a machine-specific **program number**, and the adapter exposes
+them as **AVL 102 "Engine Worktime", in MINUTES**. The decoder converts to canonical
+seconds in one audited place and refuses the two look-alikes: **AVL 103** (counted by
+the tracker, not the machine) and **AVL 449** (ignition-on seconds). The earlier
+IO-200 stand-in is retired — on real firmware 200 is `Sleep Mode`.
+
+**Still needs hardware:** a decoded figure is a reading, not evidence, until it has
+been **reconciled against the machine's own dashboard hour-meter**. Until that happens
+per machine type, the ledger stays human-reviewed.
 
 ---
 

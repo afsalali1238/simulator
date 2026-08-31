@@ -22,7 +22,9 @@ function decodedAt(tsMs) {
     gps: { lat: 25, lon: 55, speed: 5, angle: 0, altitude: 0, satellites: 9 },
     io: [
       { id: 239, size: 1, value: 1 }, // ignition on
-      { id: 200, size: 4, value: 7200 }, // engine-on seconds (only counts if asset has CAN)
+      // AVL 102 = the machine's own engine hour-meter, in MINUTES. Only becomes
+      // an engine reading if the attributed asset has a CAN program (invariant 9).
+      { id: 102, size: 4, value: 120 },
     ],
   };
 }

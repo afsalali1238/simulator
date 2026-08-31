@@ -96,19 +96,19 @@ test('scenarios: handover emits records on both sides of 2025-06-01T00:00:00Z (i
   assert.deepEqual([...tenantsAfter], [TENANTS.B.id]);
 });
 
-test('scenarios: after the handover the device still reports IO 200 but no engine data is produced (invariant 9)', () => {
+test('scenarios: after the handover the device still reports AVL 102 but no engine data is produced (invariant 9)', () => {
   const built = buildScenario('handover');
   const all = scenarioRecords(built);
   const device = DEVICES[0];
 
-  // The device does keep reporting its counter across the boundary — that is
+  // The device does keep reporting its hour-meter across the boundary — that is
   // deliberate, and it is the trap invariant 9 has to catch.
   const afterWithEngineIo = all.filter(
-    (r) => r.timestampMs >= HANDOVER_TS_MS && io(r, IO.ENGINE_HOURS_S),
+    (r) => r.timestampMs >= HANDOVER_TS_MS && io(r, IO.ENGINE_WORKTIME_MIN),
   );
   assert.ok(
     afterWithEngineIo.length > 0,
-    'the post-handover track should still emit IO 200 so invariant 9 is actually exercised',
+    'the post-handover track should still emit AVL 102 so invariant 9 is actually exercised',
   );
 
   // Normalise every record the way the ingestion server does, with the asset's
@@ -143,7 +143,8 @@ test('scenarios: yard-idle omits the engine IO entirely — absence, not zero (i
   assert.equal(track.imei, DEVICES[1].imei); // the unassigned FMC920
 
   for (const r of track.records) {
-    assert.equal(io(r, IO.ENGINE_HOURS_S), undefined, 'engine IO must be omitted, not sent as 0');
+    assert.equal(io(r, IO.ENGINE_WORKTIME_MIN), undefined, 'engine IO must be omitted, not sent as 0');
+    assert.equal(io(r, IO.ENGINE_WORKTIME_COUNTED_MIN), undefined, 'no tracker counter either');
     assert.ok(io(r, IO.IGNITION), 'ignition should still be reported');
   }
 
@@ -171,7 +172,7 @@ test('scenarios: tamper reports ignition as null (unknown), never false (invaria
     // "I cannot read the bus" => the element is absent, so the decoder yields
     // null and deriveState() answers 'unknown' rather than 'off'.
     assert.equal(io(r, IO.IGNITION), undefined, 'ignition IO must be ABSENT while unplugged');
-    assert.equal(io(r, IO.ENGINE_HOURS_S), undefined, 'no engine counter without a live bus');
+    assert.equal(io(r, IO.ENGINE_WORKTIME_MIN), undefined, 'no engine counter without a live bus');
     assert.equal(io(r, IO.EXTERNAL_VOLTAGE_MV).value, 0, 'external supply collapsed');
 
     const canonical = normalizeRecord(r, { device: DEVICES[0], assignment: null });
@@ -212,14 +213,14 @@ test('scenarios: geofence-cross genuinely leaves and re-enters the site circle',
   assert.ok(entries >= 1, 'the track never comes back into the geofence');
 });
 
-test('scenarios: the engine hour-meter is monotonic and only advances while the engine runs', () => {
+test('scenarios: the engine hour-meter is monotonic, in minutes, and only advances while the engine runs', () => {
   const built = buildScenario('day-cycle');
   const records = built.tracks[0].records;
 
   let last = null;
   let advancedWhileRunning = 0;
   for (const r of records) {
-    const el = io(r, IO.ENGINE_HOURS_S);
+    const el = io(r, IO.ENGINE_WORKTIME_MIN);
     if (!el) continue; // key off / no bus: absent by design
     if (last != null) {
       assert.ok(el.value >= last, 'the hour-meter must never go backwards');
@@ -229,12 +230,49 @@ test('scenarios: the engine hour-meter is monotonic and only advances while the 
   }
   assert.ok(advancedWhileRunning > 0, 'the meter never advanced');
 
+  // The wire value is MINUTES, not seconds. The track starts at 3600s = 60 min,
+  // so the first reported reading must be ~60, not ~3600 — this is the assertion
+  // that would catch a re-introduced 60× unit error.
+  const first = records.find((r) => io(r, IO.ENGINE_WORKTIME_MIN));
+  assert.ok(
+    io(first, IO.ENGINE_WORKTIME_MIN).value >= 60 && io(first, IO.ENGINE_WORKTIME_MIN).value < 70,
+    `expected ~60 minutes on the wire, got ${io(first, IO.ENGINE_WORKTIME_MIN).value}`,
+  );
+
   // Key-off records must not carry a counter at all.
   const offRecords = records.filter((r) => r._phase === 'off' || r._phase === 'shutdown');
   assert.ok(offRecords.length > 0);
   for (const r of offRecords) {
-    assert.equal(io(r, IO.ENGINE_HOURS_S), undefined);
+    assert.equal(io(r, IO.ENGINE_WORKTIME_MIN), undefined);
     assert.equal(io(r, IO.IGNITION).value, 0); // present-and-zero: a real reading
+  }
+});
+
+test('scenarios: ecu-counted-only emits AVL 103 only, and it never becomes billable (invariants 4, 5)', () => {
+  const built = buildScenario('ecu-counted-only');
+  const track = built.tracks[0];
+  const withCounter = track.records.filter((r) => io(r, IO.ENGINE_WORKTIME_COUNTED_MIN));
+  assert.ok(withCounter.length > 0, 'the scenario must emit AVL 103');
+
+  for (const r of track.records) {
+    // The billable parameter is never present in this scenario.
+    assert.equal(io(r, IO.ENGINE_WORKTIME_MIN), undefined, 'AVL 102 must not appear');
+  }
+
+  // Through the decoder, on a fully CAN-supported asset: still no engine data.
+  const device = DEVICES[0];
+  for (const r of withCounter) {
+    const assignment = resolveAssignment(device.id, r.timestampMs);
+    const asset = assignment ? ASSETS.find((a) => a.id === assignment.assetId) : null;
+    const canonical = normalizeRecord(r, {
+      device,
+      assignment: assignment ? { ...assignment, hasEngineData: asset?.hasEngineData } : null,
+    });
+    assert.equal(
+      canonical.engine,
+      null,
+      'a tracker-counted accumulator must never be relabelled source:ecu',
+    );
   }
 });
 

@@ -158,14 +158,20 @@ that must be owned by a human.
 
 **Work items**
 
-- **Resolve D1 (critical path, start immediately, in parallel with P0/P1):** for each
-  machine make/model/year we'll deploy on, identify the CAN adapter **program** and
-  the real IO ID(s) carrying engine hours. Source: `context/teltonika/` +
-  Teltonika/CAN adapter documentation. Map them in the decoder; the decoder's
-  contract does **not** change (engine hours only for CAN assets, always
-  `source: 'ecu'`).
-- Replace the simulated IO-ID-200 stand-in with the real per-program mapping. Keep
-  the simulator able to emit the real IDs so tests stay meaningful.
+- **D1 — desk half done, hardware half outstanding.** The billing parameter is
+  **AVL 102 "Engine Worktime", 4 bytes unsigned, in MINUTES**, exposed by LV-CAN200 /
+  ALL-CAN300 / CAN-CONTROL; the live program number arrives as AVL 100. It is mapped
+  in `src/decode/engine-hours.js`, the simulator emits it, and `test:engine-hours`
+  covers it — the decoder's contract did **not** change. Refused as billing evidence:
+  **AVL 103** (counted by the tracker, not the machine), **AVL 449** (ignition
+  counter, invariant 5), **AVL 200** (`Sleep Mode` — the retired stand-in). Full
+  write-up and per-machine program numbers: `D1_CAN_ENGINE_HOURS.md`.
+  - **What remains is physical:** per brand, read AVL 102 back live, confirm the
+    program number and unit for that exact make/model/year, and **reconcile against
+    the machine's dashboard hour-meter** (`reconcile()` in the same module). A row is
+    only *verified* — and only billable — after that. Also outstanding on our side:
+    the actual fleet list, and whether the adapters we buy use 4- or 5-digit program
+    numbers (post-2018 adapters prefix a `1`).
 - Build **Module 5 (ledger)** for real: compute utilisation per asset per period from
   **ECU readings only** (invariant 5 — ignition counters are never billing evidence).
 - Build the **evidence seal**: each billed period sealed into an immutable,

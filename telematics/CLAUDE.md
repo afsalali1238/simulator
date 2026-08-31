@@ -20,7 +20,7 @@ Kasper product. If a change seems to reach outside telematics, stop and ask.
 ```bash
 # zero-setup — needs only Node ≥ 20, no install, no Docker (default DB=memory)
 npm run demo            # full pipeline end-to-end with a proof summary
-npm test                # all 68 tests, run serially
+npm test                # all 83 tests, run serially
 npm run test:gate       # THE MERGE GATE: the suite + count/skip enforcement
 npm run verify          # spawn real servers, replay a scenario, SIGTERM them
 
@@ -28,7 +28,7 @@ npm run verify          # spawn real servers, replay a scenario, SIGTERM them
 npm run test:crc        npm run test:codec      npm run test:store
 npm run test:decode     npm run test:tenancy    npm run test:ingestion
 npm run test:api        npm run test:scenarios  npm run test:replay
-npm run test:operability                        npm run test:config
+npm run test:operability  npm run test:config   npm run test:engine-hours
 
 # run the pieces
 npm run start:ingest    # TCP ingestion server
@@ -90,10 +90,19 @@ These are the whole reason the code is shaped the way it is. Don't "simplify" pa
 ## Real vs. simulated
 
 Real and device-accurate: TCP framing, IMEI handshake, Codec 8/8E record layout,
-CRC-16/IBM, the 4-byte ACK, and IO IDs 239/240/69. **Simulated placeholder:** the
-engine-hours signal (IO ID 200, "engine-on seconds"). Real engine hours come over
-CAN and the IO ID is program-dependent — that mapping is open decision **D1**. See
-`docs/PROTOCOL.md`.
+CRC-16/IBM, the 4-byte ACK, IO IDs 239/240/69 — **and engine hours: AVL 102 "Engine
+Worktime", in MINUTES** (decision **D1**, resolved at the parameter level).
+
+Three engine-hours look-alikes are refused, not billed: **AVL 103** (counted by the
+tracker, not the machine), **AVL 449** (ignition-on seconds, invariant 5), and **AVL
+200** (the retired stand-in — really `Sleep Mode`). The conversion minutes → seconds
+lives in exactly one place, `src/decode/engine-hours.js`; getting it wrong is a 60×
+billing error that no invariant test would catch, which is why
+`npm run test:engine-hours` asserts it arithmetically.
+
+**Still not verified on hardware:** a reading becomes evidence only after
+`reconcile()` agrees with the machine's physical hour-meter. See `docs/PROTOCOL.md`
+and `../D1_CAN_ENGINE_HOURS.md`.
 
 ## Module map & docs
 
@@ -113,7 +122,7 @@ replay against it, so two properties are load-bearing:
   **omitted**, never sent as `0`. That is how invariant 3 gets exercised at all.
 
 `npm run sim:list` shows the named scenarios. `handover` is the important one: one
-device, records either side of `2025-06-01T00:00:00Z`, still emitting IO 200 after
+device, records either side of `2025-06-01T00:00:00Z`, still emitting AVL 102 after
 the handover — so the system has to *choose* not to produce engine data for a
 non-CAN asset. That is invariant 9's trap, and it is deliberate. Don't "fix" it.
 

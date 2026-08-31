@@ -54,10 +54,15 @@ test('decode: a present-but-zero ignition is false — a real reading, not missi
 });
 
 test('decode: engine hours only for CAN-supported assets, always source "ecu" (invariants 9, 4)', () => {
-  const io = [{ id: IO.ENGINE_HOURS_S, size: 4, value: 7200 }];
+  // AVL 102 is the machine's own hour-meter, in MINUTES: 120 min = 2 h.
+  // (Full D1 coverage — the unit trap, AVL 103, AVL 449 — is in
+  // test/engine-hours.test.js; this asserts the invariant-9 gate.)
+  const io = [{ id: IO.ENGINE_WORKTIME_MIN, size: 4, value: 120 }];
 
   const withCan = normalizeRecord(decoded(io), { device, assignment: canAssign });
-  assert.deepEqual(withCan.engine, { seconds: 7200, hours: 2, source: 'ecu' });
+  assert.equal(withCan.engine.seconds, 7200);
+  assert.equal(withCan.engine.hours, 2);
+  assert.equal(withCan.engine.source, 'ecu');
 
   // Identical bytes, but the asset has no CAN program -> no engine hours at all.
   const noCan = normalizeRecord(decoded(io), { device, assignment: noCanAssign });

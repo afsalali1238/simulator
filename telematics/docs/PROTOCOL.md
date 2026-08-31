@@ -105,25 +105,36 @@ tolerated on read but always written correctly.
 
 ## IO IDs used in this harness
 
-| IO ID | Meaning | Width | Source |
-|------:|---------|-------|--------|
-| 239 | Ignition (0/1) | 1 byte | **Real** Teltonika standard ID |
-| 240 | Movement (0/1) | 1 byte | **Real** Teltonika standard ID |
-| 69 | GNSS status | 1 byte | **Real** Teltonika standard ID |
-| 200 | Engine-on seconds | 4 bytes | **Simulated placeholder** — see below |
-| 66 | External (vehicle) supply, mV | 2 bytes | Documented FMB-series standard ID — **emitted by the `tamper` scenario only; not decoded** |
-| 113 | Internal battery level, % | 1 byte | Documented FMB-series standard ID — **emitted by the `tamper` scenario only; not decoded** |
-| 252 | Unplug detected (0/1) | 1 byte | Documented FMB-series standard ID — **emitted by the `tamper` scenario only; not decoded** |
+All IDs below are the **real** documented FMC130 parameters, verified against
+Teltonika's own table (see `../../D1_CAN_ENGINE_HOURS.md` for the verbatim rows).
 
-The last three exist so the P3 rules engine has realistic tamper/low-battery data
-to be developed against. **Nothing decodes them today** — `normalize.js` ignores
-them entirely, so no canonical row or invariant depends on the exact numbers.
+| IO ID | Meaning | Width | Unit | Decoded? |
+|------:|---------|-------|------|----------|
+| 239 | Ignition (0/1) | 1 byte | — | ✅ |
+| 240 | Movement (0/1) | 1 byte | — | ✅ |
+| 69 | GNSS status | 1 byte | — | ✅ (simulator emits) |
+| **102** | **Engine Worktime** — the machine's own hour-meter | 4 bytes | **minutes** | ✅ **the billing parameter** |
+| **103** | Engine Worktime (counted) — counted by the *tracker* | 4 bytes | minutes | ⛔ **refused** as billing evidence |
+| 100 | CAN program number | 4 bytes | — | emitted by the simulator; not yet decoded |
+| 66 | External (vehicle) supply | 2 bytes | mV | `tamper` scenario only; not decoded |
+| 113 | Internal battery level | 1 byte | % | `tamper` scenario only; not decoded |
+| 252 | Unplug detected (0/1) | 1 byte | — | `tamper` scenario only; not decoded |
+| 449 | Ignition On Counter | 4 bytes | seconds | ⛔ **forbidden** as billing evidence (invariant 5) |
 
-> ⚠ **`protocol-engineer`: confirm 66 / 113 / 252 against `context/teltonika/`
-> before any decode path or rule starts reading them.** They were taken from the
-> published FMB AVL ID list, not from the technical pack in this folder. Being
-> wrong is currently harmless; it stops being harmless the moment a rule fires on
-> them.
+⚠ **AVL 200 is `Sleep Mode`, not engine hours.** Earlier versions of this harness
+used 200 as an "engine-on seconds" stand-in while D1 was open. That stand-in is
+gone and the decoder now refuses it — a record carrying IO 200 produces no engine
+data, and a test asserts it.
+
+**102 vs 103 decides whether a number can be billed.** 102 is the machine's
+lifetime meter, reconcilable against the physical dashboard hour-meter. 103 is a
+tracker-side accumulator that starts at zero when the adapter is installed, cannot
+be reconciled, and resets on an adapter swap. Only 102 may back an invoice; 103 is
+dropped rather than relabelled `source: 'ecu'` (invariants 4 and 5).
+
+The power/tamper IDs (66/113/252) exist so the P3 rules engine has realistic data
+to be developed against. Nothing decodes them yet, so no canonical row depends on
+them.
 
 ### Absence vs zero on the wire (invariant 3)
 
@@ -136,18 +147,25 @@ unit can no longer read the bus, so ignition is **absent** (→ `null`, state
 `unknown`), not `0` (→ `false`, state `off`). Those two mean very different things
 to a billing dispute.
 
-### The one open decision: engine hours (D1)
+### Engine hours (D1) — resolved at the parameter level
 
-IO ID `200` carrying an "engine-on seconds" counter is a **stand-in**. On real
-hardware, total engine hours come over the vehicle **CAN bus**, and which IO ID
-carries them depends on the FMC model and the CAN adapter **program** loaded for
-that exact make/model/year of machine. Choosing and mapping those programs is open
-decision **D1** in the build docs.
+Total engine hours arrive over the vehicle **CAN bus** through an adapter
+(LV-CAN200 / ALL-CAN300 / CAN-CONTROL) running a **program number** specific to that
+make/model/year. What the adapter then exposes is standard: **AVL 102 "Engine
+Worktime", 4 bytes unsigned, in MINUTES.** That is the parameter this harness
+decodes and the only one that may back an invoice.
 
-Everything else in this protocol is production-accurate. When D1 is resolved, the
-dev team maps the real per-program engine-hours IO ID(s); the decoder's contract
-(engine hours only for CAN-supported assets, always tagged `source: 'ecu'`) does
-not change.
+**The unit is the trap.** The decoder's canonical unit is seconds, so the conversion
+is `seconds = minutes × 60`, performed once in `src/decode/engine-hours.js`. Getting
+it wrong is a **60× billing error that no invariant test would catch**, because the
+pipeline is unit-agnostic — only the meaning is wrong. Each engine row therefore
+carries `sourceAvlId` and `nativeUnit` so a billed figure is traceable to its
+parameter.
+
+Per-machine program numbers, the 4-vs-5-digit change for adapters made after
+2018-01-01, and what still needs hardware verification are all in
+`../../D1_CAN_ENGINE_HOURS.md`. The decoder's contract is unchanged: engine hours
+only for CAN-supported assets, always `source: 'ecu'`.
 
 ---
 

@@ -79,12 +79,16 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
 > Start D1 investigation on **day one** regardless of active phase — it is the
 > critical path and the longest-lead item.
 
-- [ ] **D1:** identify CAN program + real engine-hours IO ID(s) per machine make/model/year **@protocol-engineer**
-- [ ] Map real IO ID(s) in the decoder; simulator emits them; contract unchanged **@protocol-engineer**
+- [x] **D1 (desk half):** the billing parameter is **AVL 102 "Engine Worktime", 4 bytes, in MINUTES**, exposed by LV-CAN200 / ALL-CAN300 / CAN-CONTROL; program number reported live as AVL 100. Verified against Teltonika's official FMC130 parameter table, cross-checked against flespi and the FMC650 table. Refusal lists established: AVL 103 (tracker-counted), AVL 449 (ignition counter), AVL 200 (`Sleep Mode` — the retired stand-in). Per-machine program numbers drafted from the ALL-CAN300 supported-vehicle list; **all 200 construction-machinery entries expose the parameter**. Write-up: `D1_CAN_ENGINE_HOURS.md` **@protocol-engineer**
+- [x] Real IDs mapped in the decoder (`src/decode/engine-hours.js`); simulator emits AVL 102 in minutes + AVL 100; contract unchanged; 14 tests in `test:engine-hours` **@protocol-engineer**
+- [ ] 🔒 **D1 (hardware half) — needs an installed adapter, cannot be done at a desk:** read AVL 102 back live per brand via Configurator/Traccar, confirm the program number and unit for that exact make/model/year, then **reconcile against the machine's physical hour-meter** with `reconcile()`. Only then is a row *verified* and billable **@protocol-engineer + auto-electrician**
+- [ ] ⚠ **Blocked on us:** name the real fleet (exact make/model/**year**). Every program-number row is a candidate until someone confirms the machines Dozr will deploy on. Also confirm 4- vs 5-digit program numbers — adapters made after 2018-01-01 prefix a `1` (`1261 → 11261`) **@coordinator**
+- [ ] Ask Teltonika/distributor: confirm FMC130 + ALL-CAN300 for our asset mix; confirm "Engine lifetime" in the vehicle list *is* AVL 102; lifetime-delta vs session counter for a billing period **@coordinator**
 - [ ] Build Module 5 ledger: utilisation per asset/period from **ECU readings only** **@ledger-owner**
 - [ ] Build evidence seal: immutable, tamper-evident, reproduces a dispute pack **@ledger-owner**
 - [ ] Human review of the billing math before it can emit a real number **@ledger-owner + coordinator**
 - [ ] **GATE:** `test:ledger` green (exact utilisation on seed scenario) + evidence-tamper detection test + test refusing ignition-derived values as billing evidence
+  - Partial credit already banked: the *decode-side* refusal of ignition-derived values is proven now by `test:engine-hours` (AVL 449 and AVL 200 both produce no engine data). The ledger-side half still needs Module 5.
 
 ---
 
@@ -113,8 +117,11 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
 
 ## Open decisions
 
-- **D1 (critical path):** CAN program + engine-hours IO ID mapping per machine.
-  Owner **@protocol-engineer**. Blocks real billing data. Sources: `context/teltonika/`.
+- **D1 (critical path) — parameter resolved, hardware verification open.** Engine hours
+  are **AVL 102 "Engine Worktime", in minutes**; mapped in `src/decode/engine-hours.js`,
+  documented in `D1_CAN_ENGINE_HOURS.md`. Owner **@protocol-engineer**. What still
+  blocks a real invoice: the real fleet list, per-machine program-number confirmation,
+  and a live reading reconciled against the machine's own hour-meter.
 - **Time-series store:** plain Postgres now; TimescaleDB in P4 if volume warrants.
   Owner **@database-engineer**. Interface unchanged either way.
 - **Pilot ingestion:** hand-written server vs. Traccar for the first weeks. Expert

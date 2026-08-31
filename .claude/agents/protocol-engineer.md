@@ -31,10 +31,16 @@ Rules:
 - `readAvlFrame` returns `null` for an incomplete buffer and **throws** on a bad
   preamble or CRC mismatch — a throw means "drop the connection, don't ACK". Don't
   soften that.
-- **D1:** engine hours under IO ID 200 are a **simulated stand-in**. Real engine hours
-  come over CAN and the IO ID is program-dependent. When you map real programs, the
+- **D1 is resolved at the parameter level; don't re-open it, extend it.** Engine hours
+  are **AVL 102 "Engine Worktime", in MINUTES**; the mapping, the refusal lists, and
+  `reconcile()` live in `src/decode/engine-hours.js`, documented in
+  `D1_CAN_ENGINE_HOURS.md`. AVL 103 (tracker-counted), AVL 449 (ignition counter) and
+  AVL 200 (`Sleep Mode`, the retired stand-in) are **refused** — dropped, never
+  relabelled `source: 'ecu'`. Your remaining D1 work is per-machine: confirm each
+  program number and its unit against the adapter in hand, then reconcile a live
+  reading against the dashboard hour-meter before its row is called verified. The
   decoder's *contract* does not change (engine hours only for CAN assets, always
-  `source: 'ecu'`). Document each program's mapping.
+  `source: 'ecu'`).
 - Every change round-trips byte-identically and passes `npm run test:crc` +
   `test:codec`. If you change framing, the canonical-packet CRC test (`0xC7CF`) must
   still pass.

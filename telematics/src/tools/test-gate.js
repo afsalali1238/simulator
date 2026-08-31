@@ -29,7 +29,7 @@ import { spawn } from 'node:child_process';
 import { listTestFiles, ROOT } from './test-files.js';
 
 // The floor. Raise this when you add tests; see TESTING.md for the breakdown.
-const DEFAULT_MIN_TESTS = 68;
+const DEFAULT_MIN_TESTS = 83;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 

@@ -184,19 +184,35 @@ past them.**
 
 ---
 
-## 6. Real vs. simulated, and the one open decision (D1)
+## 6. Real vs. simulated, and where D1 stands
 
 **Production-accurate today:** TCP framing, IMEI handshake, Codec 8/8E record layout,
-CRC-16/IBM, the 4-byte ACK, and IO IDs 239 (ignition), 240 (movement), 69 (GNSS).
+CRC-16/IBM, the 4-byte ACK, and IO IDs 239 (ignition), 240 (movement), 69 (GNSS) —
+**and now the engine-hours parameter itself.**
 
-**Simulated placeholder — decision D1:** total **engine hours**. Real engine hours
-arrive over the vehicle **CAN bus**, and the IO ID that carries them depends on the
-FMC model + CAN adapter **program** for that exact make/model/year of machine. The
-harness carries a stand-in "engine-on seconds" counter under IO ID 200 so simulator
-and decoder agree. **D1 is the critical path to real billing data** (per the expert
-review). When it's resolved, the dev team maps the real per-program IO ID(s); the
-decoder's contract (engine hours only for CAN assets, always `source: 'ecu'`) does
-**not** change. Detail: `telematics/docs/PROTOCOL.md`.
+**Decision D1 — resolved at the parameter level.** Engine hours arrive over the
+vehicle **CAN bus** through an adapter (LV-CAN200 / ALL-CAN300 / CAN-CONTROL) running
+a **program number** specific to that make/model/year. What the adapter exposes is
+standard: **AVL 102 "Engine Worktime", 4 bytes unsigned, in MINUTES.** That is what
+the decoder reads; conversion to canonical seconds happens once, in
+`src/decode/engine-hours.js`, and each engine row carries `sourceAvlId` +
+`nativeUnit` so a billed figure is traceable to its parameter.
+
+Three refusals are part of the answer, because each would produce a plausible wrong
+invoice: **AVL 103** (Engine Worktime *counted* — accumulated by the tracker from
+adapter installation, so not reconcilable and reset by an adapter swap), **AVL 449**
+(`Ignition On Counter`, forbidden by invariant 5), and **AVL 200** (the retired
+stand-in — on real firmware it is `Sleep Mode`). Refused parameters are dropped, never
+relabelled `source: 'ecu'`.
+
+The decoder's contract is unchanged, as planned: engine hours only for CAN-supported
+assets, always `source: 'ecu'`.
+
+**What is still open is physical, not architectural.** Per-machine program numbers are
+drafted from Teltonika's supported-vehicle list, and a reading only becomes *evidence*
+once it has been **reconciled against that machine's dashboard hour-meter**. Both need
+an installed adapter. Full write-up: `D1_CAN_ENGINE_HOURS.md`; wire detail:
+`telematics/docs/PROTOCOL.md`.
 
 ---
 
@@ -255,7 +271,9 @@ Hand-off specifics (also in `telematics/README.md`):
 - **Time-series scale:** swap the Postgres image for TimescaleDB (noted inline in
   `docker-compose.yml`) and add a hypertable migration. Interface unchanged.
 - **Ledger:** a human owns it; run it as a scheduled job over sealed ECU readings.
-- **The blocker for real data:** D1. Until it's decided, engine hours are simulated.
+- **The blocker for real data:** D1 — now narrowed. The parameter is settled (AVL 102,
+  minutes) and mapped; what still blocks a real invoice is per-machine verification on
+  installed hardware, reconciled against the dashboard hour-meter.
 
 ---
 

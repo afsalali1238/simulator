@@ -49,8 +49,12 @@ the code is a bug.**
 - **Anything touching billing or tenancy is human-reviewed**, not just generated.
 - **Don't relax an invariant to make a test pass.** Fix the code, or if the invariant
   is genuinely wrong, raise it with the human owner and update the invariants doc first.
-- **D1 (CAN engine-hours mapping) is simulated until decided.** Engine hours under IO
-  ID 200 are a stand-in. Don't treat simulated engine hours as real billing data.
+- **D1 (CAN engine-hours mapping) is resolved at the parameter level, not verified on
+  hardware.** Engine hours are **AVL 102 "Engine Worktime", in MINUTES**; AVL 103
+  (tracker-counted) and AVL 449 (ignition counter) are refused as billing evidence,
+  and the old IO-200 stand-in is retired (200 is `Sleep Mode`). A decoded figure is
+  still not evidence until it has been reconciled against the machine's physical
+  hour-meter. See `D1_CAN_ENGINE_HOURS.md`.
 - **No new dependencies without a reason.** The design is deliberately near-zero-dep
   (`pg` only). No build step, no linter framework — plain Node ESM. Don't invent one.
 - **Kasper-named docs in `context/` are historical, not wrong.** Don't rename or

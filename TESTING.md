@@ -15,7 +15,7 @@ the database layer.
 ```bash
 cd telematics
 
-npm test                 # everything, serially — 68 tests today
+npm test                 # everything, serially — 83 tests today
 npm run test:gate        # what CI runs: the same suite + count/skip enforcement
 npm run demo             # end-to-end proof on live data
 npm run verify           # real processes, real SIGTERM, /health probes
@@ -32,6 +32,7 @@ npm run test:scenarios   # the simulator's scenario engine (pure, deterministic)
 npm run test:replay      # scenarios driven through the WHOLE pipeline over TCP
 npm run test:operability # logging redaction, graceful drain, LB-shaped /health
 npm run test:config      # .env.example is complete; no secrets committed
+npm run test:engine-hours # D1: the CAN engine-hours mapping, units, and refusals
 ```
 
 Tests run **serially** (`--test-concurrency=1`) because several bind real TCP/HTTP
@@ -49,7 +50,7 @@ is not a gate.
 the merge gate**, and it additionally fails when:
 
 - the number of passing tests drops **below the floor** (`DEFAULT_MIN_TESTS` in
-  `src/tools/test-gate.js`, currently **68**), or
+  `src/tools/test-gate.js`, currently **83**), or
 - anything is **skipped** or marked **todo** — a skip is not a pass.
 
 That is there because the quiet failure mode in this repo is not a red test; it
@@ -71,7 +72,7 @@ or in CI for the full set.
 
 ---
 
-## The test suites (68 tests today)
+## The test suites (83 tests today)
 
 | Suite | Tests | What it covers |
 |-------|------:|----------------|
@@ -86,6 +87,7 @@ or in CI for the full set.
 | `test/replay.test.js` | 5 | **P0.** The same scenarios driven through the **whole pipeline** over real TCP (device → ingestion → store → API): the handover splits one device between two tenants *by timestamp*; identical wire data yields ECU hours for the CAN asset and none for the non-CAN one; `yard-idle` falls back to the owner tenant; a replayed track is idempotent; Codec 8 also works. |
 | `test/operability.test.js` | 11 | **P0.** Structured logging (shape, levels, credential/secret redaction, no tenant payloads, no probe spam); graceful shutdown (runs once, bounded by the deadline, reports a failed drain); `/health` (200 ready / 503 draining, **zero** store I/O on the probe path); the API drain waits for in-flight requests; the ingestion drain finishes an in-flight write **and** its ACK, and refuses a device that arrives mid-drain. |
 | `test/config.test.js` | 5 | **P0.** `.env.example` documents every env var the code reads and nothing it doesn't; the slice has working defaults with no `.env`; `.env` is git-ignored and no real credentials are committed; the shutdown deadline stays under a 30s orchestrator grace period. |
+| `test/engine-hours.test.js` | 14 | **D1.** The CAN engine-hours mapping, where every failure mode is silent: the documented FMC130 IDs are what the code uses; only **AVL 102** (the machine's own hour-meter) is billable; the retired **AVL 200** stand-in produces nothing (200 is `Sleep Mode`); **102 is minutes** — asserted with exact arithmetic, because reading it as seconds is a 60× billing error no other test would catch; **AVL 103** (tracker-counted) is refused, not relabelled `ecu`; **AVL 449** (ignition counter) is forbidden as billing evidence; invariant 9 still gates everything; and `reconcile()` catches a unit error against the dashboard hour-meter and **names** it. |
 
 ---
 
@@ -101,12 +103,26 @@ depend on not-yet-built modules (5) or on the database layer (8's trigger) have 
 | 1 | **ACK only after durable write** | `test:ingestion` (`FAIL_BEFORE_COMMIT` → no ACK, nothing persisted, recovery) · `test:store` (fail-before-commit leaves store unchanged) · `test:operability` (a graceful drain finishes the in-flight write **and** its ACK; a device arriving mid-drain is refused) · `verify` (SIGTERM on a real process exits 0 without a forced drain) | ✅ proven now |
 | 2 | **Idempotent ingest** | `test:store` (resend doesn't double-count) · `test:ingestion` (idempotent resend over TCP) · `test:replay` (a replayed scenario track re-sent over TCP adds nothing) | ✅ proven now |
 | 3 | **NULL ≠ zero** | `test:decode` (absent IO → `null`; present-zero stays `false`) · `test:scenarios` (`yard-idle` omits the engine IO entirely; `tamper` reports ignition `null`, not `false`, and state `unknown`) | ✅ proven now |
-| 4 | **ecu vs estimated never merge** | `test:decode` (engine hours only produced for CAN assets, always tagged `source: 'ecu'`) · `test:replay` (the only readings that reach the API are `source: 'ecu'`) | ✅ proven now |
-| 5 | **Ignition counters never billing evidence** | Enforced by design today (no code path turns ignition into billing). Full test = `test:ledger` | 🔒 gated to **P2** (ledger built) |
+| 4 | **ecu vs estimated never merge** | `test:decode` (engine hours only produced for CAN assets, always tagged `source: 'ecu'`) · `test:replay` (the only readings that reach the API are `source: 'ecu'`) · `test:engine-hours` (a **tracker-counted** meter, AVL 103, is dropped rather than relabelled `ecu`) | ✅ proven now |
+| 5 | **Ignition counters never billing evidence** | `test:engine-hours` (**AVL 449 `Ignition On Counter` is refused by the decoder**, and the retired AVL 200 stand-in produces nothing) — the ingestion-side half is now proven. Turning a refused signal into an invoice is still `test:ledger` | 🟡 decode side proven now; ledger side 🔒 **P2** |
 | 6 | **Attribution at each record's own timestamp** | `test:tenancy` (D1 splits between Tenant A and B by timestamp) · `test:decode` (attribution fallback) · `test:scenarios` (the `handover` scenario emits either side of `2025-06-01T00:00:00Z` and resolves to two different tenants) · `test:replay` (**end-to-end over TCP**: every record each tenant can see is on its own side of the boundary) | ✅ proven now, end-to-end |
 | 7 | **Tenancy always** | `test:store` (tenant-scoped reads) · `test:tenancy` · `test:api` (400 without header, isolated positions) · `test:replay` (the two tenants' record sets are disjoint; an unassigned device falls back to its owner) · `test:operability` (no tenant id ever reaches a log line) | ✅ proven now (app layer); DB-layer RLS proven in **P1** |
 | 8 | **Sealed, immutable evidence chain** | `test:store` (raw frame persisted as evidence) · `test:replay` (a de-duplicated resend still seals its own frame) . Trigger-enforced immutability = a DB-layer test | ✅ evidence written now; 🔒 trigger enforcement gated to **P1** (pg mode) |
-| 9 | **Unlisted machine ⇒ position + ignition only** | `test:tenancy` (unassigned D2 → no engine hours) · `test:decode` (no CAN ⇒ no engine hours) · `test:scenarios` + `test:replay` (**the trap**: after the handover the device keeps sending IO 200, and the system still produces no engine data for Generator Y) | ✅ proven now, end-to-end |
+| 9 | **Unlisted machine ⇒ position + ignition only** | `test:tenancy` (unassigned D2 → no engine hours) · `test:decode` (no CAN ⇒ no engine hours) · `test:scenarios` + `test:replay` (**the trap**: after the handover the device keeps sending AVL 102, and the system still produces no engine data for Generator Y) · `test:engine-hours` (the gate holds for every billable ID) | ✅ proven now, end-to-end |
+
+**What D1 changed here.** Invariant 5 was previously "enforced by design" — nothing
+in the code turned ignition into billing, but nothing stopped it either. The decoder
+now holds an explicit refusal list (`FORBIDDEN_AS_BILLING_EVIDENCE`: AVL 449 ignition
+counter, AVL 200 sleep mode) and a *near-miss* list (AVL 103, a tracker-counted hour
+meter that looks exactly like usable ECU data), each with a test that fails if the
+refusal is removed. Invariant 4 gained the same protection from the other direction:
+a refused parameter must be **dropped**, never relabelled `source: 'ecu'`.
+
+`test:engine-hours` also guards a failure mode no invariant test could see: AVL 102
+is in **minutes**, and the canonical row is in **seconds**. Getting that conversion
+wrong bills 60× wrong while every other test stays green, because the pipeline is
+unit-agnostic. The unit is now asserted with exact arithmetic in both the decoder and
+the simulator's wire output.
 
 **Honest reading of this table:** seven invariants (1, 2, 3, 4, 6, 7, 9) are fully
 proven today in memory mode. Invariant 7's *database-level* enforcement (RLS) and

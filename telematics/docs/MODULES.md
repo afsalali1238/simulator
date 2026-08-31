@@ -58,7 +58,7 @@ with the simulator: handshake accept/reject, Codec 8 *and* 8E, idempotent resend
 and the durability contract (with `FAIL_BEFORE_COMMIT` set, nothing is stored
 and nothing is ACKed, then a reconnect recovers cleanly).
 
-## Module 2 — Decode / normalise (`src/decode/normalize.js`)
+## Module 2 — Decode / normalise (`src/decode/normalize.js`, `src/decode/engine-hours.js`)
 
 Turns one decoded AVL record into a canonical fact row. Pure function, so every
 correctness rule it enforces is unit-testable with zero I/O: an absent IO becomes
@@ -66,7 +66,24 @@ correctness rule it enforces is unit-testable with zero I/O: an absent IO become
 always tagged `source: 'ecu'`, and each record is attributed to whichever tenant
 held the device **at that record's own timestamp**.
 
-**How to test:** `npm run test:decode`.
+`engine-hours.js` is **decision D1**, resolved: which AVL ID carries engine hours,
+in what unit, and which candidates must never be billed.
+
+| AVL ID | What | Billable? |
+|---|---|---|
+| **102** Engine Worktime | The machine's own lifetime hour-meter, **in minutes** | ✅ the billing parameter |
+| 103 Engine Worktime (counted) | Counted by the *tracker* from adapter installation | ⛔ refused — not reconcilable, resets on adapter swap |
+| 449 Ignition On Counter | Accumulated ignition-on seconds | ⛔ forbidden (invariant 5) |
+| 200 | `Sleep Mode` — the retired stand-in | ⛔ refused |
+
+Two things this module exists to prevent, both silent: reading the **minutes** value
+as seconds (a 60× billing error no invariant test would catch), and relabelling a
+tracker-side accumulator as an ECU meter. It also owns `reconcile()`, which compares
+a decoded value against the machine's physical hour-meter and *names* a unit error
+rather than just failing — a reading that has not been reconciled is not evidence.
+
+**How to test:** `npm run test:decode` and `npm run test:engine-hours`. Full
+write-up: `../../D1_CAN_ENGINE_HOURS.md`.
 
 ## Module 3 — Data model & tenancy (`src/store/`, `db/`)
 
@@ -147,14 +164,15 @@ Named scenarios (`npm run sim:list` prints them with what each proves):
 | `after-hours` | Ignition late in the evening | data for the P3 after-hours rule |
 | `geofence-cross` | Leaves and re-enters the Jebel Ali site circle | data for the P3 geofence rule |
 | `tamper` | Harness pulled: external voltage collapses, ignition becomes `null` | invariant **3** |
+| `ecu-counted-only` | The CAN program exposes only AVL 103 (tracker-counted hours) | invariants **4**, **5** — it must be refused, not relabelled `ecu` |
 
 Two properties the registry guarantees, because downstream tests depend on them:
 **determinism** (same scenario + seed ⇒ byte-identical records) and **absence is
 not zero** — a signal with no reading is `null` and its IO element is omitted
 entirely, never sent as `0`.
 
-`handover` deliberately keeps reporting IO 200 *after* the handover: the device
-really would carry its counter to the next machine, and the system must still
+`handover` deliberately keeps reporting AVL 102 *after* the handover: the device
+really would carry its meter to the next machine, and the system must still
 produce no engine data for a non-CAN asset. That is invariant 9's trap, baited.
 
 `run-simulator.js` is the CLI: `--scenario <name>`, `--list`, `--interval`,
@@ -165,9 +183,11 @@ All have `SIM_*` env equivalents in `.env.example`.
 `npm run test:replay` (the same scenarios driven through ingestion → store → API
 over real TCP). Also exercised by `npm run test:ingestion` and `npm run demo`.
 
-> IO ID 200 is a **stand-in** for real CAN engine hours — open decision **D1**,
-> owned by `protocol-engineer`. A scenario emitting it claims only "a CAN adapter
-> is fitted and reporting a counter", never that the value is billable ECU truth.
-> Whether it becomes engine data is decided by the *asset's* `hasEngineData` in
-> Module 2; whether it can back an invoice is Module 5's gate.
+> The simulator emits the **real** parameters: AVL 102 (engine hours, converted to
+> the minutes a real unit puts on the wire) and AVL 100 (the CAN program number).
+> Emitting 102 claims only "a CAN adapter is fitted and reporting its hour-meter",
+> never that the value is billable: whether it becomes engine data is decided by the
+> *asset's* `hasEngineData` in Module 2, and whether it can back an invoice is
+> Module 5's gate. The retired IO-200 stand-in is gone — see
+> `../../D1_CAN_ENGINE_HOURS.md`.
 
