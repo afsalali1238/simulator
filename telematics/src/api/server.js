@@ -72,6 +72,21 @@ export function createApi({ store, port = 8080, logger = silentLogger } = {}) {
       const url = new URL(req.url, 'http://localhost');
       path = url.pathname;
 
+      // CORS preflight: a browser sends this before the real GET, and it
+      // never carries our custom X-Tenant-Id header by design (preflights
+      // only carry a fixed set of control headers) — so it must be answered
+      // here, before the tenant check below, or the real request never fires.
+      if (req.method === 'OPTIONS') {
+        status = 204;
+        res.writeHead(204, {
+          'access-control-allow-origin': '*',
+          'access-control-allow-headers': 'x-tenant-id',
+          'access-control-allow-methods': 'GET,OPTIONS',
+          'access-control-max-age': '600',
+        });
+        return res.end();
+      }
+
       if (path === '/health') {
         const h = health();
         status = h.status;

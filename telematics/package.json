@@ -35,7 +35,8 @@
     "test:config": "node --test test/config.test.js",
     "test:engine-hours": "node --test test/engine-hours.test.js",
     "test:rls": "node --test test/rls.test.js",
-    "test:immutability": "node --test test/immutability.test.js"
+    "test:immutability": "node --test test/immutability.test.js",
+    "dashboard": "node src/tools/live-dashboard.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

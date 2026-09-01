@@ -1,0 +1,211 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>GPS Simulator — Live Dashboard</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin:0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e6edf3; }
+  header { padding:12px 20px; border-bottom:1px solid #1f2731; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; font-weight:600; }
+  header .status { font-size:12px; padding:3px 8px; border-radius:10px; background:#1f2731; }
+  header .status.ok { background:#0d3b21; color:#4ade80; }
+  header .status.bad { background:#3b0d0d; color:#f87171; }
+  label { font-size:12px; color:#9fb0c0; margin-right:4px; }
+  input, select { background:#111820; color:#e6edf3; border:1px solid #263140; border-radius:6px; padding:4px 8px; font-size:12px; }
+  main { display:grid; grid-template-columns: 340px 1fr; gap:16px; padding:16px 20px; }
+  .card { background:#111820; border:1px solid #1f2731; border-radius:10px; padding:14px; }
+  .card h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:#9fb0c0; margin:0 0 10px; }
+  .kv { display:grid; grid-template-columns: 1fr auto; gap:6px 10px; font-size:13px; }
+  .kv div.k { color:#9fb0c0; }
+  .kv div.v { text-align:right; font-variant-numeric: tabular-nums; }
+  .v.null { color:#f0b93a; }
+  .v.on { color:#4ade80; }
+  .v.off { color:#f87171; }
+  canvas { width:100%; height:340px; background:#0d131a; border-radius:8px; display:block; }
+  .feed { height:220px; overflow-y:auto; font-family: ui-monospace, Menlo, monospace; font-size:11px; line-height:1.5; }
+  .feed div { border-bottom:1px dashed #1f2731; padding:3px 0; }
+  .row2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:16px; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; background:#1f2731; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🚜 GPS Simulator — Live Dashboard</h1>
+  <span id="apiStatus" class="status bad">API: checking…</span>
+  <label>API base</label>
+  <input id="apiBase" value="http://localhost:8080" size="20" />
+  <label>Tenant</label>
+  <select id="tenant">
+    <option value="11111111-1111-4111-8111-111111111111">Tenant A — Al Naboodah</option>
+    <option value="22222222-2222-4222-8222-222222222222">Tenant B — Dutco</option>
+    <option value="00000000-0000-4000-8000-000000000001">Dozr (owner / unassigned)</option>
+  </select>
+  <label>Poll (ms)</label>
+  <input id="pollMs" value="1000" size="4" />
+</header>
+
+<main>
+  <div>
+    <div class="card">
+      <h2>Vehicle state</h2>
+      <div class="kv" id="stateKv">
+        <div class="k">Device</div><div class="v" id="v-device">—</div>
+        <div class="k">Asset</div><div class="v" id="v-asset">—</div>
+        <div class="k">Last update</div><div class="v" id="v-ts">—</div>
+        <div class="k">Ignition</div><div class="v" id="v-ignition">—</div>
+        <div class="k">Movement</div><div class="v" id="v-movement">—</div>
+        <div class="k">Coarse state</div><div class="v" id="v-state">—</div>
+        <div class="k">Speed</div><div class="v" id="v-speed">—</div>
+        <div class="k">Lat, Lon</div><div class="v" id="v-latlon">—</div>
+        <div class="k">Engine hours (ECU)</div><div class="v" id="v-engine">—</div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Devices visible to this tenant</h2>
+      <div class="kv" id="devicesKv"><div class="k">—</div><div class="v"></div></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>Track (lat/lon, most recent <span id="trackCount">0</span> points)</h2>
+      <canvas id="track" width="900" height="340"></canvas>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Live position feed</h2>
+      <div class="feed" id="feed"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let seenTsMs = new Set();
+let track = [];
+
+function fmtBool3(v) {
+  // invariant 3: null must render as "unknown", never coerced to false
+  if (v === null || v === undefined) return { text: 'unknown (null)', cls: 'null' };
+  return v ? { text: 'ON', cls: 'on' } : { text: 'off', cls: 'off' };
+}
+
+async function poll() {
+  const base = $('apiBase').value.replace(/\/$/, '');
+  const tenant = $('tenant').value;
+  try {
+    const [devRes, posRes] = await Promise.all([
+      fetch(base + '/devices', { headers: { 'X-Tenant-Id': tenant } }),
+      fetch(base + '/positions?limit=200', { headers: { 'X-Tenant-Id': tenant } }),
+    ]);
+    if (!devRes.ok || !posRes.ok) throw new Error('http ' + devRes.status + '/' + posRes.status);
+    const devices = (await devRes.json()).devices;
+    const positions = (await posRes.json()).positions;
+    setStatus(true);
+    renderDevices(devices);
+    renderPositions(positions, base, tenant);
+  } catch (e) {
+    setStatus(false, e.message);
+  }
+}
+
+function setStatus(ok, msg) {
+  const el = $('apiStatus');
+  el.className = 'status ' + (ok ? 'ok' : 'bad');
+  el.textContent = ok ? 'API: connected' : 'API: ' + (msg || 'unreachable');
+}
+
+function renderDevices(devices) {
+  const el = $('devicesKv');
+  el.innerHTML = '';
+  if (!devices.length) {
+    el.innerHTML = '<div class="k">no devices visible yet</div><div class="v"></div>';
+    return;
+  }
+  for (const d of devices) {
+    const k = document.createElement('div'); k.className = 'k'; k.textContent = d.model + ' (' + d.imei + ')';
+    const v = document.createElement('div'); v.className = 'v'; v.innerHTML = '<span class="pill">' + d.status + '</span>';
+    el.appendChild(k); el.appendChild(v);
+  }
+}
+
+async function renderPositions(positions, base, tenant) {
+  if (!positions.length) return;
+  const latest = positions[positions.length - 1];
+
+  $('v-device').textContent = latest.deviceId.slice(0, 8) + '…';
+  $('v-asset').textContent = latest.assetId ? latest.assetId.slice(0, 8) + '…' : '— (unassigned)';
+  $('v-ts').textContent = new Date(latest.tsMs).toISOString();
+  const ign = fmtBool3(latest.ignition);
+  $('v-ignition').textContent = ign.text; $('v-ignition').className = 'v ' + ign.cls;
+  const mov = fmtBool3(latest.movement);
+  $('v-movement').textContent = mov.text; $('v-movement').className = 'v ' + mov.cls;
+  $('v-state').textContent = latest.state ?? 'unknown';
+  $('v-speed').textContent = (latest.speed ?? '—') + ' km/h';
+  $('v-latlon').textContent = latest.lat != null ? latest.lat.toFixed(5) + ', ' + latest.lon.toFixed(5) : '—';
+
+  // engine hours for this asset, if any
+  if (latest.assetId) {
+    try {
+      const r = await fetch(base + '/assets/' + latest.assetId + '/engine-hours', { headers: { 'X-Tenant-Id': tenant } });
+      const j = await r.json();
+      $('v-engine').textContent = j.reading ? j.reading.hours.toFixed(2) + ' h (source: ' + j.reading.source + ')' : 'none';
+    } catch { $('v-engine').textContent = '—'; }
+  } else {
+    $('v-engine').textContent = 'none';
+  }
+
+  // feed + track: only append records we haven't shown yet
+  const feed = $('feed');
+  for (const p of positions) {
+    if (seenTsMs.has(p.tsMs)) continue;
+    seenTsMs.add(p.tsMs);
+    track.push(p);
+    const line = document.createElement('div');
+    line.textContent = new Date(p.tsMs).toISOString() + '  lat=' + (p.lat?.toFixed(5) ?? 'null') +
+      ' lon=' + (p.lon?.toFixed(5) ?? 'null') + ' speed=' + (p.speed ?? 'null') +
+      ' ign=' + p.ignition + ' state=' + p.state;
+    feed.prepend(line);
+  }
+  while (feed.childElementCount > 300) feed.removeChild(feed.lastChild);
+  if (track.length > 500) track = track.slice(-500);
+  $('trackCount').textContent = track.length;
+  drawTrack();
+}
+
+function drawTrack() {
+  const c = $('track');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, c.width, c.height);
+  const pts = track.filter((p) => p.lat != null && p.lon != null);
+  if (pts.length < 2) {
+    ctx.fillStyle = '#5b6b7c';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('waiting for position data…', 16, 24);
+    return;
+  }
+  const lats = pts.map((p) => p.lat), lons = pts.map((p) => p.lon);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const pad = 20;
+  const sx = (lon) => pad + ((lon - minLon) / (maxLon - minLon || 1)) * (c.width - 2 * pad);
+  const sy = (lat) => c.height - pad - ((lat - minLat) / (maxLat - minLat || 1)) * (c.height - 2 * pad);
+
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  pts.forEach((p, i) => { const x = sx(p.lon), y = sy(p.lat); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
+  ctx.stroke();
+
+  const last = pts[pts.length - 1];
+  ctx.fillStyle = last.movement ? '#4ade80' : '#f87171';
+  ctx.beginPath();
+  ctx.arc(sx(last.lon), sy(last.lat), 6, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+setInterval(() => poll(), Number($('pollMs').value) || 1000);
+poll();
+</script>
+</body>
+</html>
