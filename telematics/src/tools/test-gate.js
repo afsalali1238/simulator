@@ -39,7 +39,7 @@ import { listTestFiles, ROOT } from './test-files.js';
 //
 // 86 = 85 (P0/D1/P1 baseline) + 1 (test/scenarios.test.js: the dic-to-reem
 // harsh-braking scenario). Verified locally: `npm test` -> 86/86 in memory mode.
-const DEFAULT_MIN_TESTS = 86;
+const DEFAULT_MIN_TESTS = 88;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 

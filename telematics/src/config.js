@@ -135,6 +135,47 @@ export const IO = {
   // implemented — see the fix commit for the correction.
   GREEN_DRIVING_TYPE: 253, // 1 byte — 1 harsh accel, 2 harsh braking, 3 harsh cornering
   GREEN_DRIVING_VALUE: 254, // 1 byte — magnitude, g x 100 (e.g. 75 = 0.75g), 0-255 (0-2.55g)
+
+  // ── FMC130 permanent I/O elements ──
+  // Confirmed against the FMC130-specific "Data Sending Parameters ID" wiki
+  // page and the FMC130 Features settings page (see
+  // context/simulator/FMC130_FIDELITY_PLAN.md for the full source list).
+  // Only wired for D1, the device this repo labels FMC130 — D2 (FMC920) is a
+  // different model and is deliberately left alone.
+  DATA_MODE: 80, // 1 byte, 0-5 — network/service mode (0 = home network, GPRS)
+  GSM_SIGNAL: 21, // 1 byte, 0-5 — signal strength bars
+  GNSS_PDOP: 181, // 2 bytes, x0.1 — position dilution of precision
+  GNSS_HDOP: 182, // 2 bytes, x0.1 — horizontal dilution of precision
+  SPEED: 24, // 2 bytes, km/h — the standalone speed IO element (in addition to
+  // the GPS block's own speed field; a real unit sends both, and they agree)
+  GSM_CELL_ID: 205, // 2 bytes — serving cell ID
+  GSM_AREA_CODE: 206, // 2 bytes — location area code (LAC)
+  ACTIVE_GSM_OPERATOR: 241, // 4 bytes — MCC+MNC of the serving network
+  BATTERY_VOLTAGE_MV: 67, // 2 bytes, mV — internal backup battery voltage
+  BATTERY_CURRENT_MA: 68, // 2 bytes, mA — internal battery charge/discharge current (magnitude)
+  TRIP_ODOMETER_M: 199, // 4 bytes, metres — resets each time the engine restarts a trip
+  TOTAL_ODOMETER_M: 16, // 4 bytes, metres — lifetime distance, never resets
+  DIGITAL_INPUT_1: 1, // 1 byte — FMC130's datasheet lists Digital Input 1 as a
+  // documented ignition-detection source, so this mirrors the ignition signal
+  DIGITAL_INPUT_2: 2, // 1 byte — present, unwired in every scenario so far (0)
+  ANALOG_INPUT_1: 9, // 2 bytes, mV — present, unwired in every scenario so far (0)
+  DIGITAL_OUTPUT_1: 179, // 1 byte — present, never commanded in any scenario so far (0)
+  AXIS_X: 17, // 2 bytes, mG — accelerometer
+  AXIS_Y: 18, // 2 bytes, mG — accelerometer
+  AXIS_Z: 19, // 2 bytes, mG — accelerometer (gravity, ~1000mG when flat and still)
+  ICCID: 11, // 8 bytes — SIM identifier. Synthetic/deterministic per IMEI in
+  // this harness (there is no real SIM behind a simulated device); included
+  // because the field itself is a genuine permanent element on real firmware.
+
+  // Deliberately NOT implemented, not gaps:
+  //   AVL 12/13 (Fuel Used/Rate GPS) — GPS-speed-based fuel estimation makes
+  //   no physical sense for D1, which is heavy machinery (an excavator/
+  //   generator), not a road vehicle; its fuel/engine data source is the CAN
+  //   adapter, not a GNSS-speed heuristic. Fabricating it would be exactly
+  //   the invented-signal mistake invariant 3 exists to prevent.
+  //   AVL 10 (SD Status) — the FMC130 datasheet's own Interface table lists
+  //   no SD card slot (128MB internal flash only); this ID is on the generic
+  //   cross-model wiki table but does not apply to this specific SKU.
 };
 
 /**

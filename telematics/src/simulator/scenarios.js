@@ -96,6 +96,29 @@ export function buildIo({
   unplug,
   harshEventTypeId,
   harshEventValue,
+  // ── FMC130 permanent I/O elements (see FMC130_FIDELITY_PLAN.md) ──
+  // Only D1 tracks pass these; everyone else passes undefined and none of
+  // this block emits anything, so no other device's stream changes shape.
+  dataMode,
+  gsmSignal,
+  pdopRaw,
+  hdopRaw,
+  speedKmh,
+  gsmCellId,
+  gsmAreaCode,
+  gsmOperator,
+  batteryVoltageMv,
+  batteryCurrentMa,
+  tripOdometerM,
+  totalOdometerM,
+  digitalInput1,
+  digitalInput2,
+  analogInput1Mv,
+  digitalOutput1,
+  axisX,
+  axisY,
+  axisZ,
+  iccid,
 }) {
   const io = [];
   if (ignition != null) io.push({ id: IO.IGNITION, size: 1, value: ignition ? 1 : 0 });
@@ -137,6 +160,56 @@ export function buildIo({
       value: Math.min(255, Math.max(0, Math.round(harshEventValue ?? 0))),
     });
   }
+
+  // ── FMC130 permanent I/O elements ──
+  if (dataMode != null) io.push({ id: IO.DATA_MODE, size: 1, value: dataMode });
+  if (gsmSignal != null) io.push({ id: IO.GSM_SIGNAL, size: 1, value: gsmSignal });
+  // PDOP/HDOP are GNSS-quality figures — genuinely absent without a fix,
+  // same invariant-3 reasoning as everything else in this file.
+  if (pdopRaw != null) io.push({ id: IO.GNSS_PDOP, size: 2, value: pdopRaw });
+  if (hdopRaw != null) io.push({ id: IO.GNSS_HDOP, size: 2, value: hdopRaw });
+  if (speedKmh != null) io.push({ id: IO.SPEED, size: 2, value: speedKmh });
+  if (gsmCellId != null) io.push({ id: IO.GSM_CELL_ID, size: 2, value: gsmCellId });
+  if (gsmAreaCode != null) io.push({ id: IO.GSM_AREA_CODE, size: 2, value: gsmAreaCode });
+  if (gsmOperator != null) io.push({ id: IO.ACTIVE_GSM_OPERATOR, size: 4, value: gsmOperator });
+  // Battery voltage/current are siblings of AVL 113 (battery %) — computed
+  // only where that is, i.e. only for scenarios that model power at all
+  // (`power: true` or an unplug event). Not a new gate, the existing one.
+  if (batteryVoltageMv != null) {
+    io.push({ id: IO.BATTERY_VOLTAGE_MV, size: 2, value: Math.round(batteryVoltageMv) });
+  }
+  if (batteryCurrentMa != null) {
+    io.push({ id: IO.BATTERY_CURRENT_MA, size: 2, value: Math.round(batteryCurrentMa) });
+  }
+  if (tripOdometerM != null) {
+    io.push({ id: IO.TRIP_ODOMETER_M, size: 4, value: Math.round(tripOdometerM) });
+  }
+  if (totalOdometerM != null) {
+    io.push({ id: IO.TOTAL_ODOMETER_M, size: 4, value: Math.round(totalOdometerM) });
+  }
+  // Digital Input 1 mirrors ignition on this hardware — the FMC130 datasheet
+  // lists "Digital Input 1" as a documented ignition-detection source, so an
+  // unknown ignition reading (bus unreadable) means this pin's meaning is
+  // unknown too, not that it reads 0.
+  if (digitalInput1 != null) io.push({ id: IO.DIGITAL_INPUT_1, size: 1, value: digitalInput1 });
+  if (digitalInput2 != null) io.push({ id: IO.DIGITAL_INPUT_2, size: 1, value: digitalInput2 });
+  if (analogInput1Mv != null) {
+    io.push({ id: IO.ANALOG_INPUT_1, size: 2, value: analogInput1Mv });
+  }
+  if (digitalOutput1 != null) {
+    io.push({ id: IO.DIGITAL_OUTPUT_1, size: 1, value: digitalOutput1 });
+  }
+  // Axis X/Y/Z are SIGNED on the wire (-8000..8000 mG) but every IO element
+  // in this protocol is written as a raw unsigned width — the sign is a
+  // decoding convention, not a wire-format one. Two's-complement it into the
+  // unsigned 16-bit range Buffer.writeUIntBE requires, exactly what a real
+  // unit's own encoder does.
+  const u16 = (v) => (v < 0 ? v + 0x10000 : v);
+  if (axisX != null) io.push({ id: IO.AXIS_X, size: 2, value: u16(axisX) });
+  if (axisY != null) io.push({ id: IO.AXIS_Y, size: 2, value: u16(axisY) });
+  if (axisZ != null) io.push({ id: IO.AXIS_Z, size: 2, value: u16(axisZ) });
+  if (iccid != null) io.push({ id: IO.ICCID, size: 8, value: iccid });
+
   return io;
 }
 
@@ -499,9 +572,26 @@ function materializeTrack(track, { seed, stepMs, limit }) {
   const startTsMs = Date.parse(track.startTsIso);
   const stepSeconds = Math.round(step / 1000);
 
+  // FMC130 permanent-I/O fidelity (FMC130_FIDELITY_PLAN.md) is scoped to D1,
+  // the device this repo labels FMC130 — D2 (FMC920) is a different model and
+  // stays exactly as it was.
+  const isFmc130 = track.imei === D1;
+
+  // Network-environment fields a real unit holds steady for the length of one
+  // registration on a cell — drawn once per track, not re-rolled every tick.
+  const gsmCellId = isFmc130 ? 20_000 + Math.floor(rng() * 5_000) : null;
+  const gsmAreaCode = isFmc130 ? 100 + Math.floor(rng() * 50) : null;
+  // A synthetic, deterministic ICCID (there is no real SIM behind a simulated
+  // device) — included because the field itself is a genuine permanent
+  // element on real firmware, not because this number means anything.
+  const iccid = isFmc130 ? 8_997_100_000_000_000n + BigInt(track.imei.slice(-6)) : null;
+
   let engineSeconds = track.engineSeconds0 ?? 0;
   let heading = track.heading0 ?? 0;
   let pos = { ...track.origin };
+  let totalOdometerM = track.odometerM0 ?? 0;
+  let tripOdometerM = 0;
+  let prevPhase = null;
 
   const records = [];
   const take = limit && limit > 0 ? Math.min(limit, signals.length) : signals.length;
@@ -516,9 +606,19 @@ function materializeTrack(track, { seed, stepMs, limit }) {
     if (track.headingFlipAtTick != null && i === track.headingFlipAtTick) heading += 180;
     heading = (heading + (s.headingDelta ?? 0) + 360) % 360;
 
+    const posBefore = pos;
     if (s.movement === true && s.speedKmh > 0) {
       pos = advance(pos, { speedKmh: s.speedKmh, stepMs: step, headingDeg: heading });
     }
+
+    // Odometer: a new trip starts the tick the machine keys on again after
+    // being off — the trip counter resets there, the total counter never
+    // does. Both only accumulate the distance actually covered this tick.
+    if (s.phase === 'startup' && prevPhase !== 'startup') tripOdometerM = 0;
+    const deltaM = s.movement === true && s.speedKmh > 0 ? distanceMeters(posBefore, pos) : 0;
+    tripOdometerM += deltaM;
+    totalOdometerM += deltaM;
+    prevPhase = s.phase;
 
     // Engine counters: reported only when a CAN adapter is fitted AND the unit
     // can read the bus (key on). Otherwise the element is omitted — absence,
@@ -540,10 +640,34 @@ function materializeTrack(track, { seed, stepMs, limit }) {
           ? NOMINAL_SUPPLY_MV
           : 24_600;
     const batteryPct = !wantPower ? null : (s.batteryPct ?? 100);
+    // Battery voltage/current (AVL 67/68) are siblings of 66/113: computed
+    // only where those already are, over the same 3300-4200mV Li-Ion range
+    // the FMC130 datasheet's own backup-battery spec gives (3.7V nominal).
+    const batteryVoltageMv = !wantPower ? null : 3300 + (batteryPct / 100) * 900;
+    const batteryCurrentMa = !wantPower
+      ? null
+      : externalVoltageMv > 0
+        ? 60 + Math.round(rng() * 40) // trickle-charging off external power
+        : 90 + Math.round(rng() * 60); // discharging on the backup battery
 
     // Harsh-driving event (green driving, AVL 253/254) — fires only on the
     // one tick phases.js flags, same one-shot-event contract as unplugEvent.
     const harshEventTypeId = s.harshEventType ? GREEN_DRIVING_TYPE_ID[s.harshEventType] : null;
+
+    // ── FMC130 permanent I/O elements ──
+    const gnssStatus = s.ignition == null ? null : GNSS_FIX;
+    const hasFix = gnssStatus === GNSS_FIX;
+    // Accelerometer: a resting device reads ~1g on Z (gravity) and near-zero
+    // on X/Y, with small sensor noise; a harsh event spikes the axis it acts
+    // on. g x 100 (harshEventValue) x 10 = g x 1000 = mG, the same unit this
+    // field is in — so no separate magnitude is invented for the spike.
+    const jitterMg = () => Math.round((rng() - 0.5) * (s.movement ? 120 : 40));
+    let axisX = jitterMg();
+    let axisY = jitterMg();
+    const axisZ = 980 + jitterMg();
+    if (harshEventTypeId === GREEN_DRIVING_TYPE_ID.brake) axisX -= Math.round((s.harshEventValue ?? 0) * 10);
+    else if (harshEventTypeId === GREEN_DRIVING_TYPE_ID.accel) axisX += Math.round((s.harshEventValue ?? 0) * 10);
+    else if (harshEventTypeId === GREEN_DRIVING_TYPE_ID.corner) axisY += Math.round((s.harshEventValue ?? 0) * 10);
 
     records.push({
       timestampMs: startTsMs + i * step,
@@ -569,12 +693,35 @@ function materializeTrack(track, { seed, stepMs, limit }) {
         engineSeconds: engineIo,
         engineCountedSeconds: engineCountedIo,
         programNumber: canRead ? (track.programNumber ?? null) : null,
-        gnssStatus: s.ignition == null ? null : GNSS_FIX,
+        gnssStatus,
         externalVoltageMv,
         batteryPct,
         harshEventTypeId,
         harshEventValue: s.harshEventValue,
         unplug: s.unplugEvent ? true : null,
+        // FMC130 permanent I/O — undefined (so omitted) for every other device.
+        dataMode: isFmc130 ? 0 : undefined,
+        gsmSignal: isFmc130 ? 3 + Math.round(rng() * 2) : undefined,
+        pdopRaw: isFmc130 && hasFix ? 10 + Math.round(rng() * 10) : undefined,
+        hdopRaw: isFmc130 && hasFix ? 8 + Math.round(rng() * 7) : undefined,
+        speedKmh: isFmc130 ? Math.max(0, Math.round(s.speedKmh ?? 0)) : undefined,
+        gsmCellId: isFmc130 ? gsmCellId : undefined,
+        gsmAreaCode: isFmc130 ? gsmAreaCode : undefined,
+        gsmOperator: isFmc130 ? 42_402 : undefined, // UAE / Etisalat MCC+MNC, illustrative
+        batteryVoltageMv,
+        batteryCurrentMa,
+        tripOdometerM: isFmc130 ? tripOdometerM : undefined,
+        totalOdometerM: isFmc130 ? totalOdometerM : undefined,
+        // Digital Input 1 is a documented FMC130 ignition-detection source —
+        // it mirrors ignition exactly, including going unknown with it.
+        digitalInput1: isFmc130 ? (s.ignition == null ? null : s.ignition ? 1 : 0) : undefined,
+        digitalInput2: isFmc130 ? 0 : undefined,
+        analogInput1Mv: isFmc130 ? 0 : undefined,
+        digitalOutput1: isFmc130 ? 0 : undefined,
+        axisX: isFmc130 ? axisX : undefined,
+        axisY: isFmc130 ? axisY : undefined,
+        axisZ: isFmc130 ? axisZ : undefined,
+        iccid: isFmc130 ? iccid : undefined,
       }),
       // Not encoded on the wire — a debugging/testing annotation only.
       _phase: s.phase,

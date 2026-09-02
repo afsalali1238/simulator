@@ -22,6 +22,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildScenario,
+  buildIo,
   scenarioRecords,
   distanceMeters,
   SCENARIO_NAMES,
@@ -365,4 +366,102 @@ test('scenarios: the seeded handover constant matches the store fixtures', () =>
   // silently drifting off the boundary it exists to straddle.
   assert.equal(HANDOVER_TS_MS, ASSIGNMENTS[0].validToMs);
   assert.equal(HANDOVER_TS_MS, ASSIGNMENTS[1].validFromMs);
+});
+
+
+test('scenarios: D1 (FMC130) carries the new permanent I/O elements on every record; D2 does not', () => {
+  const FMC130_IDS = [
+    IO.DATA_MODE, IO.GSM_SIGNAL, IO.SPEED, IO.GSM_CELL_ID, IO.GSM_AREA_CODE,
+    IO.ACTIVE_GSM_OPERATOR, IO.TRIP_ODOMETER_M, IO.TOTAL_ODOMETER_M,
+    IO.DIGITAL_INPUT_1, IO.DIGITAL_INPUT_2, IO.ANALOG_INPUT_1, IO.DIGITAL_OUTPUT_1,
+    IO.AXIS_X, IO.AXIS_Y, IO.AXIS_Z, IO.ICCID,
+  ];
+
+  // day-cycle is a whole D1 shift with a GNSS fix throughout, so PDOP/HDOP
+  // (fix-dependent) are expected on every record too.
+  const built = buildScenario('day-cycle');
+  const records = built.tracks[0].records;
+  assert.ok(records.length > 0);
+
+  let firstStartupIdx = -1;
+  for (let i = 0; i < records.length; i++) {
+    const rec = records[i];
+    for (const id of [...FMC130_IDS, IO.GNSS_PDOP, IO.GNSS_HDOP]) {
+      assert.ok(io(rec, id) != null, `day-cycle record ${i}: missing FMC130 IO ${id}`);
+    }
+    // Digital Input 1 is a documented FMC130 ignition-detection source — it
+    // must mirror the ignition IO element exactly, tick for tick.
+    assert.equal(io(rec, IO.DIGITAL_INPUT_1).value, io(rec, IO.IGNITION).value);
+    // The standalone Speed element (24) must agree with the GPS block's own
+    // speed — a real unit reports the same figure in both places.
+    assert.equal(io(rec, IO.SPEED).value, rec.gps.speed);
+    if (rec._phase === 'startup' && records[i - 1]?._phase !== 'startup' && firstStartupIdx < 0) {
+      firstStartupIdx = i;
+    }
+  }
+
+  // Trip odometer resets at the first tick of a new trip (key-on after `off`).
+  assert.ok(firstStartupIdx >= 0, 'day-cycle has no startup phase to check the reset against');
+  assert.equal(io(records[firstStartupIdx], IO.TRIP_ODOMETER_M).value, 0);
+
+  // Cell ID / area code / operator are held steady for the length of one
+  // registration, not re-rolled every tick.
+  const cellIds = new Set(records.map((r) => io(r, IO.GSM_CELL_ID).value));
+  const areaCodes = new Set(records.map((r) => io(r, IO.GSM_AREA_CODE).value));
+  assert.equal(cellIds.size, 1, 'GSM cell ID must not change mid-track');
+  assert.equal(areaCodes.size, 1, 'GSM area code must not change mid-track');
+
+  // Total odometer never goes backwards, and only advances while moving.
+  let prevTotal = -1;
+  for (const rec of records) {
+    const total = Number(io(rec, IO.TOTAL_ODOMETER_M).value);
+    assert.ok(total >= prevTotal, 'total odometer must be monotonic');
+    prevTotal = total;
+  }
+
+  // Wire-level: TOTAL_ODOMETER_M really is a 4-byte element, ICCID an 8-byte
+  // one, and they survive a genuine Codec 8E encode/decode round trip.
+  const lastRecord = records[records.length - 1];
+  const packet = encodeAvlPacket({ codecId: CODEC_8E, records: [lastRecord] });
+  const { packet: decoded } = readAvlFrame(packet);
+  const decodedTotal = decoded.records[0].io.find((e) => e.id === IO.TOTAL_ODOMETER_M);
+  assert.equal(decodedTotal.size, 4);
+  assert.equal(decodedTotal.value, Number(io(lastRecord, IO.TOTAL_ODOMETER_M).value));
+  const decodedIccid = decoded.records[0].io.find((e) => e.id === IO.ICCID);
+  assert.equal(decodedIccid.size, 8);
+  assert.equal(decodedIccid.value, io(lastRecord, IO.ICCID).value);
+
+  // D2 is a different, unprofiled model (FMC920) — none of this applies to it.
+  const d2 = buildScenario('dic-to-reem').tracks[0].records;
+  for (const rec of d2) {
+    for (const id of FMC130_IDS) {
+      assert.equal(io(rec, id), undefined, `dic-to-reem (D2) must not carry FMC130 IO ${id}`);
+    }
+  }
+});
+
+test('scenarios: buildIo two\'s-complements negative accelerometer axis values for the wire, and the sign recovers on decode', () => {
+  // Axis X/Y/Z are documented as SIGNED -8000..8000 mG, but every IO element
+  // in this protocol is written as a raw unsigned width (invariant of the
+  // encoder, see codec.js). A harsh-braking spike is negative on the braking
+  // axis, so this path is exercised for real, not just in theory.
+  const rec = {
+    timestampMs: Date.parse('2025-01-01T00:00:00Z'),
+    priority: 0,
+    gps: { lat: 25, lon: 55, altitude: 0, angle: 0, satellites: 9, speed: 0 },
+    eventIoId: IO.IGNITION,
+    io: buildIo({ ignition: true, movement: false, axisX: -1234, axisY: 500, axisZ: 980 }),
+  };
+
+  const wireX = rec.io.find((e) => e.id === IO.AXIS_X);
+  assert.equal(wireX.value, 65536 - 1234, 'negative axis value must be two\'s-complemented into 0-65535 before encoding');
+
+  const packet = encodeAvlPacket({ codecId: CODEC_8E, records: [rec] });
+  const { packet: decoded } = readAvlFrame(packet);
+  const decodedX = decoded.records[0].io.find((e) => e.id === IO.AXIS_X).value;
+  // The wire never carries a sign bit — recovering it is the decoder's job,
+  // same status as every other FMC130 field added this session (data-plane
+  // only, not yet consumed by decode/normalize.js).
+  const signed = decodedX > 32767 ? decodedX - 65536 : decodedX;
+  assert.equal(signed, -1234, 'the signed value must round-trip through the unsigned wire encoding');
 });
