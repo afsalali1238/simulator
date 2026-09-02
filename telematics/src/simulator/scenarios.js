@@ -94,6 +94,8 @@ export function buildIo({
   externalVoltageMv,
   batteryPct,
   unplug,
+  harshEventTypeId,
+  harshEventValue,
 }) {
   const io = [];
   if (ignition != null) io.push({ id: IO.IGNITION, size: 1, value: ignition ? 1 : 0 });
@@ -123,8 +125,15 @@ export function buildIo({
     io.push({ id: IO.BATTERY_LEVEL_PCT, size: 1, value: Math.round(batteryPct) });
   }
   if (unplug != null) io.push({ id: IO.UNPLUG_DETECTED, size: 1, value: unplug ? 1 : 0 });
+  if (harshEventTypeId != null) {
+    io.push({ id: IO.GREEN_DRIVING_TYPE, size: 1, value: harshEventTypeId });
+    io.push({ id: IO.GREEN_DRIVING_VALUE, size: 2, value: Math.max(0, Math.round(harshEventValue ?? 0)) });
+  }
   return io;
 }
+
+// Teltonika "Green driving" event type codes (AVL 253).
+const GREEN_DRIVING_TYPE_ID = { accel: 1, brake: 2, corner: 3 };
 
 // ── Legacy single-session generator (kept for the demo and existing tests) ────
 /**
@@ -415,6 +424,52 @@ export const SCENARIOS = {
       },
     ],
   },
+
+  // ── D2 on the road: a real highway drive with a harsh-braking event ───────
+  'dic-to-reem': {
+    description:
+      'D2 (no CAN adapter — a support vehicle, not billable machinery) drives ' +
+      'Dubai Internet City to Al Reem Island: city streets onto the E11/Sheikh ' +
+      'Zayed Road highway corridor, a sudden hard-braking event mid-highway ' +
+      '(traffic ahead), a brief stop, then on into Al Reem Island and park. ' +
+      'Coordinates are real; the route between them is the same straight-line, ' +
+      'heading-based approximation the handover scenario uses for its Abu ' +
+      'Dhabi leg — this harness has no road-network router.',
+    proves: [
+      'a long multi-leg travel plan with realistic highway speeds',
+      'a harsh-braking event (AVL 253/254) fires once, raises priority, and ' +
+        'is consistent with the GPS speed drop either side of it',
+    ],
+    tracks: [
+      {
+        imei: D2,
+        label: 'D2 / support vehicle (Dubai Internet City → Al Reem Island)',
+        startTsIso: '2025-05-10T05:30:00Z', // 09:30 Gulf Standard Time
+        stepMs: 60_000,
+        origin: { lat: 25.0940, lon: 55.1568 }, // Dubai Internet City
+        heading0: 233, // bearing DIC → Al Reem Island, ~SW along the E11 corridor
+        engineSeconds0: 0,
+        emitEngine: false, // no CAN adapter fitted — matches D2 in every scenario
+        plan: [
+          { phase: 'off', ticks: 2 },
+          { phase: 'startup', ticks: 2 },
+          { phase: 'travel', ticks: 6, opts: { speedKmh: 60 } }, // out of DIC/JLT streets
+          { phase: 'travel', ticks: 20, opts: { speedKmh: 110 } }, // onto Sheikh Zayed Road
+          { phase: 'travel', ticks: 20, opts: { speedKmh: 130 } }, // open highway cruise
+          // Sudden brakes: traffic ahead on the highway. toSpeedKmh matches
+          // what the vehicle is actually doing one tick later; decelG (7.5
+          // m/s^2) is above Teltonika's default harsh-braking threshold, so
+          // this genuinely trips a green-driving event, not just a slowdown.
+          { phase: 'brake', ticks: 1, opts: { toSpeedKmh: 15, decelG: 7.5 } },
+          { phase: 'idle', ticks: 2 }, // pulled onto the shoulder, hazards on
+          { phase: 'travel', ticks: 6, opts: { speedKmh: 100 } }, // back up to speed
+          { phase: 'travel', ticks: 4, opts: { speedKmh: 40 } }, // into Al Reem Island streets
+          { phase: 'idle', ticks: 2 }, // looking for parking
+          { phase: 'shutdown', ticks: 1 }, // parked
+        ],
+      },
+    ],
+  },
 };
 
 export const SCENARIO_NAMES = Object.keys(SCENARIOS);
@@ -477,9 +532,15 @@ function materializeTrack(track, { seed, stepMs, limit }) {
           : 24_600;
     const batteryPct = !wantPower ? null : (s.batteryPct ?? 100);
 
+    // Harsh-driving event (green driving, AVL 253/254) — fires only on the
+    // one tick phases.js flags, same one-shot-event contract as unplugEvent.
+    const harshEventTypeId = s.harshEventType ? GREEN_DRIVING_TYPE_ID[s.harshEventType] : null;
+
     records.push({
       timestampMs: startTsMs + i * step,
-      priority: s.unplugEvent ? 1 : 0, // a real unit raises priority on an event
+      // A real unit raises priority on ANY event record — power-cut or a
+      // harsh-driving trigger — not just on the routine periodic ones.
+      priority: s.unplugEvent || harshEventTypeId != null ? 1 : 0,
       gps: {
         lat: pos.lat,
         lon: pos.lon,
@@ -488,7 +549,11 @@ function materializeTrack(track, { seed, stepMs, limit }) {
         satellites: s.ignition == null ? 0 : 9,
         speed: Math.max(0, Math.round(s.speedKmh ?? 0)),
       },
-      eventIoId: s.unplugEvent ? IO.UNPLUG_DETECTED : IO.IGNITION,
+      eventIoId: s.unplugEvent
+        ? IO.UNPLUG_DETECTED
+        : harshEventTypeId != null
+          ? IO.GREEN_DRIVING_TYPE
+          : IO.IGNITION,
       io: buildIo({
         ignition: s.ignition,
         movement: s.movement,
@@ -498,6 +563,8 @@ function materializeTrack(track, { seed, stepMs, limit }) {
         gnssStatus: s.ignition == null ? null : GNSS_FIX,
         externalVoltageMv,
         batteryPct,
+        harshEventTypeId,
+        harshEventValue: s.harshEventValue,
         unplug: s.unplugEvent ? true : null,
       }),
       // Not encoded on the wire — a debugging/testing annotation only.

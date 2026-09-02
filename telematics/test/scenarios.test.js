@@ -192,6 +192,50 @@ test('scenarios: tamper reports ignition as null (unknown), never false (invaria
   for (let i = 1; i < batt.length; i++) assert.ok(batt[i] < batt[i - 1], 'battery should drain');
 });
 
+test('scenarios: dic-to-reem fires one harsh-braking event, consistent with the GPS speed either side of it', () => {
+  const built = buildScenario('dic-to-reem');
+  const records = built.tracks[0].records;
+
+  // Exactly one record carries the green-driving event, and it is raised in
+  // priority + flagged as the record's event IO — same one-shot-event
+  // contract the tamper scenario's unplug flag proves.
+  const events = records.filter((r) => io(r, IO.GREEN_DRIVING_TYPE) !== undefined);
+  assert.equal(events.length, 1, 'expected exactly one harsh-driving event');
+  const event = events[0];
+  assert.equal(event.priority, 1, 'a real unit raises priority on the event record');
+  assert.equal(event.eventIoId, IO.GREEN_DRIVING_TYPE);
+  assert.equal(io(event, IO.GREEN_DRIVING_TYPE).value, 2, 'type 2 = harsh braking (Teltonika Green Driving)');
+  assert.ok(
+    io(event, IO.GREEN_DRIVING_VALUE).value >= 65,
+    'the reported deceleration must clear a plausible harsh-braking threshold (>= 6.5 m/s^2)',
+  );
+
+  // The GPS speed drop is real and lands either side of the event, not a
+  // teleport: fast before, slow at the event, and the vehicle is genuinely
+  // stopped (idle) for a beat afterwards before it builds speed again.
+  const idx = records.indexOf(event);
+  assert.ok(records[idx - 1].gps.speed >= 100, 'should be at highway speed just before the event');
+  assert.ok(event.gps.speed <= 20, 'should have dropped sharply at the event');
+  const after = records.slice(idx + 1, idx + 3);
+  assert.ok(after.every((r) => r._phase === 'idle'), 'expects a stopped beat right after the event');
+
+  // Real-world endpoints: starts in Dubai Internet City, ends near Al Reem
+  // Island — not exact (this harness has no road router), but in the right
+  // place, not still sitting in Dubai.
+  const DIC = { lat: 25.094, lon: 55.1568 };
+  const AL_REEM = { lat: 24.4992, lon: 54.4059 };
+  const first = records[0];
+  const last = records[records.length - 1];
+  assert.ok(distanceMeters(DIC, { lat: first.gps.lat, lon: first.gps.lon }) < 1000);
+  assert.ok(
+    distanceMeters(AL_REEM, { lat: last.gps.lat, lon: last.gps.lon }) < 15_000,
+    'should end up in the vicinity of Al Reem Island',
+  );
+
+  // No CAN adapter on this device in any scenario — never claims engine data.
+  assert.equal(io(records[10], IO.ENGINE_WORKTIME_MIN), undefined);
+});
+
 test('scenarios: geofence-cross genuinely leaves and re-enters the site circle', () => {
   const built = buildScenario('geofence-cross');
   const site = built.site;

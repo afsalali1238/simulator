@@ -121,6 +121,14 @@ export const IO = {
   // Present so nobody re-discovers it as a shortcut: accumulated ignition-on
   // seconds. Invariant 5 — it may inform a display, never an invoice.
   IGNITION_ON_COUNTER_S: 449,
+
+  // "Green driving" / harsh-event detection — documented Teltonika standard
+  // AVL IDs on accelerometer-equipped units (the FMC130 has one). Fired once,
+  // on the record that captures the event; NOT decoded into canonical rows
+  // yet (same status as the power/tamper IDs above) — this is data-plane only
+  // until a rule/decoder consumes it.
+  GREEN_DRIVING_TYPE: 253, // 1 byte — 1 harsh accel, 2 harsh braking, 3 harsh cornering
+  GREEN_DRIVING_VALUE: 254, // 2 bytes — magnitude, deci-m/s^2 (e.g. 65 = 6.5 m/s^2)
 };
 
 /**

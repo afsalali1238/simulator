@@ -79,6 +79,9 @@ export function advance({ lat, lon }, { speedKmh, stepMs, headingDeg }) {
 //   headingDelta    degrees added to the track heading this tick
 //   externalVoltageMv / batteryPct   number | null (null → omitted)
 //   unplugEvent     true → this record is flagged as the unplug event
+//   harshEventType  'brake' | 'accel' | 'corner' | null → the AVL 253/254
+//                   green-driving event fires only on the tick this is set
+//   harshEventValue number | null — magnitude for harshEventType, deci-m/s^2
 //
 // `null` for a signal is a first-class value here. Read the invariant-3 note at
 // the top of this file before "tidying" any of these into 0/false.
@@ -144,6 +147,34 @@ export const PHASES = {
     speedKmh: 0,
     engineRunning: false,
   }),
+
+  // A sudden, hard deceleration mid-drive — the pattern a harsh-braking /
+  // driver-behaviour rule fires on. `opts.toSpeedKmh` is the GPS speed this
+  // tick lands on (the scenario should set it close to what the preceding
+  // travel phase was cruising at minus a real drop, so the plan reads as one
+  // continuous drive, not a teleport). The deceleration magnitude is a
+  // SEPARATE quantity, `opts.decelG` — deliberately NOT derived from that
+  // speed drop against the tick interval: a telemetry report every 60s is a
+  // REPORTING rate, not how long the actual braking took (~1-2s in the real
+  // world, invisible at this resolution). Speed-drop-over-60s would compute a
+  // tame ~0.5 m/s^2 and mislabel ordinary deceleration as "harsh". Teltonika's
+  // Green Driving feature (AVL 253/254) typically flags harsh braking above
+  // roughly 6-7 m/s^2, so 6.5 m/s^2 is a representative default threshold-
+  // crosser, not a computed one.
+  brake: ({ i, opts = {} }) => {
+    const toSpeedKmh = opts.toSpeedKmh ?? 8;
+    const decelMs2 = opts.decelG ?? 6.5; // m/s^2, > typical harsh-brake threshold
+    const first = i === 0;
+    return {
+      ignition: true,
+      movement: true,
+      speedKmh: toSpeedKmh,
+      engineRunning: true,
+      harshEventType: first ? 'brake' : null,
+      // deci-m/s^2 — the wire unit AVL 254 uses.
+      harshEventValue: first ? Math.round(decelMs2 * 10) : null,
+    };
+  },
 
   // Power cut / harness pulled: the unit falls back to its internal battery,
   // external voltage collapses, and it stops reporting ignition at all — it
