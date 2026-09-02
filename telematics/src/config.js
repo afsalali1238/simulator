@@ -64,6 +64,9 @@ export const config = {
     // Records per device per run when a scenario is replayed as a batch
     // (0/absent = stream indefinitely on the interval, the old behaviour).
     records: int(process.env.SIM_RECORDS, 0),
+    // The browser control-panel server (src/tools/sim-control-server.js) —
+    // dev-tooling only, not part of the device protocol.
+    controlPort: int(process.env.SIM_CONTROL_PORT, 8081),
   },
 
   // ── Operability (P0) ────────────────────────────────────────────────────────

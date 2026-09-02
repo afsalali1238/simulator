@@ -11,13 +11,19 @@
 //
 // Usage:
 //   npm run dashboard
-//   # in a second terminal:
-//   npm run sim -- --scenario day-cycle      (or --stream, or any named scenario)
-//   # then open telematics/dashboard/index.html in a browser
+//   # then open telematics/dashboard/index.html in a browser and click a
+//   # scenario button — no second terminal needed. (`npm run sim -- --scenario
+//   # X` from a second terminal still works too, same shared store.)
+//
+// Also starts the simulator control server (src/tools/sim-control-server.js):
+// the dashboard page's scenario buttons POST to it, and it streams back every
+// record's real Codec 8/8E bytes + decode over Server-Sent Events. Pure
+// dev-tooling, same status as this file — not part of the device protocol.
 // ─────────────────────────────────────────────────────────────────────────────
 import { makeStore } from '../store/index.js';
 import { createIngestionServer } from '../ingestion/server.js';
 import { createApi } from '../api/server.js';
+import { createSimControlServer } from './sim-control-server.js';
 import { TENANTS, ASSETS } from '../store/seed-data.js';
 import { config } from '../config.js';
 
@@ -34,10 +40,21 @@ async function main() {
   const api = createApi({ store, port: 8080, logger });
   const apiPort = await api.listen();
 
+  const simControl = createSimControlServer({
+    ingestHost: '127.0.0.1',
+    ingestPort,
+    port: config.sim.controlPort,
+    codec: config.sim.codec,
+    intervalMs: config.sim.intervalMs,
+    logger,
+  });
+  const controlPort = await simControl.listen();
+
   console.log(`
 Live dashboard backend running (shared in-memory store).
-  Ingestion (device traffic): tcp/${ingestPort}
-  Read API:                   http://localhost:${apiPort}
+  Ingestion (device traffic):    tcp/${ingestPort}
+  Read API:                      http://localhost:${apiPort}
+  Simulator control (dev-tool):  http://localhost:${controlPort}
 
 Known tenant IDs (dashboard.html already knows these):
   Tenant A — ${TENANTS.A.name}: ${TENANTS.A.id}
@@ -47,10 +64,11 @@ Known tenant IDs (dashboard.html already knows these):
 Known assets:
 ${ASSETS.map((a) => `  ${a.year} ${a.make} ${a.model} (${a.type}): ${a.id}`).join('\n')}
 
-Next steps:
-  1. In another terminal:  npm run sim -- --scenario day-cycle
-     (or --scenario handover / tamper / yard-idle / geofence-cross / after-hours, or --stream to loop forever)
-  2. Open dashboard/index.html in your browser (double-click it, or drag it into Chrome).
+Next step:
+  Open dashboard/index.html in your browser (double-click it, or drag it into
+  Chrome) and click a scenario button — the map, state panel, and raw wire
+  log all update live. (npm run sim -- --scenario X from another terminal
+  still works too, same shared store.)
 
 Press Ctrl+C to stop.
 `);
@@ -61,7 +79,7 @@ Press Ctrl+C to stop.
     // the SHUTDOWN_TIMEOUT_MS deadline, same contract the rest of P0 established
     // for both servers (src/lifecycle/shutdown.js) — close() would cut work off
     // immediately instead.
-    await Promise.all([ingest.drain(), api.drain()]);
+    await Promise.all([ingest.drain(), api.drain(), simControl.close()]);
     console.log('stopped.');
     process.exit(0);
   }

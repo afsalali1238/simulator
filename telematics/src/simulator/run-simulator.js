@@ -79,8 +79,11 @@ function printScenarioList() {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── Replay one track: connect, send its records one per tick, disconnect ──────
-async function replayTrack({ track, host, port, codec, intervalMs, logger, state }) {
-  const dev = new SimDevice({ host, port, imei: track.imei, codec });
+// Exported so other tools (the browser control-panel server) can drive a
+// scenario's real send loop without duplicating it — same TCP client, same
+// bytes, just with an optional look at what went out (`onPacket`).
+export async function replayTrack({ track, host, port, codec, intervalMs, logger, state, onPacket }) {
+  const dev = new SimDevice({ host, port, imei: track.imei, codec, onPacket });
   try {
     await dev.connect();
   } catch (e) {

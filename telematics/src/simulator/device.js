@@ -42,11 +42,17 @@ class ByteReader {
 }
 
 export class SimDevice {
-  constructor({ host, port, imei, codec = '8E' }) {
+  // `onPacket`, if given, fires once per send() with the EXACT bytes just
+  // written to the socket plus the server's ACK — { packet, records, ack }.
+  // Optional and purely observational (a dev-tooling hook for the browser
+  // control panel to show what's really on the wire); nothing here changes
+  // if it's omitted, and no existing caller passes it.
+  constructor({ host, port, imei, codec = '8E', onPacket }) {
     this.host = host;
     this.port = port;
     this.imei = imei;
     this.codecId = String(codec) === '8' ? CODEC_8 : CODEC_8E;
+    this.onPacket = onPacket;
   }
 
   connect() {
@@ -86,7 +92,9 @@ export class SimDevice {
     const packet = encodeAvlPacket({ codecId: this.codecId, records });
     this.socket.write(packet);
     const ack = await this.reader.read(4);
-    return ack.readUInt32BE(0);
+    const ackCount = ack.readUInt32BE(0);
+    this.onPacket?.({ packet, records, ack: ackCount });
+    return ackCount;
   }
 
   // Send WITHOUT waiting for the ACK, then return the raw bytes — used by the

@@ -33,6 +33,23 @@
   .feed div { border-bottom:1px dashed #1f2731; padding:3px 0; }
   .row2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:16px; }
   .pill { display:inline-block; padding:2px 8px; border-radius:8px; font-size:11px; background:#1f2731; }
+  .scenarios { display:flex; flex-wrap:wrap; gap:8px; }
+  .scenario-btn { background:#1a2430; color:#e6edf3; border:1px solid #2a3644; border-radius:8px;
+    padding:8px 12px; font-size:12px; cursor:pointer; text-align:left; max-width:220px; }
+  .scenario-btn:hover:not(:disabled) { border-color:#3b82f6; }
+  .scenario-btn:disabled { opacity:.5; cursor:wait; }
+  .scenario-btn .name { display:block; font-weight:600; }
+  .scenario-btn .desc { display:block; color:#9fb0c0; font-size:10px; margin-top:2px; white-space:normal; }
+  .wire-log { height:360px; overflow-y:auto; font-family: ui-monospace, Menlo, monospace; font-size:11px; line-height:1.5; }
+  .wire-rec { border-bottom:1px solid #1f2731; padding:8px 0; }
+  .wire-rec .hdr { color:#9fb0c0; margin-bottom:3px; }
+  .wire-rec .hdr b { color:#e6edf3; }
+  .wire-rec .hex { word-break:break-all; color:#4ade80; opacity:.85; }
+  .wire-rec .iolist { color:#9fb0c0; margin-top:3px; }
+  .wire-rec .iolist span { color:#e6edf3; }
+  .wire-meta { color:#f0b93a; font-style:italic; padding:4px 0; }
+  #controlStatus.status.ok { background:#0d3b21; color:#4ade80; }
+  #controlStatus.status.bad { background:#3b0d0d; color:#f87171; }
 </style>
 </head>
 <body>
@@ -49,6 +66,9 @@
   </select>
   <label>Poll (ms)</label>
   <input id="pollMs" value="1000" size="4" />
+  <span id="controlStatus" class="status bad">Control: checking…</span>
+  <label>Control base</label>
+  <input id="controlBase" value="http://localhost:8081" size="20" />
 </header>
 
 <main>
@@ -71,6 +91,10 @@
       <h2>Devices visible to this tenant</h2>
       <div class="kv" id="devicesKv"><div class="k">—</div><div class="v"></div></div>
     </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Scenarios — click to send</h2>
+      <div class="scenarios" id="scenarioButtons"><div class="wire-meta">loading…</div></div>
+    </div>
   </div>
 
   <div>
@@ -81,6 +105,10 @@
     <div class="card" style="margin-top:16px;">
       <h2>Live position feed</h2>
       <div class="feed" id="feed"></div>
+    </div>
+    <div class="card" style="margin-top:16px;">
+      <h2>Wire log — raw Codec 8/8E packets, decoded exactly as the ingestion server would</h2>
+      <div class="wire-log" id="wireLog"><div class="wire-meta">click a scenario to start sending…</div></div>
     </div>
   </div>
 </main>
@@ -224,6 +252,126 @@ function drawTrack() {
 
 setInterval(() => poll(), Number($('pollMs').value) || 1000);
 poll();
+
+// ── Simulator control: scenario buttons + live wire log (raw Codec 8/8E) ─────
+// Talks to src/tools/sim-control-server.js (started by `npm run dashboard`),
+// which drives the REAL SimDevice/replayTrack send path — every byte shown
+// here is what actually went out on the wire, decoded the same way the
+// ingestion server itself decodes it.
+let wireLogCount = 0;
+
+function setControlStatus(ok, msg) {
+  const el = $('controlStatus');
+  el.className = 'status ' + (ok ? 'ok' : 'bad');
+  el.textContent = ok ? 'Control: connected' : 'Control: ' + (msg || 'unreachable');
+}
+
+async function loadScenarios() {
+  const base = $('controlBase').value.replace(/\/$/, '');
+  const box = $('scenarioButtons');
+  try {
+    const res = await fetch(base + '/scenarios');
+    if (!res.ok) throw new Error('http ' + res.status);
+    const { scenarios } = await res.json();
+    setControlStatus(true);
+    box.innerHTML = '';
+    for (const s of scenarios) {
+      const btn = document.createElement('button');
+      btn.className = 'scenario-btn';
+      btn.dataset.scenario = s.name;
+      btn.innerHTML = '<span class="name">' + s.name + '</span><span class="desc">' + s.description + '</span>';
+      btn.addEventListener('click', () => runScenario(s.name, btn));
+      box.appendChild(btn);
+    }
+  } catch (e) {
+    setControlStatus(false, e.message);
+    box.innerHTML = '<div class="wire-meta">control server unreachable — run `npm run dashboard` and check the Control base URL above</div>';
+  }
+}
+
+async function runScenario(name, btn) {
+  const base = $('controlBase').value.replace(/\/$/, '');
+  const buttons = document.querySelectorAll('.scenario-btn');
+  buttons.forEach((b) => (b.disabled = true));
+  const log = $('wireLog');
+  const marker = document.createElement('div');
+  marker.className = 'wire-meta';
+  marker.textContent = '▶ running "' + name + '"…';
+  log.prepend(marker);
+  try {
+    const res = await fetch(base + '/simulate?scenario=' + encodeURIComponent(name), { method: 'POST' });
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      throw new Error(j.error || ('http ' + res.status));
+    }
+  } catch (e) {
+    marker.textContent = '✕ "' + name + '" failed to start: ' + e.message;
+    buttons.forEach((b) => (b.disabled = false));
+  }
+  // Buttons re-enable on the SSE 'scenario_complete'/'error' event for this
+  // scenario, not here — the run itself happens over the stream.
+}
+
+function renderWireEvent(ev) {
+  const log = $('wireLog');
+
+  if (ev.type === 'scenario_start') {
+    const el = document.createElement('div');
+    el.className = 'wire-meta';
+    el.textContent = '▶ ' + ev.scenario + ' — ' + ev.tracks + ' track(s): ' + ev.description;
+    log.prepend(el);
+    return;
+  }
+  if (ev.type === 'record') {
+    const el = document.createElement('div');
+    el.className = 'wire-rec';
+    const ioStr = ev.io.map((e) => e.name + '(' + e.id + ')=<span>' + e.value + '</span>').join(', ');
+    el.innerHTML =
+      '<div class="hdr"><b>' + ev.scenario + '</b> · ' + (ev.label || ev.imei) + ' · seq ' + ev.seq +
+      ' · phase=' + ev.phase + ' · ack=' + ev.ack + ' · ' + ev.byteLength + ' bytes · ' +
+      new Date(ev.timestampMs).toISOString() + '</div>' +
+      '<div class="hex">' + ev.hex + '</div>' +
+      '<div class="iolist">gps: lat=' + ev.gps.lat.toFixed(5) + ' lon=' + ev.gps.lon.toFixed(5) +
+      ' speed=' + ev.gps.speed + ' sats=' + ev.gps.satellites + '</div>' +
+      '<div class="iolist">' + ev.io.length + ' IO elements: ' + ioStr + '</div>';
+    log.prepend(el);
+    wireLogCount++;
+    while (log.childElementCount > 400) log.removeChild(log.lastChild);
+    return;
+  }
+  if (ev.type === 'track_complete') {
+    const el = document.createElement('div');
+    el.className = 'wire-meta';
+    el.textContent = '  ✓ ' + (ev.label || ev.imei) + ': sent ' + ev.sent + ', ACKed ' + ev.acked + (ev.failed ? ' (FAILED)' : '');
+    log.prepend(el);
+    return;
+  }
+  if (ev.type === 'scenario_complete' || ev.type === 'error') {
+    const el = document.createElement('div');
+    el.className = 'wire-meta';
+    el.textContent = ev.type === 'error'
+      ? '✕ "' + ev.scenario + '" error: ' + ev.error
+      : '■ "' + ev.scenario + '" complete';
+    log.prepend(el);
+    document.querySelectorAll('.scenario-btn').forEach((b) => (b.disabled = false));
+    return;
+  }
+}
+
+function connectWireStream() {
+  const base = $('controlBase').value.replace(/\/$/, '');
+  const es = new EventSource(base + '/simulate/stream');
+  es.onopen = () => setControlStatus(true);
+  es.onerror = () => setControlStatus(false, 'stream disconnected — retrying…');
+  es.onmessage = (msg) => {
+    try {
+      renderWireEvent(JSON.parse(msg.data));
+    } catch { /* ignore malformed/comment lines */ }
+  };
+}
+
+loadScenarios();
+connectWireStream();
 </script>
 </body>
 </html>
