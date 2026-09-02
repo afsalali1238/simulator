@@ -30,6 +30,7 @@
     "test:tenancy": "node --test test/tenancy.test.js",
     "test:api": "node --test test/api.test.js",
     "test:scenarios": "node --test test/scenarios.test.js",
+    "test:rules": "node --test test/rules.test.js",
     "test:replay": "node --test test/replay.test.js",
     "test:operability": "node --test test/operability.test.js",
     "test:config": "node --test test/config.test.js",

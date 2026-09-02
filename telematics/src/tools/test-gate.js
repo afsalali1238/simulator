@@ -37,9 +37,9 @@ import { listTestFiles, ROOT } from './test-files.js';
 // reports the FILE itself as one passing test — hence the +6 gap between the two
 // modes rather than +8.
 //
-// 86 = 85 (P0/D1/P1 baseline) + 1 (test/scenarios.test.js: the dic-to-reem
-// harsh-braking scenario). Verified locally: `npm test` -> 86/86 in memory mode.
-const DEFAULT_MIN_TESTS = 88;
+// 88 = P0/D1/P1 baseline + dic-to-reem + FMC130 fidelity test
+// 94 = 88 + 6 rules tests
+const DEFAULT_MIN_TESTS = 94;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 
