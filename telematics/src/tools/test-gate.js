@@ -39,7 +39,7 @@ import { listTestFiles, ROOT } from './test-files.js';
 //
 // 88 = P0/D1/P1 baseline + dic-to-reem + FMC130 fidelity test
 // 94 = 88 + 6 rules tests
-const DEFAULT_MIN_TESTS = 94;
+const DEFAULT_MIN_TESTS = 100;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 

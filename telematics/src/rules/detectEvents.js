@@ -178,32 +178,36 @@ export function detectEvents(records, { assetId, tenantId, config } = {}) {
   // ── Rule 4: Tamper / unplug ──────────────────────────────────────────────
   // Fire `tamper-unplug` on the unplug signal (IO 252 = 1) and/or external
   // voltage collapsing to ~0 while on external power.
-  // Invariant 3 trap: a missing battery reading is null, not 0 — never raise a
-  // "flat battery" alert because the signal was absent.
+  // Invariant 3 trap: `r.unplug` and `r.externalVoltageMv` are `null` when the
+  // signal is genuinely absent (no power IO modeled for this scenario/device)
+  // — that must never be treated as "collapsed", only a real bad reading on
+  // EITHER signal counts. Covered by a dedicated negative test.
   //
-  // Track unplug state: once the unplug event fires (unplug === 1 on a record),
-  // it stays fired for the remainder of the stream. Also track external voltage;
-  // if it collapses from >0 to ~0, that's also a tamper event.
-  let tamperFired = false;
-  let prevExternalVoltageMv = null;
+  // EPISODE-based, not fire-once-per-lifetime: a device can genuinely be
+  // unplugged more than once over its life, and each occurrence is a real,
+  // separate incident worth its own alert — same reasoning as idle-too-long
+  // being spell-based rather than "idle at all, ever". `tamperActive` tracks
+  // whether we're currently inside a bad episode; it re-arms as soon as
+  // BOTH signals stop being bad (unplug clears AND voltage is not collapsed —
+  // absence/null on a signal never counts as "still bad"), so the NEXT
+  // genuine incident fires its own event with its own eventId (deterministic
+  // from that episode's own tsMs, so a re-run of the same records still
+  // dedupes correctly — invariant 2).
+  //
+  // Note: recovery is intentionally NOT a required before/after voltage
+  // transition. An episode triggered purely by the unplug flag (no voltage IO
+  // modeled at all, always null) must still be able to re-arm — requiring a
+  // low→high voltage transition to clear it would leave `tamperActive` stuck
+  // true forever on such a device, silently swallowing every later unplug.
+  let tamperActive = false;
 
   for (const r of filtered) {
-    // If already fired, don't fire again (idempotent ingest, invariant 2)
-    if (tamperFired) {
-      // Still track voltage for detail, but no new events
-      prevExternalVoltageMv = r.externalVoltageMv;
-      continue;
-    }
+    const unplugBad = r.unplug === 1;
+    const voltageBad = r.externalVoltageMv != null && r.externalVoltageMv <= 50;
+    const currentlyBad = unplugBad || voltageBad;
 
-    // Unplug event: IO 252 = 1 on the record
-    const unplugNow = r.unplug === 1;
-    // External voltage collapsing: was present (>0) and now is ~0 (threshold <= 50 mV)
-    const voltageCollapsed =
-      prevExternalVoltageMv != null && prevExternalVoltageMv > 0 &&
-      r.externalVoltageMv != null && r.externalVoltageMv <= 50;
-
-    if (unplugNow || voltageCollapsed) {
-      tamperFired = true;
+    if (!tamperActive && currentlyBad) {
+      tamperActive = true;
       events.push({
         type: 'tamper-unplug',
         assetId: r.assetId,
@@ -211,36 +215,34 @@ export function detectEvents(records, { assetId, tenantId, config } = {}) {
         tsMs: r.tsMs,
         eventId: makeEventId(r.tenantId, r.assetId, 'tamper-unplug', `tick-${r.tsMs}`),
         detail: {
-          unplug: unplugNow,
+          unplug: unplugBad,
           externalVoltageMv: r.externalVoltageMv,
-          previousExternalVoltageMv: prevExternalVoltageMv,
         },
       });
+    } else if (tamperActive && !currentlyBad) {
+      tamperActive = false; // re-armed: a future incident fires its own event
     }
-
-    // Track state for next iteration
-    prevExternalVoltageMv = r.externalVoltageMv;
   }
 
   // ── Rule 5: Low battery ──────────────────────────────────────────────────
   // Fire `low-battery` when battery level (batteryPct) is present and below
-  // batteryLowPct threshold. A missing reading (null) must never trigger this —
-  // that would be invariant 3 violated. Fire once per battery-low spell, not once
-  // per record.
-  let lowBattFired = false;
-  let lowBattSpellStart = null; // tsMs when the current low-batt spell began
+  // batteryLowPct threshold. A missing reading (null) must NEVER trigger this
+  // — invariant 3 — covered by a dedicated negative test, not just this
+  // comment's say-so.
+  //
+  // EPISODE-based with a small hysteresis band, same reasoning as Rule 4: a
+  // battery can genuinely go low, get recharged, and go low again — each is
+  // its own incident. Recovery requires clearing `batteryLowPct + 10`, not
+  // just crossing back over the exact same threshold, so a reading sitting
+  // right at the line doesn't fire a new event on every tick's jitter.
+  let lowBattActive = false;
+  const batteryRecoverPct = batteryLowPct + 10;
 
   for (const r of filtered) {
-    // Skip if already fired (idempotent — already emitted the event)
-    if (lowBattFired) {
-      // Already emitted the event; just continue scanning
-      continue;
-    }
+    if (r.batteryPct == null) continue; // absent is not evidence either way
 
-    if (r.batteryPct != null && r.batteryPct < batteryLowPct) {
-      // Battery reading present and below threshold — fire once
-      lowBattFired = true;
-      lowBattSpellStart = r.tsMs;
+    if (!lowBattActive && r.batteryPct < batteryLowPct) {
+      lowBattActive = true;
       events.push({
         type: 'low-battery',
         assetId: r.assetId,
@@ -249,13 +251,10 @@ export function detectEvents(records, { assetId, tenantId, config } = {}) {
         eventId: makeEventId(r.tenantId, r.assetId, 'low-battery', `spell-${r.tsMs}`),
         detail: { batteryPct: r.batteryPct, thresholdPct: batteryLowPct },
       });
+    } else if (lowBattActive && r.batteryPct >= batteryRecoverPct) {
+      lowBattActive = false; // re-armed: a future drop fires its own event
     }
-    // If batteryPct is null or >= threshold, we do nothing (invariant 3:
-    // absent is null, not 0 — never raise low-battery because signal was absent)
   }
-
-  // If the stream ends while battery is still low, the event was already fired
-  // on the first low-reading record — no second event needed (idempotent).
 
   return events;
 }
