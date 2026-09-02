@@ -316,6 +316,18 @@ function renderWireEvent(ev) {
   const log = $('wireLog');
 
   if (ev.type === 'scenario_start') {
+    // A new scenario's route has nothing to do with whatever was drawn
+    // before it — without this, two scenarios run back to back get stitched
+    // into one tangled polyline (Jebel Ali connected straight-line to Business
+    // Bay, etc.) because `track`/`seenTsMs` were page-lifetime state. Reset
+    // the map fully so each click shows one clean route, re-centered on it.
+    seenTsMs = new Set();
+    track = [];
+    trackLine.setLatLngs([]);
+    mapCentered = false;
+    $('feed').innerHTML = '';
+    $('trackCount').textContent = '0';
+
     const el = document.createElement('div');
     el.className = 'wire-meta';
     el.textContent = '▶ ' + ev.scenario + ' — ' + ev.tracks + ' track(s): ' + ev.description;
