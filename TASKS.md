@@ -100,7 +100,7 @@ Legend: `[ ]` open · `[~]` in progress · `[x]` done · **@agent** owner ·
 ## Phase P3 — Rules & event detection + WhatsApp messaging  **@integration-engineer**  🔒 after P2 gate
 
 - [ ] Grow Module 4 enrichment as needed (trips, geofence membership) **@integration-engineer**
-- [ ] Build Module 8 rules: geofence in/out, after-hours ignition, idle-too-long, tamper/unplug, low battery **@integration-engineer**
+- [ ] Build Module 8 rules: geofence in/out, after-hours ignition, idle-too-long, tamper/unplug, low battery **@integration-engineer** — IN PROGRESS, red: first delivery reviewed in `RULES_MODULE8_REVIEW_2026-09-01.md`, re-verified and the remaining fix list handed off in `HERMES_HANDOFF_RULES_FIXLIST_2026-09-01.md` (2026-09-01). `test/rules.test.js` is 3/6 passing today; logic for rules 1-3 is sound once wired, rules 4-5 already implemented, spec still doesn't call `detectEvents`.
 - [ ] Build Module 7 messaging: WhatsApp Cloud API, live Meta creds + approved templates **@integration-engineer**
 - [ ] Wire rules → messaging with idempotent (de-duplicated) event delivery **@integration-engineer**
 - [ ] **GATE:** `test:rules` green (each event type) + WhatsApp integration test (Meta sandbox) + de-duplication test

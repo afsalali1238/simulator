@@ -6,17 +6,25 @@ code in `../telematics/`.
 
 ## How to read the naming
 
-Two eras of documents live side by side, and **both are valid**:
+**The brand is Kasper.** A short-lived "Dozr" rebrand was reversed on 2026-08-31, so
+the `Dozr` you see in some filenames is a naming leftover, **not** current branding —
+don't read it as authoritative and don't reintroduce "Dozr" in new work. The
+filenames are intentionally left as-is; **do not rename or rewrite these files without
+asking.**
 
-- **`Dozr_*`** — current, post-rebrand. These are authoritative where they exist.
-- **`Kasper_*`** — pre-rebrand (Kasper Technologies FZ-LLC was the old name). The
-  branding is historical but **the content is not wrong** — these are the detailed
-  requirements, architecture, and reviews the current docs were built from. Do not
-  rename or rewrite them without asking; treat them as the deep reference behind the
-  Dozr-branded summaries.
+Two eras of documents live side by side, and **both are valid content**:
 
-When a Dozr doc and a Kasper doc cover the same ground, the **Dozr doc wins** on
-naming, branding, and current decisions; the Kasper doc usually has more depth.
+- **`Dozr_*`** — written during the brief Dozr period, so these hold the **most recent
+  content** (the current handbook, PRD, expert review, invariants). Treat the content
+  as current; ignore the "Dozr" in the name.
+- **`Kasper_*`** — the older, pre-rebrand docs (Kasper Technologies FZ-LLC). Also
+  valid, and usually **deeper** — the detailed requirements, architecture, and reviews
+  the newer summaries were built from.
+
+The prefix no longer signals authority. Where a `Dozr_` and a `Kasper_` doc overlap,
+the `Dozr_` one is the more recent summary and wins on current decisions; the
+`Kasper_` one usually has more depth. New files use plain names (e.g.
+`DATASHEET_CROSSCHECK.md`) or their real vendor names (e.g. `Datasheet-FMC130.pdf`).
 
 ---
 
@@ -36,7 +44,7 @@ naming, branding, and current decisions; the Kasper doc usually has more depth.
 | File | What it is |
 |------|------------|
 | `Dozr_GPS_Build_Handbook.html` | **Current build handbook.** The engineering north star — components, decisions, sequencing. Read alongside `../ARCHITECTURE.md`. |
-| `Dozr_Platform_Architecture.html` | How GPS fits the wider Dozr platform (Marketplace, Vendor OS, shared spine). |
+| `Dozr_Platform_Architecture.html` | How GPS fits the wider Kasper platform (Marketplace, Vendor OS, shared spine). |
 | `Kasper_GPS_Architecture.html` | The **most detailed** architecture doc (pre-rebrand) — deep component and data-flow detail. |
 | `Kasper_GPS_Delivery_Plan.html` | Delivery plan / phasing (pre-rebrand). Cross-check against `../BUILD_PLAN.md`. |
 | `Dozr_IoT_Architecture.drawio` | Editable architecture diagram (open in diagrams.net / draw.io). |
@@ -55,11 +63,14 @@ naming, branding, and current decisions; the Kasper doc usually has more depth.
 
 | File | What it is |
 |------|------------|
+| `Datasheet-FMC130.pdf` | **Official FMC130 datasheet (primary source, Teltonika © 2022).** The tracker D1 targets: 1 CAN Adapter Input, supports LV-CAN200/ALL-CAN300/CAN-CONTROL, codec 8/8E, Configurator + FOTA. Corroborates the D1 hardware layer. |
+| `Datasheet-ALL-CAN300.pdf` | **Official ALL-CAN300 datasheet (primary source, Teltonika © 2019).** The CAN adapter: "Supported by FMC1YX", reads ~100 parameters incl. **"engine lifetime"**, RPM, fuel. Note the per-machine variance caveat. |
+| `DATASHEET_CROSSCHECK.md` | **Claim-by-claim verify of the two datasheets against the D1 resolution.** Bottom line: they confirm the hardware layer, no contradictions; the "engine lifetime" ↔ AVL 102 naming gap stays an open Teltonika question; datasheets carry no AVL-ID table, so "102 in minutes" still rests on the parameters-ID wiki. Read with `../../D1_CAN_ENGINE_HOURS.md`. |
 | `Kasper_Teltonika_Technical_Pack.pdf` | **The Teltonika reference.** Device/protocol technical detail behind `../telematics/src/protocol/` and `docs/PROTOCOL.md`. Consult when resolving D1 or adding IO IDs. |
 | `Kasper_Teltonika_Feature_Requirements.docx` | What we need the Teltonika units to do (feature-level). |
 | `Kasper_IoT_Feature_List.pdf` | Full IoT feature list. |
 | `Kasper_Telematics_Supplier_Shortlist.html` | Hardware/connectivity supplier shortlist and comparison. |
-| `teltonika_telematics_briefing.docx` | Plain-language briefing on Teltonika telematics. |
+| `teltonika_telematics_briefing.docx` | Plain-language briefing on Teltonika telematics. ⚠ **Unreliable on parameter IDs** — the D1 work found it wrong (claims AVL 253 = engine hours, AVL 12 = RPM; the official table says 253 = Green driving type, 12 = Fuel Used GPS) and it proposes ignition-time accumulation, which invariant 5 forbids. Treat as background narrative only, not a parameter source. |
 
 ## `invariants/` — the rules that protect money and data
 

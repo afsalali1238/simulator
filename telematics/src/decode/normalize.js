@@ -84,25 +84,40 @@ export function normalizeRecord(decoded, { device, assignment }) {
 
   const state = deriveState({ ignition, movement, speed: decoded.gps.speed });
 
-  return {
-    deviceId: device.id,
-    imei: device.imei,
-    tenantId,
-    assetId,
-    tsMs: decoded.timestampMs,
-    lat: decoded.gps.lat,
-    lon: decoded.gps.lon,
-    speed: decoded.gps.speed,
-    angle: decoded.gps.angle,
-    altitude: decoded.gps.altitude,
-    satellites: decoded.gps.satellites,
-    priority: decoded.priority,
-    ignition, // bool | null
-    movement, // bool | null
-    state, // off | idle | moving | unknown
-    engine, // { seconds, hours, source:'ecu', sourceAvlId, nativeUnit } | null
-  };
-}
+    // Power/tamper signals the simulator can emit so the P3 rules engine has
+    // realistic data to fire on. Documented FMB-series standard AVL IDs; they are
+    // NOT decoded into canonical rows yet, so nothing downstream depends on them
+    // — but now that they are on the record, rules 4–5 (tamper/unplug, low-battery)
+    // can fire. Invariant 3 governs: absent = null, never 0/false.
+    const rawExternalVoltageMv = ioValue(decoded, IO.EXTERNAL_VOLTAGE_MV); // null | number
+    const rawBatteryPct = ioValue(decoded, IO.BATTERY_LEVEL_PCT); // null | number
+    const rawUnplug = ioValue(decoded, IO.UNPLUG_DETECTED); // null | number (0/1)
+    const externalVoltageMv = rawExternalVoltageMv !== undefined ? rawExternalVoltageMv : null;
+    const batteryPct = rawBatteryPct !== undefined ? rawBatteryPct : null;
+    const unplug = rawUnplug !== undefined ? rawUnplug : null;
+
+    return {
+      deviceId: device.id,
+      imei: device.imei,
+      tenantId,
+      assetId,
+      tsMs: decoded.timestampMs,
+      lat: decoded.gps.lat,
+      lon: decoded.gps.lon,
+      speed: decoded.gps.speed,
+      angle: decoded.gps.angle,
+      altitude: decoded.gps.altitude,
+      satellites: decoded.gps.satellites,
+      priority: decoded.priority,
+      ignition, // bool | null
+      movement, // bool | null
+      state, // off | idle | moving | unknown
+      engine, // { seconds, hours, source:'ecu', sourceAvlId, nativeUnit } | null
+      externalVoltageMv, // null | number (mV)
+      batteryPct, // null | number (%)
+      unplug, // null | number (0/1)
+    };
+  }
 
 /**
  * Why this record produced no billable engine reading. Diagnostic only — for
