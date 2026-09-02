@@ -127,8 +127,14 @@ export const IO = {
   // on the record that captures the event; NOT decoded into canonical rows
   // yet (same status as the power/tamper IDs above) — this is data-plane only
   // until a rule/decoder consumes it.
+  //
+  // Confirmed against two independent Teltonika sources (wiki.teltonika-gps.com,
+  // "Green Driving Solution" + the FTC921 parameter table) after this repo's own
+  // first draft got AVL 254 wrong: it is 1 byte, not 2, and the unit is g×100
+  // (multiplier 0.01), not deci-m/s^2. e.g. 75 = 0.75g, NOT 7.5 m/s^2 as first
+  // implemented — see the fix commit for the correction.
   GREEN_DRIVING_TYPE: 253, // 1 byte — 1 harsh accel, 2 harsh braking, 3 harsh cornering
-  GREEN_DRIVING_VALUE: 254, // 2 bytes — magnitude, deci-m/s^2 (e.g. 65 = 6.5 m/s^2)
+  GREEN_DRIVING_VALUE: 254, // 1 byte — magnitude, g x 100 (e.g. 75 = 0.75g), 0-255 (0-2.55g)
 };
 
 /**

@@ -81,7 +81,8 @@ export function advance({ lat, lon }, { speedKmh, stepMs, headingDeg }) {
 //   unplugEvent     true → this record is flagged as the unplug event
 //   harshEventType  'brake' | 'accel' | 'corner' | null → the AVL 253/254
 //                   green-driving event fires only on the tick this is set
-//   harshEventValue number | null — magnitude for harshEventType, deci-m/s^2
+//   harshEventValue number | null — magnitude for harshEventType, already in
+//                   the wire's g*100 encoding (e.g. 75 = 0.75g), 0-255
 //
 // `null` for a signal is a first-class value here. Read the invariant-3 note at
 // the top of this file before "tidying" any of these into 0/false.
@@ -153,17 +154,21 @@ export const PHASES = {
   // tick lands on (the scenario should set it close to what the preceding
   // travel phase was cruising at minus a real drop, so the plan reads as one
   // continuous drive, not a teleport). The deceleration magnitude is a
-  // SEPARATE quantity, `opts.decelG` — deliberately NOT derived from that
+  // SEPARATE quantity, `opts.gForce` — deliberately NOT derived from that
   // speed drop against the tick interval: a telemetry report every 60s is a
   // REPORTING rate, not how long the actual braking took (~1-2s in the real
   // world, invisible at this resolution). Speed-drop-over-60s would compute a
-  // tame ~0.5 m/s^2 and mislabel ordinary deceleration as "harsh". Teltonika's
-  // Green Driving feature (AVL 253/254) typically flags harsh braking above
-  // roughly 6-7 m/s^2, so 6.5 m/s^2 is a representative default threshold-
-  // crosser, not a computed one.
+  // tame fraction of a g and mislabel ordinary deceleration as "harsh".
+  //
+  // Units: Teltonika's Green Driving feature (AVL 253/254) reports the
+  // magnitude in g, not m/s^2 — confirmed against wiki.teltonika-gps.com's
+  // "Green Driving Solution" page and the FTC921 parameter table (0.01
+  // multiplier, "g*100" for accel/braking). ~0.4g is a commonly-cited
+  // harsh-braking onset in fleet telematics; 0.75g (hard, "traffic ahead"
+  // braking, well short of a ~1g emergency stop) is the default here.
   brake: ({ i, opts = {} }) => {
     const toSpeedKmh = opts.toSpeedKmh ?? 8;
-    const decelMs2 = opts.decelG ?? 6.5; // m/s^2, > typical harsh-brake threshold
+    const gForce = opts.gForce ?? 0.75; // g — see unit note above
     const first = i === 0;
     return {
       ignition: true,
@@ -171,8 +176,8 @@ export const PHASES = {
       speedKmh: toSpeedKmh,
       engineRunning: true,
       harshEventType: first ? 'brake' : null,
-      // deci-m/s^2 — the wire unit AVL 254 uses.
-      harshEventValue: first ? Math.round(decelMs2 * 10) : null,
+      // g x 100 — the actual wire unit AVL 254 uses (1 byte, 0-255).
+      harshEventValue: first ? Math.round(gForce * 100) : null,
     };
   },
 

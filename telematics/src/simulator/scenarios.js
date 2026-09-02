@@ -127,7 +127,15 @@ export function buildIo({
   if (unplug != null) io.push({ id: IO.UNPLUG_DETECTED, size: 1, value: unplug ? 1 : 0 });
   if (harshEventTypeId != null) {
     io.push({ id: IO.GREEN_DRIVING_TYPE, size: 1, value: harshEventTypeId });
-    io.push({ id: IO.GREEN_DRIVING_VALUE, size: 2, value: Math.max(0, Math.round(harshEventValue ?? 0)) });
+    // 1 byte, g x 100 (Teltonika's actual encoding — confirmed against two
+    // primary sources; an earlier draft of this code used 2 bytes and
+    // deci-m/s^2, which was wrong on both counts). Clamp to the byte range
+    // (0-255 => 0-2.55g) rather than silently overflowing on an extreme input.
+    io.push({
+      id: IO.GREEN_DRIVING_VALUE,
+      size: 1,
+      value: Math.min(255, Math.max(0, Math.round(harshEventValue ?? 0))),
+    });
   }
   return io;
 }
@@ -457,10 +465,11 @@ export const SCENARIOS = {
           { phase: 'travel', ticks: 20, opts: { speedKmh: 110 } }, // onto Sheikh Zayed Road
           { phase: 'travel', ticks: 20, opts: { speedKmh: 130 } }, // open highway cruise
           // Sudden brakes: traffic ahead on the highway. toSpeedKmh matches
-          // what the vehicle is actually doing one tick later; decelG (7.5
-          // m/s^2) is above Teltonika's default harsh-braking threshold, so
-          // this genuinely trips a green-driving event, not just a slowdown.
-          { phase: 'brake', ticks: 1, opts: { toSpeedKmh: 15, decelG: 7.5 } },
+          // what the vehicle is actually doing one tick later; 0.75g is a
+          // hard brake, clearly above a plausible harsh-braking threshold,
+          // so this genuinely trips a green-driving event, not just a
+          // slowdown (see phases.js's `brake` phase for the unit note).
+          { phase: 'brake', ticks: 1, opts: { toSpeedKmh: 15, gForce: 0.75 } },
           { phase: 'idle', ticks: 2 }, // pulled onto the shoulder, hazards on
           { phase: 'travel', ticks: 6, opts: { speedKmh: 100 } }, // back up to speed
           { phase: 'travel', ticks: 4, opts: { speedKmh: 40 } }, // into Al Reem Island streets

@@ -65,9 +65,21 @@ All eight are deterministic (seeded PRNG), registered in `SCENARIOS`
 | 113 | Battery Level (%) | 1B | verified — `HERMES_HANDOFF_POWER_SIGNALS.md` |
 | 252 | Unplug Detected | 1B | verified — `HERMES_HANDOFF_POWER_SIGNALS.md` |
 | 253 | Green Driving Type (1 accel / 2 brake / 3 corner) | 1B | verified — corroborated by the same official-table cross-check that caught the briefing doc's error on this exact ID |
-| 254 | Green Driving Value (deci-m/s²) | 2B | verified — same source as 253 |
+| 254 | Green Driving Value (g × 100, e.g. 75 = 0.75g) | 1B | verified — see correction note below |
 | 200 | *(Sleep Mode — retired stand-in)* | — | explicitly refused, not a real signal in this harness |
 | 449 | Ignition-on counter (seconds) | 4B | verified — present, never used as billing evidence (inv. 5) |
+
+> **Correction, 2026-09-02 (same day):** the version of this table shipped
+> alongside `dic-to-reem` marked AVL 254 "verified" on the strength of only
+> confirming AVL 253's ID against `context/README.md`'s note — 254's byte
+> width and unit were never actually checked against a primary source, and
+> the implementation shipped with both wrong (2 bytes, deci-m/s² instead of
+> 1 byte, g×100). Caught on a follow-up deep review and fixed against two
+> independent primary sources: `wiki.teltonika-gps.com`'s "Green Driving
+> Solution" page and the FTC921 parameter table (both agree: 1 byte, 0.01
+> multiplier, "g*100"). The lesson generalizes: "verified" in this table
+> must mean the specific field checked, not the ID as a whole — 253's ID
+> being right said nothing about 254's encoding.
 
 ---
 

@@ -33,6 +33,7 @@ import { parseArgs } from '../src/simulator/run-simulator.js';
 import { IO } from '../src/config.js';
 import { resolveAssignment, DEVICES, ASSETS, TENANTS, ASSIGNMENTS } from '../src/store/seed-data.js';
 import { normalizeRecord } from '../src/decode/normalize.js';
+import { encodeAvlPacket, readAvlFrame, CODEC_8E } from '../src/protocol/codec.js';
 
 const io = (rec, id) => rec.io.find((e) => e.id === id);
 const imeis = new Set(DEVICES.map((d) => d.imei));
@@ -205,10 +206,26 @@ test('scenarios: dic-to-reem fires one harsh-braking event, consistent with the 
   assert.equal(event.priority, 1, 'a real unit raises priority on the event record');
   assert.equal(event.eventIoId, IO.GREEN_DRIVING_TYPE);
   assert.equal(io(event, IO.GREEN_DRIVING_TYPE).value, 2, 'type 2 = harsh braking (Teltonika Green Driving)');
-  assert.ok(
-    io(event, IO.GREEN_DRIVING_VALUE).value >= 65,
-    'the reported deceleration must clear a plausible harsh-braking threshold (>= 6.5 m/s^2)',
-  );
+  // AVL 254 is 1 byte, g x 100 (confirmed against wiki.teltonika-gps.com's
+  // Green Driving Solution page + the FTC921 parameter table) — >= 40 is a
+  // plausible harsh-braking threshold (0.4g), and <= 255 keeps it a valid
+  // byte value (an earlier draft of this scenario used 2 bytes / deci-m/s^2,
+  // which was wrong on both counts).
+  const value = io(event, IO.GREEN_DRIVING_VALUE).value;
+  assert.ok(value >= 40, 'the reported g-force must clear a plausible harsh-braking threshold (>= 0.4g)');
+  assert.ok(value <= 255, 'AVL 254 is a single byte (0-2.55g) — this must never overflow it');
+
+  // Wire-level check, not just the in-memory io array: encode the event
+  // record exactly as device.js would put it on the wire and decode it back
+  // with the same function the ingestion server uses. AVL 254 must round-trip
+  // as a 1-byte element — this is the check that would have caught the
+  // original 2-byte / deci-m/s^2 draft, which "worked" in-memory but was
+  // wrong on the actual bytes sent.
+  const packet = encodeAvlPacket({ codecId: CODEC_8E, records: [event] });
+  const { packet: decoded } = readAvlFrame(packet);
+  const wireValueEl = decoded.records[0].io.find((e) => e.id === IO.GREEN_DRIVING_VALUE);
+  assert.equal(wireValueEl.size, 1, 'AVL 254 must be encoded as a 1-byte IO element, per Teltonika spec');
+  assert.equal(wireValueEl.value, value, 'wire round-trip must be lossless');
 
   // The GPS speed drop is real and lands either side of the event, not a
   // teleport: fast before, slow at the event, and the vehicle is genuinely
