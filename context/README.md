@@ -72,6 +72,12 @@ the `Dozr_` one is the more recent summary and wins on current decisions; the
 | `Kasper_Telematics_Supplier_Shortlist.html` | Hardware/connectivity supplier shortlist and comparison. |
 | `teltonika_telematics_briefing.docx` | Plain-language briefing on Teltonika telematics. ⚠ **Unreliable on parameter IDs** — the D1 work found it wrong (claims AVL 253 = engine hours, AVL 12 = RPM; the official table says 253 = Green driving type, 12 = Fuel Used GPS) and it proposes ignition-time accumulation, which invariant 5 forbids. Treat as background narrative only, not a parameter source. |
 
+## `simulator/` — scenario coverage planning for Module 9
+
+| File | What it is |
+|------|------------|
+| `VEHICLE_SCENARIOS_PLAN.md` | **Gap analysis: what a real vehicle-mounted Teltonika unit generates that the simulator doesn't yet.** Four tiers by build-readiness (quick wins → needs a new phase but known IDs → needs a D1-style desk investigation first → infrastructure gaps like multi-record packet bursts). Companion to `../../HERMES_HANDOFF_VEHICLE_SCENARIOS_2026-09-02.md`. |
+
 ## `invariants/` — the rules that protect money and data
 
 | File | What it is |
