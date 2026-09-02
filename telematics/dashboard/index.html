@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <title>GPS Simulator — Live Dashboard</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <style>
   :root { color-scheme: dark; }
   body { margin:0; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background:#0b0f14; color:#e6edf3; }
@@ -22,7 +24,11 @@
   .v.null { color:#f0b93a; }
   .v.on { color:#4ade80; }
   .v.off { color:#f87171; }
-  canvas { width:100%; height:340px; background:#0d131a; border-radius:8px; display:block; }
+  #map { width:100%; height:420px; background:#0d131a; border-radius:8px; }
+  #map .leaflet-tile-pane { filter: saturate(0.75) brightness(0.85) invert(1) hue-rotate(180deg); }
+  .device-dot { width:16px; height:16px; border-radius:50%; border:2px solid #0b0f14; box-shadow:0 0 0 3px rgba(255,255,255,.15); }
+  .device-dot.on { background:#4ade80; }
+  .device-dot.off { background:#f87171; }
   .feed { height:220px; overflow-y:auto; font-family: ui-monospace, Menlo, monospace; font-size:11px; line-height:1.5; }
   .feed div { border-bottom:1px dashed #1f2731; padding:3px 0; }
   .row2 { display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-top:16px; }
@@ -69,8 +75,8 @@
 
   <div>
     <div class="card">
-      <h2>Track (lat/lon, most recent <span id="trackCount">0</span> points)</h2>
-      <canvas id="track" width="900" height="340"></canvas>
+      <h2>Track — Dubai, live (most recent <span id="trackCount">0</span> points)</h2>
+      <div id="map"></div>
     </div>
     <div class="card" style="margin-top:16px;">
       <h2>Live position feed</h2>
@@ -79,10 +85,29 @@
   </div>
 </main>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 const $ = (id) => document.getElementById(id);
 let seenTsMs = new Set();
 let track = [];
+
+// Real Dubai basemap (OpenStreetMap tiles via Leaflet). Starts centered on
+// Dubai (25.2048, 55.2708 — roughly Business Bay, the scenario tracks'
+// default origin) and re-centers itself the first time real position data
+// arrives, so it works for the UAE-wide scenarios (Jebel Ali site, the Dozr
+// yard, the Abu Dhabi handover leg) without any manual panning.
+const DUBAI_CENTER = [25.2048, 55.2708];
+const map = L.map('map', { zoomControl: true }).setView(DUBAI_CENTER, 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors',
+}).addTo(map);
+const trackLine = L.polyline([], { color: '#3b82f6', weight: 3 }).addTo(map);
+const deviceMarker = L.marker(DUBAI_CENTER, {
+  icon: L.divIcon({ className: '', html: '<div class="device-dot off"></div>', iconSize: [16, 16] }),
+}).addTo(map);
+let mapCentered = false;
 
 function fmtBool3(v) {
   // invariant 3: null must render as "unknown", never coerced to false
@@ -174,34 +199,27 @@ async function renderPositions(positions, base, tenant) {
 }
 
 function drawTrack() {
-  const c = $('track');
-  const ctx = c.getContext('2d');
-  ctx.clearRect(0, 0, c.width, c.height);
   const pts = track.filter((p) => p.lat != null && p.lon != null);
-  if (pts.length < 2) {
-    ctx.fillStyle = '#5b6b7c';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('waiting for position data…', 16, 24);
-    return;
-  }
-  const lats = pts.map((p) => p.lat), lons = pts.map((p) => p.lon);
-  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
-  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
-  const pad = 20;
-  const sx = (lon) => pad + ((lon - minLon) / (maxLon - minLon || 1)) * (c.width - 2 * pad);
-  const sy = (lat) => c.height - pad - ((lat - minLat) / (maxLat - minLat || 1)) * (c.height - 2 * pad);
+  if (!pts.length) return;
 
-  ctx.strokeStyle = '#3b82f6';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  pts.forEach((p, i) => { const x = sx(p.lon), y = sy(p.lat); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); });
-  ctx.stroke();
+  const latlngs = pts.map((p) => [p.lat, p.lon]);
+  trackLine.setLatLngs(latlngs);
 
   const last = pts[pts.length - 1];
-  ctx.fillStyle = last.movement ? '#4ade80' : '#f87171';
-  ctx.beginPath();
-  ctx.arc(sx(last.lon), sy(last.lat), 6, 0, Math.PI * 2);
-  ctx.fill();
+  const pos = [last.lat, last.lon];
+  deviceMarker.setLatLng(pos);
+  const dot = deviceMarker.getElement()?.querySelector('.device-dot');
+  if (dot) dot.className = 'device-dot ' + (last.movement ? 'on' : 'off');
+
+  if (!mapCentered) {
+    // First real fix: snap the Dubai basemap to wherever this scenario
+    // actually is (site geofence, yard, or an out-of-emirate handover leg)
+    // instead of leaving it parked on the default city-wide view.
+    map.setView(pos, 15);
+    mapCentered = true;
+  } else if (pts.length > 1) {
+    map.panTo(pos, { animate: true });
+  }
 }
 
 setInterval(() => poll(), Number($('pollMs').value) || 1000);
