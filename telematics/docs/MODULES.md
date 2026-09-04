@@ -58,6 +58,26 @@ with the simulator: handshake accept/reject, Codec 8 *and* 8E, idempotent resend
 and the durability contract (with `FAIL_BEFORE_COMMIT` set, nothing is stored
 and nothing is ACKed, then a reconnect recovers cleanly).
 
+**Handshake rate limiting (P0 hardening, `src/ingestion/handshake-limiter.js`).**
+The IMEI handshake is the only gate on this port, and an IMEI is not a secret —
+without a limit, a source can try IMEIs against it indefinitely. After
+`HANDSHAKE_MAX_FAILURES` failed (unknown-IMEI) handshakes from one source IP
+within `HANDSHAKE_WINDOW_MS`, that IP is refused outright — no reject byte, the
+connection is closed before the handshake is even read — for
+`HANDSHAKE_BLOCK_MS`. It blocks the *source*, not the IMEI it tried: switching
+to a different (even valid) IMEI from a blocked IP does not buy more attempts.
+A successful handshake clears the source's record, so a device that mistyped
+its own IMEI a few times is never punished for it. Defaults: 5 / 60s / 5min
+(`.env.example`). Pure and dependency-free, tested in isolation with a fake
+clock (`npm run test:handshake-limiter`) and over a real TCP socket
+(`npm run test:ingestion-rate-limit`).
+
+This throttles the worst of an open port; it is not device authentication. A
+public deployment should still pair it with TLS or a pre-shared token per
+device before going live — see the gap list in `BUILD_PLAN.md`.
+
+**Concurrency / load test (`src/tools/load-test.js`).** A capacity harness, not a correctness check — deliberately outside `npm run test:gate` (see the file's header). It spins up synthetic devices (reserved `900...` IMEI range) and drives them over real TCP against either an embedded in-memory server or an external one (`--host`/`--port`), ramping connections in over a configurable window (or all at once with `--ramp-ms 0`), then reports connect/ACK latency percentiles, peak RSS, and event-loop lag against pass/fail thresholds. Run with `npm run loadtest` (or `npm run loadtest -- --connections 500 --records 10`). Measured on this project's dev machine, embedded/memory-store mode: 300 connections ramped over 3s and 1000 connections in a single burst both passed cleanly with zero connect/send errors (1000-burst: connect p95 ≈ 1.1s, ACK p95 ≈ 7ms, peak RSS ≈ 85MB) — the harness itself is proven by `npm run test:load-test-smoke`, a tiny deterministic suite that runs in the gate's spirit without pinning a performance number to CI.
+
 ## Module 2 — Decode / normalise (`src/decode/normalize.js`, `src/decode/engine-hours.js`)
 
 Turns one decoded AVL record into a canonical fact row. Pure function, so every
@@ -106,15 +126,41 @@ geofence membership, and idle detection will grow.
 
 **How to test:** exercised through `npm run test:decode`.
 
-## Module 5 — Utilisation ledger & evidence (`src/ledger/`) — DEFINED-ONLY
+## Module 5 — Utilisation ledger & evidence (`src/ledger/index.js`) — BUILT (not yet wired to invoicing)
 
 Computes billable utilisation per asset per period from **ECU engine readings only**
 (estimated values may inform a display but may never back an invoice), and seals each
 period into an immutable, tamper-evident record able to produce a dispute pack.
+Contract: PRD `FR-LED-*` / `FR-EVID-*`.
 
-Stubbed and throwing on purpose. Its failure mode is a silently wrong *billing*
-number, so it must be built and reviewed by a human, not generated. Contract:
-PRD `FR-LED-*` / `FR-EVID-*`.
+Built 2026-09-02 by the ledger owner's explicit sign-off — the human CLAUDE.md's
+guardrail requires, not speculative generation. `computeUtilisation(readings,
+{ assetId, tenantId, periodStartMs, periodEndMs })` sums positive deltas between
+consecutive ECU (AVL 102) readings, scoped to the given asset/tenant/period; a
+meter decrease is a `meter-reset` anomaly (adapter/ECU swap), never negative
+usage; a non-`'ecu'` reading is excluded and recorded as `non-ecu-excluded`,
+never blended in; no ECU evidence at all means `billable: false` with the
+figures `null` — never a zero that looks like real evidence.
+`sealUtilisationRecord(utilisation, rawFrames)` produces a deterministic,
+tamper-evident SHA-256 manifest hash over the figure and the exact evidence
+bytes it derives from.
+
+**What is still open before a number here can back a real invoice** (both
+tracked in `TASKS.md` Phase P2, neither is a code problem):
+- the **D1 hardware half** — a real installed adapter's AVL 102 reading
+  reconciled against the machine's own physical hour-meter, per confirmed
+  program number, per exact make/model/year;
+- **human review of the billing math against real fleet data** — this module
+  is proven correct against its spec and the seed `handover` scenario, which is
+  a different bar than reviewed-and-signed-off on real numbers.
+
+**How to test:** `npm run test:ledger` (8 tests, moved up from
+`test/pending/ledger.test.js`) — the sum-of-positive-deltas rule with an exact
+figure, the seed `handover` scenario's exact utilisation for Tenant A, a meter
+reset never billed as negative, estimated readings excluded (and a period with
+only estimated evidence is not billable at all), no-ECU-evidence is not
+billable with null (not zero) figures, and the evidence seal's determinism +
+tamper sensitivity. Included in `npm run test:gate`'s floor.
 
 ## Module 6 — Surfaces / read API (`src/api/server.js`)
 
@@ -124,17 +170,77 @@ requires an `X-Tenant-Id` header and is tenant-scoped by the store.
 
 **How to test:** `npm run test:api`.
 
-## Module 7 — Messaging / WhatsApp (`src/messaging/`) — DEFINED-ONLY
+## Module 7 — Messaging / WhatsApp (`src/messaging/`) — PLUMBING BUILT, SEND CREDENTIAL-GATED
 
 Turns telematics events into WhatsApp Cloud API messages on the same WhatsApp-native
-spine the Marketplace uses. Out of the local slice because it needs live Meta
-credentials and approved message templates. Contract: PRD `FR-MSG-*`.
+spine the Marketplace uses (PRD `FR-MSG-*`). Split into two pieces:
 
-## Module 8 — Rules & event detection — DEFINED-ONLY (not yet scaffolded)
+- **`dispatch.js` — BUILT.** `deliverEvents(events, { sender, deliveredLog })` is the
+  real delivery/dedupe layer: maps each rule event type to a (placeholder, not yet
+  Meta-approved) template name, dedupes on the rule engine's own `eventId`
+  (invariant 2), scopes every send to that event's own `tenantId` (invariant 7), and
+  isolates one failed send from sinking the whole batch (a failure is not marked
+  delivered, so it stays retryable). `sender` is a required argument with no
+  default — this file cannot send anything by itself.
+- **`index.js`'s `notify()` — still DEFINED-ONLY, throws.** This is where the real
+  WhatsApp Cloud API call goes once there are live Meta credentials and approved
+  templates. `dispatch.js` was built so plugging that in later is a matter of
+  writing `sender` and passing it in — no rework of the dedupe/tenancy/mapping
+  logic above it.
 
-Consumes enriched telemetry and raises the events messaging delivers: geofence
-enter/exit, ignition outside working hours, idle-too-long, tamper/unplug, low
-battery. Deferred until enrichment is richer; listed here so the shape is explicit.
+**How to test:** `npm run test:messaging` (9 tests) — template mapping, no-sender
+guard (nothing sends without one), idempotent redelivery, within-batch dedupe,
+tenant isolation, partial-failure isolation, unmapped-event reporting. Every test
+injects its own mock sender; nothing here calls a real API. Included in
+`npm run test:gate`'s floor.
+
+### A second billing basis: ignition-on duration (`src/ledger/ignition-duration.js`)
+
+Not every asset can ever produce an ECU reading — a fleet running FMC130 with NO
+CAN adapter (LV-CAN200 / ALL-CAN300 / CAN-CONTROL) architecturally cannot expose
+AVL 102, on any vehicle, regardless of engine type (see
+`D1_CAN_ENGINE_HOURS.md` §1). For that fleet (first case: a Mercedes-Benz Actros
+tractor + flatbed trailer, tracker on the Actros only, added 2026-09-02), the
+human-approved billing basis is **ignition-on duration** instead of engine
+hours — a deliberately different, honestly-labeled figure, not a workaround for
+missing ECU data.
+
+`computeIgnitionOnDuration(records, { assetId, tenantId, periodStartMs,
+periodEndMs })` sums the observed intervals where the prior reading's ignition
+was `true`; an unknown (`null`) reading excludes that interval and is flagged,
+never read as on or off (invariant 3); no readings in scope is not billable
+(null figures, never zero); a single reading is genuinely billable at 0 seconds
+(real evidence, just nothing to compare it to yet). Returns `source: 'ignition'`
+— **never** `'ecu'` — so this can never be confused with, or presented as, the
+ECU ledger above. Reuses `sealUtilisationRecord` (schema-agnostic) for the same
+tamper-evident manifest hash.
+
+**How to test:** `npm run test:ignition-duration` (9 tests, all hand-computed
+figures). Included in `npm run test:gate`'s floor.
+
+## Module 8 — Rules & event detection (`src/rules/detectEvents.js`) — BUILT
+
+Consumes canonical (normalized) records in timestamp order and raises the events
+messaging will deliver: `geofence-enter`/`geofence-exit`, `after-hours-ignition`,
+`idle-too-long`, `tamper-unplug`, `low-battery`. Pure function
+`detectEvents(records, { assetId?, tenantId?, config? })` — no I/O, no clock reads
+(after-hours math is done on the record's own `tsMs`, not ambient time). Each event
+carries a deterministic `eventId` (`sha256(tenantId, assetId, type, windowKey)`) so
+downstream delivery can dedupe (invariant 2). Tamper and low-battery are
+episode-based with hysteresis on recovery, so a repeat incident gets its own event
+instead of being swallowed by a stuck "still active" flag. Invariant 3 is enforced
+throughout: a `null` unplug/voltage/battery reading is absence, never treated as a
+bad reading.
+
+**How to test:** `npm run test:rules` (12 tests) — geofence enter/exit, after-hours
+positive + a daytime negative case, idle-too-long at a real 60-minute default,
+dedupe determinism (including no-collision across multiple transitions), and both
+tamper/low-battery episode + re-arm + invariant-3-null cases. Included in
+`npm run test:gate`'s floor.
+
+Wired to Module 7's delivery plumbing (`src/messaging/dispatch.js`) — see above.
+The only thing still blocked on Module 7 needing live Meta credentials is the
+actual send call itself, per `CLAUDE.md`.
 
 ## Module 9 — Simulator / device bench (`src/simulator/`)
 

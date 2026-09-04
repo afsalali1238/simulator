@@ -1,0 +1,569 @@
+<title>Telematics Build Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#eef2f0; --paper-raised:#ffffff; --paper-sunk:#e4eae7;
+    --ink:#0f1a17; --ink-dim:#4b5b56; --ink-faint:#7c8b86;
+    --line:#c7d2ce; --line-soft:#dbe3e0;
+    --accent:#146356; --accent-soft:#dfeae6; --accent-strong:#0c433a;
+    --signal:#1f7a4d; --signal-soft:#e2f2e8;
+    --amber:#93650f; --amber-soft:#f5ecd8;
+    --stub:#9c3f3f; --stub-soft:#f6e5e3;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace;
+    --sans:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0d1512; --paper-raised:#131d19; --paper-sunk:#0a100e;
+      --ink:#e8efec; --ink-dim:#93a39c; --ink-faint:#647b73;
+      --line:#2b3a35; --line-soft:#1c2723;
+      --accent:#4fb59e; --accent-soft:#132824; --accent-strong:#8fd4c1;
+      --signal:#5cc98d; --signal-soft:#122a1c;
+      --amber:#e0b256; --amber-soft:#2c2313;
+      --stub:#e28787; --stub-soft:#2c1817;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0d1512; --paper-raised:#131d19; --paper-sunk:#0a100e;
+    --ink:#e8efec; --ink-dim:#93a39c; --ink-faint:#647b73;
+    --line:#2b3a35; --line-soft:#1c2723;
+    --accent:#4fb59e; --accent-soft:#132824; --accent-strong:#8fd4c1;
+    --signal:#5cc98d; --signal-soft:#122a1c;
+    --amber:#e0b256; --amber-soft:#2c2313;
+    --stub:#e28787; --stub-soft:#2c1817;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);line-height:1.55;}
+  .wrap{max-width:1000px;margin:0 auto;padding:52px 24px 90px;}
+  a{color:var(--accent-strong);}
+
+  header.top{margin-bottom:8px;}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin:0 0 10px;}
+  h1{font-size:clamp(28px,4vw,38px);margin:0 0 14px;letter-spacing:-0.01em;text-wrap:balance;}
+  .lede{max-width:66ch;color:var(--ink-dim);font-size:16px;margin:0 0 6px;}
+  .lede b{color:var(--ink);}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--ink-faint);}
+
+  nav.toc{
+    display:flex;flex-wrap:wrap;gap:8px;margin:28px 0 8px;padding:16px;
+    background:var(--paper-raised);border:1px solid var(--line);border-radius:12px;
+  }
+  nav.toc a{
+    font-family:var(--mono);font-size:12px;color:var(--ink-dim);text-decoration:none;
+    padding:6px 11px;border-radius:100px;border:1px solid var(--line);
+  }
+  nav.toc a:hover{color:var(--accent-strong);border-color:var(--accent);}
+
+  section{margin-top:60px;scroll-margin-top:20px;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;}
+  .sec-num{font-family:var(--mono);font-size:13px;color:var(--accent);}
+  h2{font-size:22px;margin:0;letter-spacing:-0.01em;}
+  .sec-dek{color:var(--ink-dim);font-size:14.5px;max-width:68ch;margin:10px 0 26px;}
+
+  /* plain/technical twin panels */
+  .twin{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0;}
+  @media (max-width:680px){.twin{grid-template-columns:1fr;}}
+  .panel{border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--paper-raised);}
+  .panel.plain{border-left:3px solid var(--accent);}
+  .panel.tech{border-left:3px solid var(--ink-faint);background:var(--paper-sunk);}
+  .panel-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 8px;}
+  .panel p{margin:0;font-size:14.5px;color:var(--ink);}
+  .panel.tech p{color:var(--ink-dim);font-size:13.5px;}
+  .panel code{font-family:var(--mono);font-size:0.9em;background:var(--line-soft);padding:1px 5px;border-radius:4px;}
+
+  /* module cards */
+  .mgrid{display:flex;flex-direction:column;gap:14px;}
+  .mcard{border:1px solid var(--line);border-radius:12px;background:var(--paper-raised);padding:18px 22px;}
+  .mcard-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px;}
+  .mcard-num{font-family:var(--mono);font-size:12px;color:var(--ink-faint);}
+  .mcard-name{font-weight:600;font-size:15.5px;}
+  .mcard-folder{font-family:var(--mono);font-size:11.5px;color:var(--accent);}
+  .verdict{
+    margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:500;
+    padding:4px 10px;border-radius:100px;white-space:nowrap;
+  }
+  .verdict::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;}
+  .v-solid{background:var(--signal-soft);color:var(--signal);}
+  .v-solid::before{background:var(--signal);}
+  .v-minimal{background:var(--amber-soft);color:var(--amber);}
+  .v-minimal::before{background:var(--amber);}
+  .v-blocked{background:var(--stub-soft);color:var(--stub);}
+  .v-blocked::before{background:var(--stub);}
+  .v-fixed{background:var(--accent-soft);color:var(--accent-strong);}
+  .v-fixed::before{background:var(--accent);}
+  .mcard-body{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;font-size:13.8px;}
+  @media (max-width:680px){.mcard-body{grid-template-columns:1fr;}}
+  .mcard-body .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px;}
+  .mcard-body p{margin:0 0 4px;color:var(--ink-dim);}
+  .mcard-body .plain-txt{color:var(--ink);}
+  .mcard-foot{margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--ink-faint);}
+  .mcard-foot b{color:var(--ink-dim);}
+
+  /* generic table */
+  table.data{width:100%;border-collapse:collapse;font-size:13.8px;margin:14px 0;}
+  table.data th{text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-faint);font-weight:500;padding:0 12px 9px;border-bottom:1px solid var(--line);}
+  table.data td{padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top;color:var(--ink-dim);}
+  table.data tr:last-child td{border-bottom:none;}
+  table.data td.strong{color:var(--ink);font-weight:600;white-space:nowrap;}
+  table.data td.mono{font-family:var(--mono);font-size:12.5px;}
+  .tbl-wrap{overflow-x:auto;}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;font-weight:500;padding:3px 9px;border-radius:100px;white-space:nowrap;}
+  .pill::before{content:"";width:6px;height:6px;border-radius:50%;}
+  .pill.ok{background:var(--signal-soft);color:var(--signal);} .pill.ok::before{background:var(--signal);}
+  .pill.half{background:var(--amber-soft);color:var(--amber);} .pill.half::before{background:var(--amber);}
+  .pill.no{background:var(--stub-soft);color:var(--stub);} .pill.no::before{background:var(--stub);}
+
+  .stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0 26px;}
+  @media (max-width:680px){.stat-row{grid-template-columns:repeat(2,1fr);}}
+  .stat{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--paper-raised);}
+  .stat .n{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--accent-strong);font-variant-numeric:tabular-nums;}
+  .stat .l{font-size:11.5px;color:var(--ink-faint);margin-top:2px;}
+
+  .callout{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:10px;padding:16px 20px;background:var(--accent-soft);margin:18px 0;font-size:14px;}
+  .callout.warn{border-left-color:var(--amber);background:var(--amber-soft);}
+  .callout.risk{border-left-color:var(--stub);background:var(--stub-soft);}
+  .callout p{margin:0 0 8px;}
+  .callout p:last-child{margin-bottom:0;}
+  .callout .clbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px;display:block;}
+
+  ol.steps{margin:0;padding:0;list-style:none;counter-reset:step;}
+  ol.steps li{counter-increment:step;position:relative;padding:4px 0 20px 40px;border-left:1px solid var(--line);margin-left:13px;}
+  ol.steps li:last-child{border-left-color:transparent;padding-bottom:0;}
+  ol.steps li::before{
+    content:counter(step);position:absolute;left:-13px;top:0;
+    width:26px;height:26px;border-radius:50%;background:var(--paper-raised);border:1.5px solid var(--accent);color:var(--accent-strong);
+    font-family:var(--mono);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  }
+  ol.steps h3{margin:0 0 4px;font-size:14.5px;}
+  ol.steps p{margin:0;color:var(--ink-dim);font-size:13.8px;}
+  ol.steps code{font-family:var(--mono);font-size:0.92em;background:var(--line-soft);padding:1px 5px;border-radius:4px;}
+
+  .risk-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;}
+  .risk-list li{display:flex;gap:12px;padding:12px 16px;border:1px solid var(--line);border-radius:10px;background:var(--paper-raised);font-size:13.8px;}
+  .risk-sev{font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:5px;white-space:nowrap;height:fit-content;}
+  .risk-sev.high{background:var(--stub-soft);color:var(--stub);}
+  .risk-sev.med{background:var(--amber-soft);color:var(--amber);}
+  .risk-list b{color:var(--ink);}
+  .risk-list span.d{color:var(--ink-dim);}
+
+  .gapcard{border:1px solid var(--line);border-radius:12px;background:var(--paper-raised);padding:18px 22px;margin-bottom:14px;}
+  .gapcard-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px;}
+  .gapcard-name{font-weight:600;font-size:15.5px;}
+  .gap-body{display:grid;gap:10px;font-size:13.8px;}
+  .gap-body .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 3px;}
+  .gap-body p{margin:0 0 4px;color:var(--ink-dim);}
+  .gap-src{margin-top:10px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:12px;font-family:var(--mono);display:flex;flex-wrap:wrap;gap:4px 14px;}
+  .gap-src a{color:var(--ink-faint);}
+
+  footer{margin-top:70px;padding-top:22px;border-top:1px solid var(--line);font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);}
+  footer a{color:var(--ink-faint);}
+  footer .src{margin-top:10px;}
+  footer .src a{display:block;margin-top:4px;}
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="eyebrow">Kasper &middot; GPS / Telematics System</p>
+    <h1>What we built, and how much to trust it</h1>
+    <p class="lede">A single reference for you: what each module does in plain language and in technical detail, how they connect, how the team's own quality process actually works, where this stands against off-the-shelf telematics platforms, and — since no hardware has arrived yet — exactly how to wire up a real GPS unit when it does.</p>
+    <div class="meta-row">
+      <span>Generated 2026-09-03</span>
+      <span>Sources: ARCHITECTURE.md &middot; MODULES.md &middot; TASKS.md &middot; TESTING.md &middot; PROTOCOL.md &middot; RUNBOOKS.md &middot; 2 independent build reviews</span>
+      <span>Companion: <a href="#">Telematics Data Flow diagram</a></span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#overview">Overview</a>
+    <a href="#modules">The 9 modules</a>
+    <a href="#workflow">How it connects &amp; the workflow</a>
+    <a href="#quality">Quality of the development</a>
+    <a href="#trust">Safe to hand to dev/test?</a>
+    <a href="#compare">vs. off-the-shelf tools</a>
+    <a href="#hardware">Getting real hardware talking</a>
+    <a href="#gaps">Closing the simulator gaps</a>
+    <a href="#decisions">Open decisions</a>
+  </nav>
+
+  <!-- ================= OVERVIEW ================= -->
+  <section id="overview">
+    <div class="sec-head"><span class="sec-num">01</span><h2>What this system actually is</h2></div>
+    <div class="twin">
+      <div class="panel plain">
+        <p class="panel-label">Plain English</p>
+        <p>A GPS box bolted to a machine (excavator, generator, truck) phones home over the mobile network every few seconds. This system answers that phone call, writes down exactly what it said, works out whose machine it is and how many hours the engine has run, and hands that to a dashboard — and eventually to an invoice and a WhatsApp alert. The whole point is that the number that ends up on an invoice can survive a dispute: it has to be traceable back to the exact bytes the machine sent, untouched.</p>
+      </div>
+      <div class="panel tech">
+        <p class="panel-label">Technical</p>
+        <p>A Node.js TCP/HTTP harness implementing the real Teltonika Codec 8/8E wire protocol end to end: ingestion → decode/normalise → enrichment → a tenant-isolated Postgres/memory store → a read API, a utilisation ledger with tamper-evident sealing, a rules engine, and WhatsApp delivery. Split into 9 independently-testable modules plus an operability layer (logging, lifecycle, tooling), built against 9 explicit correctness invariants that are enforced by tests, not convention.</p>
+      </div>
+    </div>
+    <p class="sec-dek" style="margin-top:2px;">The full module-by-module data flow is drawn out in the companion flowchart artifact. This report goes one layer deeper: what each piece is <i>worth</i>, how the team keeps itself honest, and what still needs a human before any of it touches a real customer.</p>
+  </section>
+
+  <!-- ================= MODULES ================= -->
+  <section id="modules">
+    <div class="sec-head"><span class="sec-num">02</span><h2>The 9 modules — what each does, and how good it is</h2></div>
+    <p class="sec-dek">Every module below was graded against three things: does it work (tests), was it independently checked (the two audits below), and is it safe to rely on today. "Solid" means built, tested, and reviewed. "Blocked" means the code is fine but something outside code — hardware, a human sign-off, a vendor credential — has to happen first.</p>
+
+    <div class="mgrid">
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M0</span><span class="mcard-name">Protocol</span><span class="mcard-folder">src/protocol/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The translator that turns the raw bytes a GPS box sends into numbers the rest of the system understands — like knowing the exact dialect the device speaks.</p></div>
+          <div><p class="lbl">Technical</p><p>Pure functions over Buffers: CRC-16/IBM, IMEI framing, AVL record encode/decode for Codec 8 &amp; 8E. Verified byte-for-byte against Teltonika's own published canonical test packet.</p></div>
+        </div>
+        <div class="mcard-foot"><b>Why trust it:</b> no I/O, no state — it either matches the spec or the test fails. Zero open findings.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M1</span><span class="mcard-name">Ingestion</span><span class="mcard-folder">src/ingestion/</span><span class="verdict v-solid">solid, hardened</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The phone line the GPS box calls into. It only says "got it" after your data is actually saved, so nothing is lost if the call drops mid-sentence.</p></div>
+          <div><p class="lbl">Technical</p><p>ACK-only-after-durable-write, idempotent resend, per-IP handshake rate limiting, packet-size cap, socket idle/handshake timeouts, codec allowlist, IMEI format validation.</p></div>
+        </div>
+        <div class="mcard-foot"><b>Known gap:</b> no TLS and no per-device secret on the port yet — anyone who can reach it and guess a valid 15-digit IMEI can attempt a handshake. Flagged, not yet closed.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M2</span><span class="mcard-name">Decode / normalise</span><span class="mcard-folder">src/decode/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">Turns a raw reading into a clean fact — and, crucially, says "unknown" instead of guessing when a sensor genuinely didn't report anything.</p></div>
+          <div><p class="lbl">Technical</p><p>Absent IO → <code>null</code>, never <code>0</code>; engine hours only for CAN-mapped assets, always tagged <code>source:'ecu'</code>; per-record timestamp attribution; explicitly guards the minutes→seconds unit conversion (a silent 60× billing error no other test would catch).</p></div>
+        </div>
+        <div class="mcard-foot">Zero open findings.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M3</span><span class="mcard-name">Store &amp; tenancy</span><span class="mcard-folder">src/store/, db/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">A locked filing cabinet — each customer can only ever open their own drawer, and nothing already filed can be quietly edited later.</p></div>
+          <div><p class="lbl">Technical</p><p>Two adapters (memory / Postgres) behind one interface. Tenancy = row-level security; evidence immutability = a Postgres trigger. Both proven with negative tests — the policies/trigger were physically dropped and the tests confirmed they then fail.</p></div>
+        </div>
+        <div class="mcard-foot">The rare kind of "tested": someone deliberately broke the enforcement and watched the tests catch it.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M4</span><span class="mcard-name">Enrichment</span><span class="mcard-folder">src/enrichment/</span><span class="verdict v-minimal">deliberately minimal</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">A first rough guess at what the machine is doing right now — off, idling, moving. Enough to start with; not yet smart about full trips or work zones.</p></div>
+          <div><p class="lbl">Technical</p><p>Derives coarse state (off/idle/moving/unknown) from ignition, movement, speed. Trip segmentation and geofence membership are not built here yet — the current geofence rule (M8) does its own standalone distance check instead.</p></div>
+        </div>
+        <div class="mcard-foot">Fine for a pilot; will need real growth before the product's trip/utilisation views feel complete.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M5</span><span class="mcard-name">Utilisation ledger &amp; evidence</span><span class="mcard-folder">src/ledger/</span><span class="verdict v-blocked">built, not yet billable</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The accountant. It correctly totals engine hours from readings it trusts and seals the calculation so it can't quietly be changed afterward — but nobody has checked its math against a real machine yet, and a human still has to sign off before it touches a real invoice.</p></div>
+          <div><p class="lbl">Technical</p><p><code>computeUtilisation()</code> sums positive ECU-meter deltas per asset/period; meter resets and non-ECU readings are excluded, never blended in; <code>sealUtilisationRecord()</code> produces a deterministic, tamper-sensitive SHA-256 evidence hash. 11/11 tests, correct against spec and the seed scenario.</p></div>
+        </div>
+        <div class="mcard-foot"><b>Blocked on:</b> (1) reading AVL 102 off a real installed adapter and reconciling it against the machine's own physical hour-meter, (2) a human reviewing the billing math against real fleet data. Neither is a code problem.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M6</span><span class="mcard-name">Read API (surfaces)</span><span class="mcard-folder">src/api/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The window a dashboard looks through — every request has to say which customer it's asking for, or it's refused outright.</p></div>
+          <div><p class="lbl">Technical</p><p>Zero-framework HTTP API (<code>/health</code>, <code>/devices</code>, <code>/positions</code>, <code>/assets/:id/engine-hours</code>). Every data endpoint requires <code>X-Tenant-Id</code> and is tenant-scoped by the store.</p></div>
+        </div>
+        <div class="mcard-foot">Zero open findings.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M7</span><span class="mcard-name">Messaging (WhatsApp)</span><span class="mcard-folder">src/messaging/</span><span class="verdict v-blocked">plumbing solid, send switched off</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The mailroom is built and knows exactly which letter goes to which customer without ever double-sending — it just isn't allowed to actually mail anything yet, because WhatsApp hasn't approved the message templates.</p></div>
+          <div><p class="lbl">Technical</p><p><code>dispatch.js</code>: template mapping, event-id dedupe, tenant isolation, partial-failure isolation — 9/9 tests. <code>notify()</code> itself is a throwing stub by design until live Meta credentials + approved templates exist.</p></div>
+        </div>
+        <div class="mcard-foot"><b>Known gap:</b> the delivered-message log is in-memory only — a process restart would currently re-send already-delivered messages once a real sender is plugged in. Needs durable storage first.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M8</span><span class="mcard-name">Rules &amp; event detection</span><span class="mcard-folder">src/rules/</span><span class="verdict v-fixed">broken → caught → fixed</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The system's instinct — "that machine just left the yard," "someone's running it after hours," "the harness got unplugged." The first version of this literally didn't run at all; an independent review caught it before anyone shipped it, and it was rewritten and proven working.</p></div>
+          <div><p class="lbl">Technical</p><p>First delivery: a bad import crashed the module on load, and its "proof" test never executed a single assertion. Review found it, fix rewired the import, corrected a timezone bug (<code>getHours()</code> → <code>getUTCHours()</code>), fixed a minutes/ms threshold bug (60,000ms labelled "60 min"), and fixed an event-id collision. Now 12/12 tests, wired into messaging's dedupe.</p></div>
+        </div>
+        <div class="mcard-foot">See the review case study in §4 — this is the clearest evidence the QA process actually works.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">M9</span><span class="mcard-name">Simulator / device bench</span><span class="mcard-folder">src/simulator/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">A stunt double for the real GPS hardware that speaks the exact same language, so the whole system can be built and proven correct before a single physical device exists.</p></div>
+          <div><p class="lbl">Technical</p><p>Deterministic (seeded PRNG, no <code>Date.now</code>/<code>Math.random</code>). 7 named scenarios, each exercising specific invariants. Doubles as the test bench for ingestion, replay, and tenancy tests.</p></div>
+        </div>
+        <div class="mcard-foot">Because it speaks the real wire protocol, a physical FMC130 drops in later with <b>zero server-side changes</b>.</div>
+      </div>
+
+      <div class="mcard">
+        <div class="mcard-head"><span class="mcard-num">P0</span><span class="mcard-name">Operability layer</span><span class="mcard-folder">src/logging/, src/lifecycle/, src/tools/</span><span class="verdict v-solid">solid</span></div>
+        <div class="mcard-body">
+          <div><p class="lbl">Plain English</p><p class="plain-txt">The seatbelts: shutdowns that never lose data mid-save, logs that never leak secrets or customer data, and a stress test proving it survives 1,000 devices connecting at once.</p></div>
+          <div><p class="lbl">Technical</p><p>Structured, secret-redacting JSON logger; SIGINT/SIGTERM drain with a hard deadline, verified on real OS processes (14/14 checks); a load-testing harness — 1,000 connections in one burst passed with zero errors (connect p95 ≈1.1s, ACK p95 ≈7ms, peak RSS ≈85MB).</p></div>
+        </div>
+        <div class="mcard-foot">Not a product module — this is why the slice is safe to run unattended.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= WORKFLOW ================= -->
+  <section id="workflow">
+    <div class="sec-head"><span class="sec-num">03</span><h2>How it all connects, and how it actually gets built</h2></div>
+    <div class="twin">
+      <div class="panel plain">
+        <p class="panel-label">The data path, in plain terms</p>
+        <p>A device or the simulator dials in → <b>Ingestion</b> answers and only hangs up once it's saved the data → <b>Decode</b> turns bytes into facts → <b>Enrichment</b> makes a rough guess at machine state → it all lands in the <b>Store</b>, split cleanly by customer → from there, three things happen in parallel: the <b>Read API</b> feeds dashboards live, the <b>Ledger</b> quietly totals up billable hours and seals the evidence, and <b>Rules</b> watches for things worth alerting on and hands them to <b>Messaging</b> to WhatsApp someone. See the flowchart artifact for the full picture with every arrow labelled.</p>
+      </div>
+      <div class="panel tech">
+        <p class="panel-label">The build workflow, in plain terms</p>
+        <p>The project is split into gated phases (<code>P-now → P0 → P1 → P2 → P3 → P4</code> in <code>BUILD_PLAN.md</code>/<code>TASKS.md</code>) — each phase has a hard gate (a specific test count green, a demo that produces exact expected numbers) that must pass before the next phase starts. Each module has a named owner role (e.g. <code>@protocol-engineer</code>, <code>@ledger-owner</code>). A <b>merge gate</b> (<code>npm run test:gate</code>) makes this enforceable rather than aspirational: it fails on any failing, skipped, or <code>todo</code> test, and it fails if the passing-test count ever drops below a floor recorded in code — so quietly deleting a test to "make it pass" is itself a build failure. Two modules (ledger, messaging) were deliberately left as throwing stubs rather than half-built, because a wrong ledger silently produces a wrong invoice — that risk needs a human owner, not more code.</p>
+      </div>
+    </div>
+    <p class="sec-dek">The most distinctive part of the workflow is the <b>independent review step</b>: after a module lands, a separate pass audits it by actually running the code and reproducing every claim with a command — not by reading and trusting the code. Two of those reviews are the backbone of the quality section below.</p>
+  </section>
+
+  <!-- ================= QUALITY ================= -->
+  <section id="quality">
+    <div class="sec-head"><span class="sec-num">04</span><h2>Quality of the development</h2></div>
+    <p class="sec-dek">Three kinds of evidence, not just a claim: automated test coverage tied to specific correctness rules, a record of independent audits that reproduced their own findings with commands, and an honest list of what still needs a human.</p>
+
+    <div class="stat-row">
+      <div class="stat"><div class="n">179 / 179</div><div class="l">tests green, memory mode — zero skipped</div></div>
+      <div class="stat"><div class="n">91 / 91</div><div class="l">tests green under real Postgres (RLS + immutability trigger)</div></div>
+      <div class="stat"><div class="n">2 / 2</div><div class="l">green CI runs on GitHub Actions, Node 20 &amp; 22</div></div>
+      <div class="stat"><div class="n">1,000</div><div class="l">simulated devices connecting at once, zero errors (load test)</div></div>
+    </div>
+
+    <h3 style="font-size:15px;margin:26px 0 10px;">The 9 correctness invariants — the actual quality bar for a billing system</h3>
+    <div class="tbl-wrap">
+      <table class="data">
+        <tr><th>#</th><th>Invariant</th><th>Plain meaning</th><th>Status</th></tr>
+        <tr><td class="mono">1</td><td class="strong">ACK only after durable write</td><td>Never tell the device "got it" before it's actually saved</td><td><span class="pill ok">proven</span></td></tr>
+        <tr><td class="mono">2</td><td class="strong">Idempotent ingest</td><td>A resent packet can never double-count</td><td><span class="pill ok">proven</span></td></tr>
+        <tr><td class="mono">3</td><td class="strong">NULL ≠ zero</td><td>"No reading" is never confused with "reading of zero"</td><td><span class="pill ok">proven</span></td></tr>
+        <tr><td class="mono">4</td><td class="strong">ECU vs. estimated never merge</td><td>Real engine-hour readings never blend with guesses</td><td><span class="pill ok">proven</span></td></tr>
+        <tr><td class="mono">5</td><td class="strong">Ignition counters ≠ billing evidence</td><td>Only real ECU readings can ever back an invoice</td><td><span class="pill half">half — decode side proven, ledger wiring is P2</span></td></tr>
+        <tr><td class="mono">6</td><td class="strong">Attribution at record's own timestamp</td><td>Ownership is decided by when a reading happened, never "as of now"</td><td><span class="pill ok">proven end-to-end</span></td></tr>
+        <tr><td class="mono">7</td><td class="strong">Tenancy always</td><td>Every read is scoped to one customer, enforced by the database itself</td><td><span class="pill ok">proven at both layers</span></td></tr>
+        <tr><td class="mono">8</td><td class="strong">Sealed, immutable evidence</td><td>Raw data can never be edited after the fact</td><td><span class="pill ok">proven, trigger-enforced</span></td></tr>
+        <tr><td class="mono">9</td><td class="strong">Unlisted machine ⇒ no engine hours</td><td>No CAN adapter means the system refuses to guess engine hours</td><td><span class="pill ok">proven end-to-end</span></td></tr>
+      </table>
+    </div>
+
+    <h3 style="font-size:15px;margin:30px 0 10px;">The audit trail — evidence this wasn't just claimed, it was checked</h3>
+    <div class="callout">
+      <span class="clbl">Case study — Module 8 (Rules engine)</span>
+      <p><b>What happened:</b> the first delivery of the rules engine was reviewed on 2026-09-01. The reviewer didn't just read the code — they tried to import it, and it threw a <code>SyntaxError</code>. Its own test file crashed before a single assertion ran. Three more real bugs were found underneath: a timezone bug that would fire false after-hours alerts depending on what server timezone it ran in, a threshold typo that was 60× too small, and a dedupe key that could silently drop real events.</p>
+      <p><b>What happened next:</b> every finding was fixed, each with its own test, and the module was re-verified — 12/12 tests, wired cleanly into messaging. The finished module is now rated <b>solid</b> above.</p>
+      <p>This is the pattern worth trusting: problems get found by someone actually running the code and reproducing the failure, not glossed over — and then they get closed, not hidden.</p>
+    </div>
+    <div class="callout">
+      <span class="clbl">Case study — Parser &amp; handshake hardening</span>
+      <p><b>What happened:</b> a second audit (2026-09-02) targeted the protocol parser and device handshake — the part of the system a stranger on the internet can actually talk to. It found the happy path was correct, but the defensive envelope around it had real gaps: no cap on a declared packet length (a peer could steer one connection toward ~4GB of memory), no socket idle timeout (a silent connection could be held forever — a textbook slowloris), and no codec/IMEI validation.</p>
+      <p><b>What happened next:</b> all 6 meaningful findings were fixed the next day, each its own commit with its own test, raising the test-gate floor from 135 to 149 in the process. One item (signed-integer decoding) was correctly deferred — nothing in the system uses a signed parameter yet, so building it now would be speculative.</p>
+    </div>
+
+    <h3 style="font-size:15px;margin:30px 0 10px;">Known gaps &amp; open risks — the honest list</h3>
+    <ul class="risk-list">
+      <li><span class="risk-sev high">high</span><div><b>No TLS or per-device authentication on the ingestion port.</b> <span class="d">Today the only gate is a valid, registered IMEI plus a per-IP rate limit. Fine for a private pilot; needed before this port faces the open internet.</span></div></li>
+      <li><span class="risk-sev high">high</span><div><b>The ledger isn't wired to real billing yet.</b> <span class="d">Correct against its spec and the seed scenario — but no real fleet's numbers have been reviewed by a human, and the physical hardware reconciliation step hasn't happened. Don't invoice off it yet.</span></div></li>
+      <li><span class="risk-sev med">medium</span><div><b>Message delivery isn't durable yet.</b> <span class="d">The dedupe log for WhatsApp sends lives in memory — a restart would currently risk re-sending already-delivered messages once a real sender exists.</span></div></li>
+      <li><span class="risk-sev med">medium</span><div><b>Enrichment is intentionally thin.</b> <span class="d">Coarse machine state only — no real trip segmentation yet, and the geofence rule does its own standalone distance check rather than a shared enrichment concept.</span></div></li>
+      <li><span class="risk-sev med">medium</span><div><b>The ignition-duration billing basis has an open number.</b> <span class="d">A device-offline gap currently has no default cap on how long it can be billed at its last known state — the production threshold (hours?) needs a human, business-side decision.</span></div></li>
+      <li><span class="risk-sev med">medium</span><div><b>No real fleet has been named yet.</b> <span class="d">Every per-machine CAN program number is still a candidate until the actual make/model/year list is confirmed — this blocks the hardware half of D1 below.</span></div></li>
+    </ul>
+  </section>
+
+  <!-- ================= TRUST ================= -->
+  <section id="trust">
+    <div class="sec-head"><span class="sec-num">05</span><h2>Is this safe to hand to the dev/test team?</h2></div>
+    <div class="callout">
+      <span class="clbl">Short answer</span>
+      <p><b>Yes, for internal development and testing.</b> The foundation is genuinely solid: a real protocol implementation checked against Teltonika's own published test vector, 179 passing tests tied to named correctness rules (not vibes), green CI on a clean machine, graceful-shutdown behaviour proven on real OS processes, and — the strongest signal — a demonstrated habit of catching its own mistakes through independent review and actually fixing them, with commands and commits to show it.</p>
+      <p><b>Not yet for production billing or public internet exposure.</b> Two specific things stand between here and that: (1) the ingestion port has no TLS/device-auth yet, and (2) the ledger has not been reconciled against a single real, physical machine. Neither is a sign of sloppy work — both are deliberately fenced off (throwing stubs, explicit "P2/P4" gates) rather than quietly shipped half-done.</p>
+    </div>
+    <table class="data">
+      <tr><th>Before...</th><th>You need</th></tr>
+      <tr><td class="strong">Dev/test team builds against it</td><td>Nothing further — it's ready today.</td></tr>
+      <tr><td class="strong">It sits on the open internet</td><td>TLS + a per-device auth token or pre-shared secret on the ingestion port (§4 gap).</td></tr>
+      <tr><td class="strong">It bills a real customer</td><td>A named, real fleet → per-machine program-number confirmation → an installed CAN adapter reconciled against the physical hour-meter → human sign-off on the billing math.</td></tr>
+      <tr><td class="strong">It sends a real WhatsApp message</td><td>Meta-approved templates + live credentials, and the delivery log moved from memory to durable storage.</td></tr>
+    </table>
+  </section>
+
+  <!-- ================= COMPARE ================= -->
+  <section id="compare">
+    <div class="sec-head"><span class="sec-num">06</span><h2>How this compares to off-the-shelf telematics platforms</h2></div>
+    <p class="sec-dek">The honest question isn't "is custom software better" — it's what each option actually gives you control over. This system was built custom for one specific reason: nothing off-the-shelf hands you a tamper-evident, dispute-ready evidence chain over raw ECU data, scoped per tenant, with correctness invariants enforced as code.</p>
+    <div class="tbl-wrap">
+      <table class="data">
+        <tr><th>Platform</th><th>What it is</th><th>Hosting &amp; cost</th><th>Billing-evidence control</th><th>Best fit</th></tr>
+        <tr>
+          <td class="strong">This build</td>
+          <td>Custom Node.js harness, real Teltonika protocol</td>
+          <td>Self-hosted, dev cost only — no per-vehicle fee</td>
+          <td><b>Full</b> — sealed, tamper-evident, reconcilable to the machine's own ECU meter</td>
+          <td>A rental/utilisation billing platform where a customer can dispute an invoice and you need to prove it</td>
+        </tr>
+        <tr>
+          <td class="strong">Traccar</td>
+          <td>Open source (Apache 2.0), self-hosted or managed</td>
+          <td>Free self-hosted; managed tier priced separately</td>
+          <td>None built-in — you'd still build the ledger/evidence layer yourself</td>
+          <td>De-risking the ingestion pilot alongside this build — already the plan in <code>TASKS.md</code> P4</td>
+        </tr>
+        <tr>
+          <td class="strong">Samsara</td>
+          <td>Commercial SaaS, closed ecosystem</td>
+          <td>~$27–33/vehicle/mo base, $40–60 with cameras; 36-month lock-in typical</td>
+          <td>None — proprietary black box, no raw ECU access</td>
+          <td>Fleets wanting one polished all-in-one dashboard, not custom billing logic</td>
+        </tr>
+        <tr>
+          <td class="strong">Geotab</td>
+          <td>Commercial SaaS, large partner marketplace</td>
+          <td>~$10–18/vehicle/mo base (lowest of the three); flexible resellers</td>
+          <td>Partial — DTC/engine data via API, but no tamper-evident sealing for disputes</td>
+          <td>Data-driven fleets with in-house engineering wanting deep API access</td>
+        </tr>
+        <tr>
+          <td class="strong">Motive</td>
+          <td>Commercial SaaS, compliance-first</td>
+          <td>~$25–35/vehicle/mo base; month-to-month available</td>
+          <td>Not built for utilisation billing evidence</td>
+          <td>Trucking/compliance-heavy fleets under ~50 vehicles</td>
+        </tr>
+      </table>
+    </div>
+    <p class="sec-dek" style="margin-top:16px;">Traccar deserves a specific callout: it supports Teltonika devices natively and 200+ protocols out of the box, and this project's own plan already recommends running it <i>alongside</i> this build for the first weeks of a real-device pilot, purely to de-risk ingestion — not as a replacement. The custom build stays the reference implementation and the test harness either way.</p>
+  </section>
+
+  <!-- ================= HARDWARE ================= -->
+  <section id="hardware">
+    <div class="sec-head"><span class="sec-num">07</span><h2>Getting real hardware talking to this — step by step</h2></div>
+    <p class="sec-dek">No physical unit has arrived yet, so here is the exact path from an empty box to a first real handshake in the logs, plus what you can do with software alone right now while you wait.</p>
+    <ol class="steps">
+      <li>
+        <h3>Order the hardware</h3>
+        <p>A Teltonika <b>FMC130</b> (or FMC920) tracker per machine, a data SIM with an M2M APN, and — only for machines whose engine hours need to be billed — a CAN adapter (<code>LV-CAN200</code>, <code>ALL-CAN300</code>, or <code>CAN-CONTROL</code>) matched to that machine's exact make/model/year via Teltonika's supported-vehicle list.</p>
+      </li>
+      <li>
+        <h3>Configure the device</h3>
+        <p>Using Teltonika's Configurator app: point the server address at wherever this ingestion server runs, on the TCP port it listens on (<code>INGEST_PORT</code>, default <b>5027</b>). Set the codec to <b>8E</b>. Set the AVL parameter list to include at minimum IO 239 (ignition), 240 (movement), 69 (GNSS status), and — if a CAN adapter is fitted — 102 (Engine Worktime) and 100 (CAN program number).</p>
+      </li>
+      <li>
+        <h3>Register the device before it connects</h3>
+        <p>The handshake only accepts IMEIs already in the device registry — add the unit's real 15-digit IMEI and model to <code>src/store/seed-data.js</code> (or the <code>devices</code> table under Postgres) first. Otherwise you'll see <code>handshake_rejected reason=unknown_imei</code> in the log and the connection is closed.</p>
+      </li>
+      <li>
+        <h3>Make the server reachable</h3>
+        <p>For a first bench test, run <code>npm run start:ingest</code> somewhere the device's SIM can actually reach — a public IP/port, or a TCP tunnel (e.g. a temporary <code>ngrok tcp</code> forward) if you're testing from a laptop behind NAT.</p>
+      </li>
+      <li>
+        <h3>Watch for the first real handshake</h3>
+        <p>A success looks like <code>event=handshake_accepted imei=... model=...</code> followed by <code>event=packet_acked</code> lines as it starts sending. A rejection names why: <code>unknown_imei</code> (not registered yet) or <code>malformed_imei</code> (not 15 ASCII digits — check the Configurator setting).</p>
+      </li>
+      <li>
+        <h3>Confirm the data lands correctly</h3>
+        <p>Query the read API with the right tenant header (see <code>RUNBOOKS.md</code> §3) and check positions are arriving, and — only for a CAN-mapped asset — that engine hours appear. A non-CAN machine correctly shows <b>no</b> engine hours; that's invariant 9 working, not a bug.</p>
+      </li>
+      <li>
+        <h3>Reconcile before you trust it as billing evidence</h3>
+        <p>This is the one step only physical access can do: read AVL 102 back through the Configurator or Traccar, and compare it by hand against that exact machine's own dashboard hour-meter. Only once they agree is that machine's data <i>evidence</i>, not just a reading — this is the last open piece of decision D1.</p>
+      </li>
+    </ol>
+    <div class="callout">
+      <span class="clbl">While you wait for hardware</span>
+      <p>You don't need to wait to exercise the software — the simulator speaks the identical real wire protocol, so nothing on the server side changes when a physical unit arrives. Run <code>npm run sim:list</code> to see what's available, then <code>npm run sim -- --scenario handover</code> for the most important story (one device changing tenants and machines mid-stream), or <code>--scenario tamper</code> to see how a pulled harness is handled.</p>
+    </div>
+  </section>
+
+  <!-- ================= GAPS RESEARCH ================= -->
+  <section id="gaps">
+    <div class="sec-head"><span class="sec-num">08</span><h2>Closing the simulator-vs-real-device gaps</h2></div>
+    <p class="sec-dek">Follow-up research on the six shortcomings flagged earlier: for each, what the outside world (Teltonika's own documentation, and standard resilience-testing practice) actually says, and whether it can be closed with tooling today or genuinely has to wait for a physical device.</p>
+
+    <div class="gapcard">
+      <div class="gapcard-head"><span class="gapcard-name">Engine-hours data (AVL 102) is invented, not measured</span><span class="verdict v-blocked">still hardware-only</span></div>
+      <div class="gap-body">
+        <div><p class="lbl">What was found</p><p>Teltonika's own CAN-adapter documentation (covering LV-CAN200, ALL-CAN300, CAN-CONTROL — the exact three adapters this system targets) independently lists "Engine Work Time" and "Engine Work Time (counted)" as standard tracked parameters across their product line. That corroborates this project's own AVL 102-vs-103 split — it isn't a reading this team invented, it's how Teltonika's own adapters are documented to behave. The same page also flags that many CAN parameters "reset to zero when ignition is off," and that program numbers are 3-, 4-, or 5-digit depending on adapter firmware age (matching <code>D1_CAN_ENGINE_HOURS.md</code> exactly).</p></div>
+        <div><p class="lbl">Recommendation</p><p>Nothing closes this without a physical install — but the vendor documentation raises one thing worth checking explicitly during hardware bring-up that the report didn't call out before: confirm "Engine Work Time" (AVL 102) is specifically the persistent lifetime meter and not one of the ignition-reset-to-zero parameters on the adapter/vehicle combination you end up buying. Add that as an explicit line item to <code>reconcile()</code>'s bring-up checklist.</p></div>
+      </div>
+      <div class="gap-src">Sources: <a href="https://wiki.teltonika-gps.com/view/FMC130_CAN_adapters" target="_blank" rel="noopener">Teltonika — FMC130 CAN adapters</a></div>
+    </div>
+
+    <div class="gapcard">
+      <div class="gapcard-head"><span class="gapcard-name">No real cellular network behavior (loss, latency, mid-stream drops)</span><span class="verdict v-solid">closeable now, with tooling</span></div>
+      <div class="gap-body">
+        <div><p class="lbl">What was found</p><p>Two mature, zero-hardware tools do exactly this. Linux's built-in <code>tc netem</code> can add packet loss, delay, and jitter straight onto a network interface (e.g. <code>tc qdisc add dev eth0 root netem delay 100ms 20ms loss 2%</code> approximates a poor mobile connection; <code>delay 600ms loss 3% corrupt 0.1%</code> approximates a satellite-grade link) — it even works against loopback for local testing. <b>Toxiproxy</b> (Shopify, open source) goes further: it's a proxy you put in front of the ingestion port that injects specific failure modes on demand — <code>latency</code>, <code>timeout</code>, <code>bandwidth</code> (to mimic a slow 2G/3G trickle), and — most relevant here — <code>reset_peer</code>, which drops a connection mid-stream exactly like a real dead zone would.</p></div>
+        <div><p class="lbl">Recommendation</p><p>Add a Toxiproxy container in front of <code>INGEST_PORT</code> in <code>docker-compose.yml</code>, point the simulator at the proxy instead of the server directly, and script the existing scenarios (<code>handover</code>, <code>day-cycle</code>) to run once through <code>latency</code>+<code>reset_peer</code> toxics. This directly exercises the untested F6 timeout/idle-disconnect code against something closer to a real flaky link — a concrete new test suite, not a hardware requirement.</p></div>
+      </div>
+      <div class="gap-src">
+        Sources: <a href="https://oneuptime.com/blog/post/2026-03-20-simulate-packet-loss-tc-netem/view" target="_blank" rel="noopener">tc netem packet-loss guide</a>
+        <a href="https://oneuptime.com/blog/post/2026-02-08-how-to-use-docker-for-chaos-engineering-with-toxiproxy/view" target="_blank" rel="noopener">Toxiproxy + Docker chaos testing</a>
+      </div>
+    </div>
+
+    <div class="gapcard">
+      <div class="gapcard-head"><span class="gapcard-name">Firmware quirks — offline buffering / backlog behavior</span><span class="verdict v-minimal">partially closeable</span></div>
+      <div class="gap-body">
+        <div><p class="lbl">What was found</p><p>Teltonika's own data-acquisition docs confirm the mechanism this system already assumes: <b>"Min Saved Records"</b> sets how many records must accumulate before a send is attempted, and <b>"Send Period"</b> controls how often the device retries. That matches this harness's own model of one packet carrying multiple records. What the public documentation does <i>not</i> state precisely: the maximum on-device buffer capacity, or exactly how a large backlog is chunked into packets once connectivity returns.</p></div>
+        <div><p class="lbl">Recommendation</p><p>Approximate it in software now: add a new simulator scenario — e.g. <code>reconnect-backlog</code> — that withholds records for a simulated gap and then sends a single oversized packet (bumping toward the existing <code>INGEST_MAX_PACKET_BYTES</code> cap) to prove the server handles a genuine backlog burst correctly. That closes most of the practical risk. The exact on-device buffer ceiling is a vendor-support question, not a code gap — worth a direct question to Teltonika alongside the D1 hardware questions already queued.</p></div>
+      </div>
+      <div class="gap-src">Sources: <a href="https://wiki.teltonika-gps.com/view/FMC130_Data_acquisition_settings" target="_blank" rel="noopener">Teltonika — FMC130 Data acquisition settings</a></div>
+    </div>
+
+    <div class="gapcard">
+      <div class="gapcard-head"><span class="gapcard-name">Reconnect storm at production scale</span><span class="verdict v-solid">already closeable — mostly already built</span></div>
+      <div class="gap-body">
+        <div><p class="lbl">What was found</p><p>Standard practice for this exact failure mode (many clients reconnecting simultaneously after an outage) is client-side <b>exponential backoff with full jitter</b>: each client waits <code>random(0, min(max_delay, base × 2^attempt))</code> rather than a fixed schedule, so retries desynchronize instead of arriving in coordinated waves. This system's own <code>src/tools/load-test.js</code> already supports exactly the adversarial case — <code>--ramp-ms 0</code> connects every simulated device in one burst rather than staggering them — and it's already been run at 1,000 connections with zero errors.</p></div>
+        <div><p class="lbl">Recommendation</p><p>This is closer to a documentation gap than a capability gap: re-run the load test at a size that models a real fleet outage-recovery (e.g. 5,000–10,000 bursty connections) and record it as the explicit "reconnect storm" proof in <code>TESTING.md</code>, rather than leaving it implied inside the general load-test section. Separately, if a real device fleet's own reconnect logic isn't already jittered, that's worth confirming with Teltonika's firmware behavior — the server side is already proven to take the hit either way.</p></div>
+      </div>
+      <div class="gap-src">
+        Sources: <a href="https://web-alert.io/blog/retry-storms-exponential-backoff-jitter-explained" target="_blank" rel="noopener">Exponential backoff with jitter, explained</a>
+        <a href="https://en.wikipedia.org/wiki/Thundering_herd_problem" target="_blank" rel="noopener">Thundering herd problem — background</a>
+      </div>
+    </div>
+
+    <div class="gapcard">
+      <div class="gapcard-head"><span class="gapcard-name">Rate limiter assumes one IP = one device (breaks under CGNAT)</span><span class="verdict v-solid">closeable — small, specific code change</span></div>
+      <div class="gap-body">
+        <div><p class="lbl">What was found</p><p>Carrier-grade NAT (CGNAT) really does put many mobile devices behind one shared public IP — standard on most cellular M2M networks. Cloudflare's own published research found IPs behind CGNAT get rate-limited roughly <b>3× more often</b> than ordinary IPs specifically because of this collateral-damage effect: one bad actor's traffic gets a whole shared IP throttled, punishing every innocent device sharing it.</p></div>
+        <div><p class="lbl">Recommendation</p><p>The fix doesn't need Cloudflare-scale ML classification — it needs the limiter to key on something CGNAT can't collapse. The device's own IMEI is readable the instant the handshake frame arrives, even for an <i>unregistered</i> IMEI. Change <code>handshake-limiter.js</code> to throttle on <code>(sourceIp, imei)</code> rather than <code>sourceIp</code> alone (keeping the IP-only limiter as a secondary, higher-threshold backstop against a genuinely malicious single source). That keeps one misbehaving device from getting every other device on the same carrier IP blocked.</p></div>
+      </div>
+      <div class="gap-src">Sources: <a href="https://blog.cloudflare.com/detecting-cgn-to-reduce-collateral-damage/" target="_blank" rel="noopener">Cloudflare — detecting CGNAT to reduce collateral damage</a></div>
+    </div>
+
+    <p class="sec-dek" style="margin-top:6px;">Net effect: of the six original gaps, four (network realism, backlog bursts, reconnect storms, CGNAT rate limiting) can be substantially closed with tooling and small code changes before any hardware purchase. Only the engine-hours reconciliation itself is an unavoidable hardware gate — everything else was a testing gap, not a hardware gap.</p>
+  </section>
+
+  <!-- ================= DECISIONS ================= -->
+  <section id="decisions">
+    <div class="sec-head"><span class="sec-num">09</span><h2>Open decisions only a human can make</h2></div>
+    <ul class="risk-list">
+      <li><span class="risk-sev high">decide</span><div><b>Name the real fleet.</b> <span class="d">Exact make/model/year for every machine — every program-number row is a candidate until this is confirmed.</span></div></li>
+      <li><span class="risk-sev high">decide</span><div><b>Sign off the billing math against real fleet data.</b> <span class="d">The ledger is correct against its spec; it still needs a human to review it against actual numbers before it backs an invoice.</span></div></li>
+      <li><span class="risk-sev med">decide</span><div><b>Set the ignition-duration max-gap threshold.</b> <span class="d">How long can a device be silent before that gap stops counting as billable "ignition on" time? A business call, not a code one.</span></div></li>
+      <li><span class="risk-sev med">decide</span><div><b>Pilot ingestion: this server, or run Traccar alongside it?</b> <span class="d">The expert review favours Traccar to de-risk the first weeks; this build stays the reference implementation and test harness either way.</span></div></li>
+    </ul>
+  </section>
+
+  <footer>
+    Compiled from ARCHITECTURE.md, telematics/docs/MODULES.md, TASKS.md, TESTING.md, telematics/docs/{PROTOCOL,RUNBOOKS}.md, D1_CAN_ENGINE_HOURS.md, PARSER_HANDSHAKE_REVIEW_2026-09-02.md, and RULES_MODULE8_REVIEW_2026-09-01.md — all in the gps-build repo.
+    <div class="src">
+      External comparison sources:<br>
+      <a href="https://github.com/traccar/traccar" target="_blank" rel="noopener">Traccar — open source GPS tracking platform (GitHub)</a>
+      <a href="https://oxmaint.com/industries/fleet-management/samsara-geotab-motive-telematics-comparison-fleet-2026" target="_blank" rel="noopener">Samsara vs. Geotab vs. Motive comparison — Oxmaint (2026)</a>
+    </div>
+  </footer>
+
+</div>

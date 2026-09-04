@@ -53,8 +53,15 @@ export function detectEvents(records, { assetId, tenantId, config } = {}) {
   // Track membership across the sequence. Emit geofence-enter on false→true,
   // geofence-exit on true→false. Guard the first record (no prior membership →
   // no spurious event). Unknown membership (missing lat/lon) is silently ignored.
+  //
+  // F3: a no-fix record is flagged positionValid:false by normalizeRecord (it
+  // commonly reports lat/lon 0,0 — "Null Island", a real place). Excluding it
+  // here stops a GPS dropout from manufacturing a spurious exit-then-enter pair.
+  // `positionValid !== false` (not `=== true`) so a record that predates the
+  // flag — e.g. a synthetic test record — is unaffected; only an explicit
+  // no-fix is dropped.
   const geofenceRecords = filtered.filter(
-    (r) => r.lat != null && r.lon != null
+    (r) => r.positionValid !== false && r.lat != null && r.lon != null
   );
 
   let prevInside = null; // membership status of the prior record

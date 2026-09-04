@@ -1,0 +1,54 @@
+-- TimescaleDB migration path (P4) — noted 2026-09-03, closes the P1 follow-up
+-- "Note the TimescaleDB hypertable migration path for P4 (no interface change)".
+--
+-- Why: P4's decision is "plain Postgres now; TimescaleDB if volume warrants"
+-- (TASKS.md, Open decisions). This note exists so that switch is a runbook, not
+-- a research project, and so nobody worries it touches application code.
+--
+-- The contract that must not change: `src/store/index.js`'s interface and the
+-- pg adapter (`src/store/pg-store.js`) keep their exact SQL surface. TimescaleDB
+-- is a Postgres extension; hypertables are ordinary tables with extra plumbing,
+-- so no query in the adapter changes. RLS policies and the `raw_frames`
+-- immutability trigger carry over untouched (they are table-level, and
+-- hypertables preserve triggers/policies).
+--
+-- Migration (run as the database owner, in a maintenance window):
+--
+--   -- 1. Enable the extension (RDS: add to the instance's shared-preloads /
+--   --     parameter group; the DB engine on RDS is 'timescaledb', not 'postgres')
+--   CREATE EXTENSION IF NOT EXISTS timescaledb;
+--
+--   -- 2. Convert the high-volume fact tables. ONLY these two are time-series;
+--   --    devices/assets/tenants/assignments/raw_frames stay ordinary tables.
+--   SELECT create_hypertable('position_records', 'ts_ms',
+--                            chunk_time_interval => INTERVAL '1 day',
+--                            migrate_data => true);
+--   SELECT create_hypertable('engine_readings', 'ts_ms',
+--                            chunk_time_interval => INTERVAL '1 day',
+--                            migrate_data => true);
+--
+--   -- 3. Chunk sizing rule of thumb: keep 25-50 chunks total. At fleet scale
+--   --    (tens of devices, one record per 10-60 s per device) 1 day is right;
+--   --    revisit only if records-per-day exceeds a few million.
+--
+--   -- 4. Retention (replaces any manual DELETE job — note raw_frames is
+--   --    immutable-by-trigger and NOT a hypertable, so its retention is a
+--   --    separate, deliberate policy decision, e.g. S3 cold tier first):
+--   SELECT add_retention_policy('position_records', INTERVAL '13 months');
+--   SELECT add_retention_policy('engine_readings',  INTERVAL '7 years');
+--   -- engine_readings backs invoices — keep >= the tax/audit retention period;
+--   -- 7 years is a placeholder pending the coordinator's call.
+--
+--   -- 5. Optional, after the switch proves out: continuous aggregates for the
+--   --    dashboard's per-day utilisation views instead of on-the-fly GROUP BY.
+--
+-- Things to re-verify after migrating (the existing suites already cover all
+-- of them — run `DB=pg npm test` against the Timescale instance):
+--   • `DB=pg npm run demo` stays byte-identical to memory mode (invariant gate)
+--   • test/immutability.test.js — raw_frames trigger still refuses UPDATE/DELETE
+--   • test/rls.test.js — policies still block cross-tenant reads
+--   • idempotency on (deviceId, tsMs) — unique index survives create_hypertable
+--     (it is converted to an explicit index including the time column)
+--
+-- NOT done now, on purpose: no extension dependency in docker-compose, no code
+-- branch anywhere on `timescaledb`. The switch is deployed-config-only.

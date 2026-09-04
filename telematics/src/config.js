@@ -46,6 +46,37 @@ export const config = {
   ingest: {
     host: process.env.INGEST_HOST || '0.0.0.0',
     port: int(process.env.INGEST_PORT, 5027),
+    // Per-source-IP throttle on failed (unknown-IMEI) handshakes — P0
+    // hardening. See src/ingestion/handshake-limiter.js for why this exists:
+    // the IMEI handshake is the only gate on the ingestion port, and an IMEI
+    // is not a secret. Defaults: 5 failed attempts / rolling minute, then a
+    // 5-minute cooldown for that source IP. A legitimate device that clears
+    // the handshake is never throttled by its own earlier failures.
+    handshakeRateLimit: {
+      maxFailures: int(process.env.HANDSHAKE_MAX_FAILURES, 5),
+      windowMs: int(process.env.HANDSHAKE_WINDOW_MS, 60_000),
+      blockMs: int(process.env.HANDSHAKE_BLOCK_MS, 5 * 60_000),
+    },
+    // Upper bound on a declared AVL data-field length (F1). The framer waits
+    // for `dataLen` more bytes before it acts; without a cap a peer can declare
+    // ~4 GB and steer one connection toward OOM. A real FMC130 packet is a few
+    // hundred bytes to a few KB, so 64 KiB is far above any legitimate frame
+    // and still a hard ceiling. Over this, readAvlFrame throws → connection
+    // dropped, no ACK.
+    maxPacketBytes: int(process.env.INGEST_MAX_PACKET_BYTES, 64 * 1024),
+    // Socket timeouts (F6). A silent or slow client otherwise holds a socket —
+    // and its buffer — forever; the handshake rate-limiter does not cover this
+    // (it only counts COMPLETED failed handshakes, and a silent socket never
+    // completes one). `handshakeTimeoutMs` is a short deadline to send the IMEI
+    // frame; once handshaked it relaxes to `idleTimeoutMs` between packets,
+    // generous enough for a lifelike reporting interval. Either firing destroys
+    // the socket (the device reconnects). 0 disables that timer.
+    handshakeTimeoutMs: int(process.env.INGEST_HANDSHAKE_TIMEOUT_MS, 10_000),
+    idleTimeoutMs: int(process.env.INGEST_IDLE_TIMEOUT_MS, 10 * 60_000),
+    // Optional cap on concurrent connections (F6). 0 = unlimited (default; the
+    // OS/backpressure and the timeouts above bound it). Set >0 to have Node
+    // refuse sockets past the cap outright.
+    maxConnections: int(process.env.INGEST_MAX_CONNECTIONS, 0),
   },
 
   api: {

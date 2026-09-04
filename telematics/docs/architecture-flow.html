@@ -1,0 +1,418 @@
+<title>Telematics Data Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root{
+    --paper:#eef2f0;
+    --paper-raised:#ffffff;
+    --ink:#0f1a17;
+    --ink-dim:#4b5b56;
+    --line:#c7d2ce;
+    --line-soft:#dbe3e0;
+    --accent:#146356;      /* deep teal — trunk / flow */
+    --accent-soft:#dfeae6;
+    --signal:#1f7a4d;      /* done */
+    --signal-soft:#e2f2e8;
+    --amber:#93650f;       /* minimal / partial */
+    --amber-soft:#f5ecd8;
+    --stub:#9c3f3f;        /* blocked / stub */
+    --stub-soft:#f6e5e3;
+    --mono:'IBM Plex Mono',ui-monospace,'SF Mono',Consolas,monospace;
+    --sans:'IBM Plex Sans',-apple-system,'Segoe UI',sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0d1512;
+      --paper-raised:#131d19;
+      --ink:#e8efec;
+      --ink-dim:#93a39c;
+      --line:#2b3a35;
+      --line-soft:#1c2723;
+      --accent:#4fb59e;
+      --accent-soft:#132824;
+      --signal:#5cc98d;
+      --signal-soft:#122a1c;
+      --amber:#e0b256;
+      --amber-soft:#2c2313;
+      --stub:#e28787;
+      --stub-soft:#2c1817;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0d1512;
+    --paper-raised:#131d19;
+    --ink:#e8efec;
+    --ink-dim:#93a39c;
+    --line:#2b3a35;
+    --line-soft:#1c2723;
+    --accent:#4fb59e;
+    --accent-soft:#132824;
+    --signal:#5cc98d;
+    --signal-soft:#122a1c;
+    --amber:#e0b256;
+    --amber-soft:#2c2313;
+    --stub:#e28787;
+    --stub-soft:#2c1817;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+  }
+  .wrap{max-width:1040px;margin:0 auto;padding:56px 24px 80px;}
+
+  header{margin-bottom:40px;}
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:12.5px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(28px,4vw,40px);
+    margin:0 0 12px;
+    letter-spacing:-0.01em;
+    text-wrap:balance;
+  }
+  .lede{
+    max-width:62ch;
+    color:var(--ink-dim);
+    font-size:16px;
+    margin:0;
+  }
+  .lede code{font-family:var(--mono);font-size:0.92em;background:var(--line-soft);padding:1px 5px;border-radius:4px;}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:10px 20px;
+    margin-top:26px;padding-top:20px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;color:var(--ink-dim);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:7px;}
+  .swatch{width:11px;height:11px;border-radius:3px;flex:none;}
+
+  figure{margin:0 0 8px;}
+  .diagram-frame{
+    background:var(--paper-raised);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px clamp(8px,3vw,28px);
+    overflow-x:auto;
+  }
+  svg{display:block;width:100%;height:auto;min-width:640px;}
+  figcaption{
+    font-size:13px;color:var(--ink-dim);margin-top:12px;
+    max-width:70ch;
+  }
+
+  section{margin-top:56px;}
+  h2{
+    font-size:13px;
+    font-family:var(--mono);
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--ink-dim);
+    margin:0 0 18px;
+    padding-bottom:10px;
+    border-bottom:1px solid var(--line);
+  }
+
+  .mtable{width:100%;border-collapse:collapse;font-size:14.5px;}
+  .mtable th{
+    text-align:left;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-dim);font-weight:500;
+    padding:0 12px 10px;border-bottom:1px solid var(--line);
+  }
+  .mtable td{
+    padding:12px 12px;border-bottom:1px solid var(--line-soft);
+    vertical-align:top;
+  }
+  .mtable tr:last-child td{border-bottom:none;}
+  .mtable td.num{font-family:var(--mono);color:var(--ink-dim);width:28px;}
+  .mtable td.folder{font-family:var(--mono);font-size:13px;white-space:nowrap;color:var(--accent);}
+  .mtable td.mod{font-weight:600;white-space:nowrap;}
+  .mtable td.desc{color:var(--ink-dim);}
+
+  .pill{
+    display:inline-flex;align-items:center;gap:6px;
+    font-family:var(--mono);font-size:11.5px;font-weight:500;
+    padding:3px 9px 3px 7px;border-radius:100px;white-space:nowrap;
+  }
+  .pill::before{content:"";width:7px;height:7px;border-radius:50%;}
+  .pill.done{background:var(--signal-soft);color:var(--signal);}
+  .pill.done::before{background:var(--signal);}
+  .pill.minimal{background:var(--amber-soft);color:var(--amber);}
+  .pill.minimal::before{background:var(--amber);}
+  .pill.stub{background:var(--stub-soft);color:var(--stub);}
+  .pill.stub::before{background:var(--stub);}
+
+  .twocol{display:grid;grid-template-columns:1fr 1fr;gap:32px;}
+  @media (max-width:720px){.twocol{grid-template-columns:1fr;}}
+
+  .inv-list{margin:0;padding:0;list-style:none;counter-reset:inv;}
+  .inv-list li{
+    counter-increment:inv;position:relative;padding:10px 0 10px 34px;
+    border-bottom:1px solid var(--line-soft);font-size:14px;color:var(--ink-dim);
+  }
+  .inv-list li:last-child{border-bottom:none;}
+  .inv-list li::before{
+    content:counter(inv);position:absolute;left:0;top:10px;
+    font-family:var(--mono);font-size:12px;color:var(--accent);
+    width:20px;height:20px;border:1px solid var(--line);border-radius:5px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .inv-list b{color:var(--ink);font-weight:600;}
+
+  .stack-note{
+    display:grid;grid-template-columns:auto 1fr;gap:6px 18px;font-size:14px;
+  }
+  .stack-note dt{font-family:var(--mono);color:var(--accent);white-space:nowrap;}
+  .stack-note dd{margin:0;color:var(--ink-dim);}
+
+  footer{
+    margin-top:64px;padding-top:20px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:12px;color:var(--ink-dim);
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Kasper &middot; GPS / Telematics System</p>
+    <h1>From GPS device to dashboard</h1>
+    <p class="lede">Every module the system is built from, in the order a Teltonika AVL packet actually travels through them — ingestion, decode, enrichment, storage, then the three consumers that read off the store. Status reflects <code>ARCHITECTURE.md</code>: <b style="color:var(--signal)">built</b>, <b style="color:var(--amber)">minimal</b>, or a <b style="color:var(--stub)">deliberate stub</b>.</p>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--signal)"></span>done &amp; tested</span>
+      <span><span class="swatch" style="background:var(--amber)"></span>minimal implementation</span>
+      <span><span class="swatch" style="background:var(--stub)"></span>defined-only / throws on call</span>
+      <span><span class="swatch" style="background:var(--accent);border-radius:0;width:14px;height:2px;margin-top:5px;"></span>data in flight</span>
+    </div>
+  </header>
+
+  <figure>
+    <div class="diagram-frame">
+      <svg viewBox="0 0 1000 1330" role="img" aria-label="Flowchart: GPS device or simulator sends Codec 8/8E TCP packets to the Ingestion module, which hands raw frames to Decode, then Enrichment, which writes canonical rows into the Store. The Store fans out to three consumers: the Read API feeding dashboards, the Ledger and evidence module (a stub) producing sealed invoice basis, and the Rules and event detection module (a stub) feeding WhatsApp Messaging (also a stub).">
+
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+          </marker>
+        </defs>
+
+        <style>
+          .box{stroke-width:1.6;}
+          .box.done{fill:var(--signal-soft);stroke:var(--signal);}
+          .box.minimal{fill:var(--amber-soft);stroke:var(--amber);stroke-dasharray:5 3;}
+          .box.stub{fill:var(--stub-soft);stroke:var(--stub);stroke-dasharray:3 3;}
+          .box.neutral{fill:var(--paper-raised);stroke:var(--line);}
+          .box.trunk{fill:var(--accent-soft);stroke:var(--accent);}
+          .lbl-title{font-family:var(--mono);font-weight:600;fill:var(--ink);}
+          .lbl-sub{font-family:var(--sans);fill:var(--ink-dim);}
+          .lbl-mod{font-family:var(--mono);fill:var(--ink-dim);letter-spacing:.02em;}
+          .flow{stroke:var(--accent);fill:none;stroke-width:1.6;marker-end:url(#arrow);}
+          .flow-dim{stroke:var(--line);fill:none;stroke-width:1.4;stroke-dasharray:4 3;marker-end:url(#arrow);}
+          .arrow-lbl{font-family:var(--mono);fill:var(--ink-dim);font-size:11px;}
+          .status-tag{font-family:var(--mono);font-size:10px;letter-spacing:.05em;}
+        </style>
+
+        <!-- ===== Row 0: device / simulator ===== -->
+        <rect x="70" y="24" width="270" height="66" rx="10" class="box done"/>
+        <text x="205" y="50" text-anchor="middle" class="lbl-title" font-size="14.5">GPS device</text>
+        <text x="205" y="69" text-anchor="middle" class="lbl-sub" font-size="12">Teltonika FMC130 / FMC920</text>
+
+        <rect x="660" y="24" width="270" height="66" rx="10" class="box done"/>
+        <text x="795" y="44" text-anchor="middle" class="lbl-mod status-tag">MODULE 9</text>
+        <text x="795" y="63" text-anchor="middle" class="lbl-title" font-size="14.5">Simulator</text>
+        <text x="795" y="80" text-anchor="middle" class="lbl-sub" font-size="11.5">stands in for real hardware</text>
+
+        <text x="500" y="60" text-anchor="middle" class="lbl-sub" font-size="12" font-style="italic">(a real unit swaps in with no server change)</text>
+
+        <!-- converge to ingestion -->
+        <path d="M205,90 L205,130 Q205,145 220,145 L460,145" class="flow"/>
+        <path d="M795,90 L795,130 Q795,145 780,145 L540,145" class="flow"/>
+        <text x="500" y="128" text-anchor="middle" class="arrow-lbl">Codec 8 / 8E over TCP · IMEI handshake · AVL packets</text>
+
+        <!-- ===== Module 0 protocol backing plate ===== -->
+        <rect x="330" y="160" width="340" height="330" rx="12" class="box neutral" stroke-dasharray="2 5" fill="none"/>
+        <text x="345" y="180" class="lbl-mod status-tag">MODULE 0 — PROTOCOL (pure fns, no I/O)</text>
+
+        <!-- ===== Ingestion (M1) ===== -->
+        <rect x="350" y="192" width="300" height="70" rx="10" class="box done"/>
+        <text x="365" y="212" class="lbl-mod status-tag">MODULE 1</text>
+        <text x="500" y="233" text-anchor="middle" class="lbl-title" font-size="15">Ingestion server</text>
+        <text x="500" y="251" text-anchor="middle" class="lbl-sub" font-size="11.5">ACK only after durable write</text>
+
+        <path d="M500,262 L500,290" class="flow"/>
+        <text x="512" y="280" class="arrow-lbl">raw frame</text>
+
+        <!-- ===== Decode (M2) ===== -->
+        <rect x="350" y="290" width="300" height="70" rx="10" class="box done"/>
+        <text x="365" y="310" class="lbl-mod status-tag">MODULE 2</text>
+        <text x="500" y="331" text-anchor="middle" class="lbl-title" font-size="15">Decode / normalise</text>
+        <text x="500" y="349" text-anchor="middle" class="lbl-sub" font-size="11.5">NULL ≠ zero · ecu-only engine hrs</text>
+
+        <path d="M500,360 L500,388" class="flow"/>
+        <text x="512" y="378" class="arrow-lbl">canonical fact rows</text>
+
+        <!-- ===== Enrichment (M4) ===== -->
+        <rect x="350" y="388" width="300" height="70" rx="10" class="box minimal"/>
+        <text x="365" y="408" class="lbl-mod status-tag">MODULE 4</text>
+        <text x="500" y="429" text-anchor="middle" class="lbl-title" font-size="15">Enrichment</text>
+        <text x="500" y="447" text-anchor="middle" class="lbl-sub" font-size="11.5">off / idle / moving / unknown</text>
+
+        <path d="M500,458 L500,510" class="flow"/>
+        <text x="512" y="490" class="arrow-lbl">atomic durable write</text>
+
+        <!-- ===== Store (M3) trunk ===== -->
+        <rect x="130" y="510" width="740" height="96" rx="12" class="box trunk"/>
+        <text x="152" y="532" class="lbl-mod status-tag">MODULE 3</text>
+        <text x="500" y="552" text-anchor="middle" class="lbl-title" font-size="16">Store &amp; tenancy</text>
+        <text x="500" y="572" text-anchor="middle" class="lbl-sub" font-size="12">one interface · memory / Postgres adapters</text>
+        <text x="500" y="592" text-anchor="middle" class="lbl-sub" font-size="11.5" font-style="italic">positions · engine_readings · raw_frames (sealed) · devices · assets · assignments</text>
+
+        <!-- fan out to 3 consumers -->
+        <path d="M300,606 Q300,650 260,650 L260,668" class="flow"/>
+        <path d="M500,606 L500,668" class="flow"/>
+        <path d="M700,606 Q700,650 740,650 L740,668" class="flow"/>
+        <text x="150" y="644" class="arrow-lbl">tenant-scoped JSON</text>
+        <text x="512" y="644" class="arrow-lbl">sealed ECU readings</text>
+        <text x="748" y="644" class="arrow-lbl">enriched telemetry</text>
+
+        <!-- ===== Read API (M6) ===== -->
+        <rect x="60" y="668" width="400" height="72" rx="10" class="box done"/>
+        <text x="78" y="688" class="lbl-mod status-tag">MODULE 6</text>
+        <text x="260" y="710" text-anchor="middle" class="lbl-title" font-size="15">Read API (surfaces)</text>
+        <text x="260" y="728" text-anchor="middle" class="lbl-sub" font-size="11.5">every endpoint requires X-Tenant-Id</text>
+
+        <!-- ===== Ledger + evidence (M5) ===== -->
+        <rect x="490" y="668" width="200" height="72" rx="10" class="box stub"/>
+        <text x="505" y="688" class="lbl-mod status-tag">MODULE 5 ⛔</text>
+        <text x="590" y="710" text-anchor="middle" class="lbl-title" font-size="13.5">Ledger &amp; evidence</text>
+        <text x="590" y="728" text-anchor="middle" class="lbl-sub" font-size="11">billable utilisation</text>
+
+        <!-- ===== Rules & events (M8) ===== -->
+        <rect x="720" y="668" width="220" height="72" rx="10" class="box stub"/>
+        <text x="735" y="688" class="lbl-mod status-tag">MODULE 8 ⛔</text>
+        <text x="830" y="710" text-anchor="middle" class="lbl-title" font-size="13.5">Rules &amp; event detection</text>
+        <text x="830" y="728" text-anchor="middle" class="lbl-sub" font-size="11">geofence · idle · tamper</text>
+
+        <!-- leaves -->
+        <path d="M260,740 L260,772" class="flow"/>
+        <text x="272" y="762" class="arrow-lbl">HTTP JSON</text>
+        <rect x="60" y="772" width="400" height="60" rx="10" class="box neutral"/>
+        <text x="260" y="798" text-anchor="middle" class="lbl-title" font-size="14">Dashboards</text>
+        <text x="260" y="817" text-anchor="middle" class="lbl-sub" font-size="11.5">Vendor OS · Marketplace</text>
+
+        <path d="M590,740 L590,772" class="flow-dim"/>
+        <text x="602" y="762" class="arrow-lbl" font-style="italic">dispute pack</text>
+        <rect x="490" y="772" width="200" height="60" rx="10" class="box neutral" stroke-dasharray="3 3"/>
+        <text x="590" y="796" text-anchor="middle" class="lbl-title" font-size="12.5">Invoice basis</text>
+        <text x="590" y="814" text-anchor="middle" class="lbl-sub" font-size="10.5">human-owned, scheduled job</text>
+
+        <path d="M830,740 L830,772" class="flow-dim"/>
+        <text x="842" y="762" class="arrow-lbl">events</text>
+        <rect x="720" y="772" width="220" height="60" rx="10" class="box stub"/>
+        <text x="830" y="796" text-anchor="middle" class="lbl-mod status-tag">MODULE 7 ⛔</text>
+        <text x="830" y="814" text-anchor="middle" class="lbl-sub" font-size="11">WhatsApp Cloud API</text>
+
+        <!-- ===== P0 operability strip ===== -->
+        <rect x="60" y="870" width="880" height="76" rx="12" class="box neutral"/>
+        <text x="80" y="892" class="lbl-mod status-tag">P0 OPERABILITY LAYER — not product modules, why this slice is safe to run unattended</text>
+        <text x="500" y="922" text-anchor="middle" class="lbl-sub" font-size="12.5"><tspan class="lbl-title" font-family="var(--mono)">src/logging/</tspan> secret-redacting logs&#160;&#160;&#160;&#183;&#160;&#160;&#160;<tspan class="lbl-title" font-family="var(--mono)">src/lifecycle/</tspan> deadline-bound drains&#160;&#160;&#160;&#183;&#160;&#160;&#160;<tspan class="lbl-title" font-family="var(--mono)">src/tools/</tspan> demo · merge gate · verify-runtime</text>
+
+        <!-- ===== Production topology mini-strip ===== -->
+        <text x="60" y="990" class="lbl-mod status-tag">TARGET AWS TOPOLOGY (deployment only — no module boundary changes)</text>
+
+        <rect x="60" y="1005" width="150" height="52" rx="8" class="box neutral"/>
+        <text x="135" y="1027" text-anchor="middle" class="lbl-sub" font-size="11.5">Network Load</text>
+        <text x="135" y="1043" text-anchor="middle" class="lbl-sub" font-size="11.5">Balancer (TCP)</text>
+
+        <path d="M210,1031 L250,1031" class="flow"/>
+        <rect x="250" y="1005" width="170" height="52" rx="8" class="box done"/>
+        <text x="335" y="1027" text-anchor="middle" class="lbl-sub" font-size="11.5">Ingestion service</text>
+        <text x="335" y="1043" text-anchor="middle" class="lbl-sub" font-size="11.5">ECS/Fargate ×N</text>
+
+        <path d="M420,1031 L460,1031" class="flow"/>
+        <rect x="460" y="1005" width="190" height="52" rx="8" class="box trunk"/>
+        <text x="555" y="1027" text-anchor="middle" class="lbl-sub" font-size="11.5">RDS for Postgres</text>
+        <text x="555" y="1043" text-anchor="middle" class="lbl-sub" font-size="11.5">(→ TimescaleDB at scale)</text>
+
+        <path d="M650,1031 L690,1031" class="flow"/>
+        <rect x="690" y="1005" width="250" height="52" rx="8" class="box neutral"/>
+        <text x="815" y="1027" text-anchor="middle" class="lbl-sub" font-size="11.5">Read API · Ledger (scheduled)</text>
+        <text x="815" y="1043" text-anchor="middle" class="lbl-sub" font-size="11.5">Rules → Messaging — all ECS/Fargate</text>
+
+        <!-- ===== Invariant callout strip ===== -->
+        <text x="60" y="1100" class="lbl-mod status-tag">EVERY ARROW ABOVE OBEYS 9 CORRECTNESS INVARIANTS — see reference below</text>
+        <rect x="60" y="1112" width="880" height="1" fill="var(--line)"/>
+
+      </svg>
+    </div>
+    <figcaption>Vertical trunk = the write path every packet takes once, top to bottom: device or simulator → Ingestion → Decode → Enrichment → Store. Below the store, three independent read paths fan out — one live (Read API → Dashboards), two deliberately stubbed (Ledger, Rules → Messaging) until a human signs off the billing math and Meta approves message templates.</figcaption>
+  </figure>
+
+  <section>
+    <h2>All 9 modules, in the read order of MODULES.md</h2>
+    <table class="mtable">
+      <tr><th>#</th><th>Module</th><th>Folder</th><th>Status</th><th>Responsibility</th></tr>
+      <tr><td class="num">0</td><td class="mod">Protocol</td><td class="folder">src/protocol/</td><td><span class="pill done">done</span></td><td class="desc">Teltonika Codec 8/8E wire format as pure functions — CRC-16/IBM, IMEI handshake, AVL record encode/decode, ACK. No I/O.</td></tr>
+      <tr><td class="num">1</td><td class="mod">Ingestion</td><td class="folder">src/ingestion/</td><td><span class="pill done">done</span></td><td class="desc">The TCP server a device dials into. Handshake, reframe the byte stream, ACK only after a durable write, drop-and-let-resend on failure.</td></tr>
+      <tr><td class="num">2</td><td class="mod">Decode / normalise</td><td class="folder">src/decode/</td><td><span class="pill done">done</span></td><td class="desc">One decoded AVL record → one canonical fact row. Enforces NULL ≠ zero, ecu-only engine hours, attribution at the record's own timestamp.</td></tr>
+      <tr><td class="num">3</td><td class="mod">Store &amp; tenancy</td><td class="folder">src/store/, db/</td><td><span class="pill done">done</span></td><td class="desc">One storage interface, two adapters (memory, Postgres). Idempotent writes, tenant-scoped reads, sealed raw frames. RLS + triggers in Postgres.</td></tr>
+      <tr><td class="num">4</td><td class="mod">Enrichment</td><td class="folder">src/enrichment/</td><td><span class="pill minimal">minimal</span></td><td class="desc">Derives coarse machine state (off / idle / moving / unknown) from ignition, movement, speed. Where trips and geofence membership will grow.</td></tr>
+      <tr><td class="num">5</td><td class="mod">Utilisation ledger &amp; evidence</td><td class="folder">src/ledger/</td><td><span class="pill stub">defined-only</span></td><td class="desc">Billable utilisation per asset per period from ECU readings only; seals each period into a tamper-evident dispute pack. Withheld — wrong output is a wrong invoice.</td></tr>
+      <tr><td class="num">6</td><td class="mod">Read API (surfaces)</td><td class="folder">src/api/</td><td><span class="pill done">done</span></td><td class="desc">Zero-framework HTTP API dashboards call instead of mock data. Every data endpoint requires X-Tenant-Id and is tenant-scoped.</td></tr>
+      <tr><td class="num">7</td><td class="mod">Messaging (WhatsApp)</td><td class="folder">src/messaging/</td><td><span class="pill stub">defined-only</span></td><td class="desc">Turns events into WhatsApp Cloud API messages on the same spine the Marketplace uses. Needs live Meta creds + approved templates.</td></tr>
+      <tr><td class="num">8</td><td class="mod">Rules &amp; event detection</td><td class="folder">(not scaffolded)</td><td><span class="pill stub">specified</span></td><td class="desc">Consumes enriched telemetry, raises events: geofence enter/exit, after-hours ignition, idle-too-long, tamper/unplug, low battery.</td></tr>
+      <tr><td class="num">9</td><td class="mod">Simulator / device bench</td><td class="folder">src/simulator/</td><td><span class="pill done">done</span></td><td class="desc">Stands in for physical hardware over the real protocol. A scenario engine: phases.js + named deterministic scenarios (handover, yard-idle, day-cycle, after-hours, geofence-cross, tamper).</td></tr>
+    </table>
+  </section>
+
+  <section class="twocol">
+    <div>
+      <h2>9 correctness invariants</h2>
+      <ol class="inv-list">
+        <li><b>ACK only after a durable write.</b> No ACK until records are committed.</li>
+        <li><b>Idempotent ingest.</b> A resent packet never double-counts.</li>
+        <li><b>NULL ≠ zero.</b> An absent IO is null, never 0.</li>
+        <li><b>ecu vs. estimated never merge.</b> CAN-derived hours are always source:'ecu'.</li>
+        <li><b>Ignition counters are never billing evidence.</b> Only sealed ECU readings back an invoice.</li>
+        <li><b>Attribution at each record's own timestamp</b> — never "as of now".</li>
+        <li><b>Tenancy always.</b> Every read is tenant-scoped (RLS in Postgres).</li>
+        <li><b>Sealed, immutable evidence.</b> Raw frames are append-only.</li>
+        <li><b>Unlisted machine ⇒ position + ignition only.</b> No CAN program ⇒ no engine hours.</li>
+      </ol>
+    </div>
+    <div>
+      <h2>Data model</h2>
+      <table class="mtable">
+        <tr><th>Table</th><th>Key property</th></tr>
+        <tr><td class="folder">tenants</td><td class="desc">Root of all tenancy scoping</td></tr>
+        <tr><td class="folder">devices</td><td class="desc">Physical units by IMEI; has owner_tenant_id</td></tr>
+        <tr><td class="folder">assets</td><td class="desc">has_engine_data gates engine hours (inv. 9)</td></tr>
+        <tr><td class="folder">assignments</td><td class="desc">device × asset × tenant over valid_from/valid_to — drives inv. 6</td></tr>
+        <tr><td class="folder">positions</td><td class="desc">Unique (device_id, ts) → idempotent (inv. 2)</td></tr>
+        <tr><td class="folder">engine_readings</td><td class="desc">source='ecu'; unique (asset_id, ts, source); CAN assets only</td></tr>
+        <tr><td class="folder">raw_frames</td><td class="desc">Append-only — immutability trigger blocks UPDATE/DELETE</td></tr>
+      </table>
+      <h2 style="margin-top:32px;">Stack</h2>
+      <dl class="stack-note">
+        <dt>Runtime</dt><dd>Node.js ≥ 20, ESM — no build step, no transpile</dd>
+        <dt>Ingestion</dt><dd>Hand-written Codec 8/8E parser over node:net TCP</dd>
+        <dt>Store</dt><dd>Ports &amp; adapters — memory (default) | PostgreSQL</dd>
+        <dt>API</dt><dd>Zero-framework node:http</dd>
+        <dt>Deps</dt><dd>pg only</dd>
+      </dl>
+    </div>
+  </section>
+
+  <footer>
+    Source: ARCHITECTURE.md · gps-build/telematics — per-module test commands in telematics/docs/MODULES.md
+  </footer>
+
+</div>

@@ -108,6 +108,14 @@ export function normalizeRecord(decoded, { device, assignment }) {
       angle: decoded.gps.angle,
       altitude: decoded.gps.altitude,
       satellites: decoded.gps.satellites,
+      // Invariant 3, applied to POSITION (F3). A no-fix Teltonika record commonly
+      // carries satellites=0 and lat/lon 0,0 — a real place (Gulf of Guinea), not
+      // "unknown". `positionValid` marks whether this is a genuine fix so the P3
+      // rules engine can ignore "Null Island" instead of manufacturing a spurious
+      // geofence exit/enter every time GPS drops. The coordinates are still stored
+      // verbatim (the raw frame is the sealed evidence, invariant 8); this only
+      // annotates them.
+      positionValid: decoded.gps.satellites > 0,
       priority: decoded.priority,
       ignition, // bool | null
       movement, // bool | null

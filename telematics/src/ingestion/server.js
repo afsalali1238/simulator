@@ -18,7 +18,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import net from 'node:net';
-import { readImeiFrame, readAvlFrame, encodeAck } from '../protocol/codec.js';
+import { readImeiFrame, readAvlFrame, encodeAck, isValidImei } from '../protocol/codec.js';
+import { createHandshakeLimiter } from './handshake-limiter.js';
 import { normalizeRecord } from '../decode/normalize.js';
 import { silentLogger } from '../logging/logger.js';
 import { isEntrypoint } from '../lifecycle/shutdown.js';
@@ -26,11 +27,39 @@ import { isEntrypoint } from '../lifecycle/shutdown.js';
 const ACCEPT = Buffer.from([0x01]);
 const REJECT = Buffer.from([0x00]);
 
+// F6 defaults. A short deadline to send the IMEI frame; a generous idle window
+// once handshaked (well above a lifelike reporting interval). Overridable via
+// config.ingest (INGEST_HANDSHAKE_TIMEOUT_MS / INGEST_IDLE_TIMEOUT_MS); 0 for
+// either disables that timer.
+const DEFAULT_HANDSHAKE_TIMEOUT_MS = 10_000;
+const DEFAULT_IDLE_TIMEOUT_MS = 10 * 60_000;
+
 export function createIngestionServer({
   store,
   host = '0.0.0.0',
   port = 5027,
   logger = silentLogger,
+  // Per-source-IP throttle on failed (unknown-IMEI) handshakes — P0 hardening
+  // (see handshake-limiter.js for why this exists). `rateLimit` tunes the
+  // defaults (maxFailures/windowMs/blockMs); pass `handshakeLimiter` directly
+  // instead when a caller needs to inject its own (tests do, with a fake
+  // clock). Declared before handshakeLimiter in this pattern on purpose — its
+  // default expression reads `rateLimit`, and destructuring defaults can only
+  // see earlier-bound names in the same parameter list.
+  rateLimit = {},
+  handshakeLimiter = createHandshakeLimiter(rateLimit),
+  // F6: bound a silent/slow client. `handshakeTimeoutMs` is the deadline to
+  // send the IMEI frame; after a successful handshake the socket relaxes to
+  // `idleTimeoutMs` between packets. Either firing destroys the socket (the
+  // device reconnects). `maxConnections` (0 = unlimited) optionally caps
+  // concurrent sockets at the listener.
+  handshakeTimeoutMs = DEFAULT_HANDSHAKE_TIMEOUT_MS,
+  idleTimeoutMs = DEFAULT_IDLE_TIMEOUT_MS,
+  maxConnections = 0,
+  // F1: upper bound on a declared AVL data-field length. Left undefined here so
+  // the parser's own DEFAULT_MAX_PACKET_BYTES applies unless a caller (the
+  // entrypoint, from config) passes the configured value.
+  maxPacketBytes,
 } = {}) {
   // Live sockets, so a graceful stop can close them AFTER in-flight work drains.
   const sockets = new Set();
@@ -60,11 +89,37 @@ export function createIngestionServer({
       return;
     }
 
+    // A source IP that has already burned through its failed-handshake
+    // allowance is refused before it gets to try another IMEI. This is
+    // checked per-connection (not per-packet) because the whole point is to
+    // deny the connection itself, not just the handshake inside it.
+    if (handshakeLimiter.isBlocked(socket.remoteAddress)) {
+      logger.warn?.('connection_refused_rate_limited', { peer });
+      socket.destroy();
+      return;
+    }
+
     socket.on('data', (chunk) => {
       conn.buf = Buffer.concat([conn.buf, chunk]);
       pump();
     });
     socket.on('error', (e) => logger.warn?.('socket_error', { peer, error: e.message }));
+
+    // F6: bound how long a socket may sit idle. socket.setTimeout fires
+    // 'timeout' after N ms with no activity (Node resets the timer on any
+    // socket activity), so one mechanism covers both a client that connects and
+    // never sends the IMEI and one that handshakes then goes quiet. Node does
+    // NOT close the socket itself on 'timeout' — we destroy it, and the device
+    // reconnects. The initial (short) window is the handshake deadline; it is
+    // widened to the idle window once the handshake succeeds (below).
+    if (handshakeTimeoutMs > 0) socket.setTimeout(handshakeTimeoutMs);
+    socket.on('timeout', () => {
+      logger.warn?.(conn.handshaked ? 'idle_timeout' : 'handshake_timeout', {
+        peer,
+        imei: conn.imei,
+      });
+      socket.destroy();
+    });
 
     async function pump() {
       if (conn.processing) {
@@ -91,22 +146,51 @@ export function createIngestionServer({
         const hs = readImeiFrame(conn.buf);
         if (!hs) return; // wait for the full IMEI frame
         conn.buf = conn.buf.subarray(hs.bytesConsumed);
+
+        // Reject + rate-limit path shared by a malformed IMEI (fails the
+        // 15-digit format check, F4) and a well-formed but unregistered one.
+        // Both are "not a device we serve", and both count toward the per-IP
+        // failed-handshake budget so a scanner can't probe the port for free.
+        const reject = (reason) => {
+          const limit = handshakeLimiter.recordFailure(socket.remoteAddress, hs.imei);
+          logger.warn?.('handshake_rejected', {
+            peer,
+            imei: hs.imei,
+            reason,
+            failures: limit.failures,
+          });
+          if (limit.justBlocked) {
+            logger.warn?.('peer_blocked', { peer, ip: socket.remoteAddress, blockedUntil: limit.blockedUntil });
+          }
+          socket.end(REJECT);
+        };
+
+        // F4: refuse anything that isn't 15 ASCII digits before it ever reaches
+        // the registry lookup — keeps junk out of the store lookup and the logs.
+        if (!isValidImei(hs.imei)) {
+          reject('malformed_imei');
+          return;
+        }
         const device = await store.deviceByImei(hs.imei);
         if (!device) {
-          logger.warn?.('handshake_rejected', { peer, imei: hs.imei, reason: 'unknown_imei' });
-          socket.end(REJECT);
+          reject('unknown_imei');
           return;
         }
         conn.device = device;
         conn.imei = hs.imei;
         conn.handshaked = true;
+        handshakeLimiter.recordSuccess(socket.remoteAddress);
         socket.write(ACCEPT);
         logger.info?.('handshake_accepted', { peer, imei: hs.imei, model: device.model });
+        // F6: relax the timeout to the (longer) idle window now that the device
+        // is a known talker. 0 disables it.
+        socket.setTimeout(idleTimeoutMs > 0 ? idleTimeoutMs : 0);
       }
 
       // 2) Drain every complete AVL packet currently buffered.
       for (;;) {
-        const frame = readAvlFrame(conn.buf); // throws on bad preamble/CRC
+        // throws on bad preamble / CRC / over-large length (F1) / unknown codec (F2)
+        const frame = readAvlFrame(conn.buf, { maxPacketBytes });
         if (!frame) return; // need more bytes
         const raw = Buffer.from(conn.buf.subarray(0, frame.bytesConsumed));
         conn.buf = conn.buf.subarray(frame.bytesConsumed);
@@ -153,6 +237,16 @@ export function createIngestionServer({
       });
     }
   });
+
+  // F6: optional hard cap on concurrent sockets at the listener. Node refuses
+  // (and destroys) connections past this WITHOUT invoking the handler above.
+  // 0 = unlimited — the per-socket timeouts still bound a stuck socket's life.
+  // NOTE: `maxConnections` is an UNDOCUMENTED Node API — it works on every
+  // release this build targets (18/20/22/24) but is not in the public docs and
+  // could change without a deprecation cycle. If it ever disappears, enforce
+  // the cap in the connection handler (next to the draining/limiter guards),
+  // where the socket count is already tracked in `sockets`.
+  if (maxConnections > 0) server.maxConnections = maxConnections;
 
   return {
     server,
@@ -226,6 +320,9 @@ export function createIngestionServer({
     address() {
       return server.address();
     },
+    // Exposed for tests and any future ops/introspection surface — not part
+    // of the wire protocol.
+    handshakeLimiter,
   };
 }
 
@@ -252,6 +349,11 @@ if (isEntrypoint(import.meta.url)) {
     host: config.ingest.host,
     port: config.ingest.port,
     logger,
+    rateLimit: config.ingest.handshakeRateLimit,
+    handshakeTimeoutMs: config.ingest.handshakeTimeoutMs,
+    idleTimeoutMs: config.ingest.idleTimeoutMs,
+    maxConnections: config.ingest.maxConnections,
+    maxPacketBytes: config.ingest.maxPacketBytes,
   });
   await ing.listen();
 

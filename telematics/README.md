@@ -22,7 +22,7 @@ no `npm install`. The default store is an in-process memory adapter.
 
 ```bash
 npm run demo    # simulator → ingestion → store → API, end-to-end, with a proof summary
-npm test        # the full suite (85 tests; 91 under DB=pg)
+npm test        # the full suite (185 tests in memory mode)
 npm run verify  # spawn the servers for real, replay a scenario, SIGTERM them
 ```
 
@@ -98,10 +98,52 @@ is invariants 6 and 9, proven end-to-end rather than asserted.
 
 Full detail: `docs/MODULES.md` § Module 9.
 
+---
+
+## One named device to hand out (e.g. to interns, or a third-party parser)
+
+`npm run sim:actros` streams a single, FIXED, memorable unit — the Mercedes-Benz
+Actros flatbed haulage tractor referenced in `TASKS.md` Phase P2 (FMC130, no CAN
+adapter, billed on ignition-on duration, never engine hours). Same IMEI every
+time:
+
+```
+IMEI  : 356307045000006   (Luhn-valid, FMC130 TAC)
+Codec : 8E
+```
+
+Run it with nothing else running and it spins its own throwaway server, prints
+the connection details, and streams a believable shift (zero setup):
+
+```bash
+npm run sim:actros
+```
+
+Or point it at any OTHER real Teltonika-protocol receiver — including a real
+**Traccar** instance, to prove interop with something outside this repo — by
+setting where it connects:
+
+```bash
+SIM_SERVER_HOST=127.0.0.1 SIM_SERVER_PORT=5027 npm run sim:actros
+```
+
+Register the IMEI above as a device in Traccar FIRST (Settings → Devices → Add,
+Identifier = the IMEI — Traccar auto-detects the Teltonika protocol from the
+handshake), or Traccar will just ignore the unknown unit, the same way our own
+device registry would reject an unprovisioned one (try it against
+`npm run start:ingest` without registering it first — you'll see exactly that
+rejection, which is itself worth seeing).
+
+Also `npm run sim:fleet` — a batch of DISTINCT, Luhn-valid IMEIs, each onboarded
+into the registry and streamed end-to-end over real TCP (`--count`, `--records`,
+`--pg` for the Postgres multi-process topology).
+
+---
+
 ## Testing
 
 ```bash
-npm test                 # everything, run serially (85 tests; 91 under DB=pg)
+npm test                 # everything, run serially (185 tests in memory mode; re-verify DB=pg count, last checked 91 before Module 8/7/5 landed)
 npm run test:gate        # THE MERGE GATE: also fails on a dropped count or any skip
 npm run verify           # real processes, real SIGTERM, /health probes
 
@@ -171,9 +213,23 @@ per-program mapping. See `docs/PROTOCOL.md`.
 - **Ingestion at scale:** `src/ingestion/server.js` is a single Node process. In
   production, front it with a Network Load Balancer and run N instances; ACK-after-
   durable-write + idempotency mean a device can safely reconnect to any instance.
-- **The one module a human must own:** the utilisation **ledger** (`src/ledger/`)
-  is deliberately a defined-only stub. Its failure mode is a silently wrong invoice,
-  so it must be built and reviewed by a person, not generated. See `docs/MODULES.md`.
+- **The utilisation ledger** (`src/ledger/`) is now built — by the ledger
+  owner's explicit sign-off, since its failure mode is a silently wrong invoice
+  and CLAUDE.md gates it behind a human, not speculative generation. It is
+  correct against its spec and the seed `handover` scenario (`npm run
+  test:ledger`, 11/11) but is NOT yet wired to any real invoice path: that
+  still needs the D1 hardware half and a human review of the billing math on
+  real fleet data. See `docs/MODULES.md`. A second, explicitly-labeled billing
+  basis — **ignition-on duration** (`src/ledger/ignition-duration.js`,
+  `source: 'ignition'`, never `'ecu'`) — covers fleets with no CAN adapter at
+  all, such as the Actros haulage tractor above; its production max-gap
+  threshold is still an open sign-off (`TASKS.md`).
+- **Hardening:** the IMEI handshake is rate-limited per source IP
+  (`src/ingestion/handshake-limiter.js`), oversized/malformed packets are
+  refused rather than buffered, and idle/silent sockets are timed out — see
+  `docs/MODULES.md` § Module 1. A concurrency harness
+  (`npm run loadtest`) has verified 1,000 simultaneous connections with zero
+  errors.
 - **The one decision that blocks real data:** D1 (CAN engine-hours mapping). Until
   it's made, engine hours are simulated. Everything else is production-shaped.
 

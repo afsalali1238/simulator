@@ -155,10 +155,14 @@ Grep on `event=`, not on prose.
 |---|---|---|
 | `listening` | ingestion, api | Bound and serving. If you don't see this, nothing started. |
 | `handshake_accepted` | ingestion | A known IMEI connected. Carries `imei`, `model`. |
-| `handshake_rejected` | ingestion | Unknown IMEI, socket closed. The device is not in the registry. |
+| `handshake_rejected` | ingestion | IMEI refused, socket closed. Carries `reason` (`unknown_imei` — not in the registry; `malformed_imei` — not 15 ASCII digits) and the running `failures` count for that source IP. |
+| `handshake_timeout` | ingestion | A socket connected but never sent a valid IMEI frame within `INGEST_HANDSHAKE_TIMEOUT_MS`; destroyed. The device reconnects. |
+| `idle_timeout` | ingestion | A handshaked socket went silent for `INGEST_IDLE_TIMEOUT_MS`; destroyed. The device reconnects. |
 | `packet_acked` | ingestion | A packet was **committed and then** acknowledged. `records` / `inserted` / `deduped`. |
 | `connection_dropped` | ingestion | Bad CRC/preamble or a failed write. **No ACK was sent** — the device will resend. |
 | `connection_refused_draining` | ingestion | We are shutting down; the device should reconnect elsewhere. |
+| `connection_refused_rate_limited` | ingestion | The source IP is over its failed-handshake budget; refused before it can try another IMEI. |
+| `peer_blocked` | ingestion | A source IP just crossed the failed-handshake threshold and is now blocked until `blockedUntil`. |
 | `request` | api | One HTTP request: `method`, `path`, `status`, `ms`. Never the tenant or query values. |
 | `shutdown_started` → `shutdown_complete` | both | A clean drain. `ms` is how long it took. |
 | `shutdown_timeout_forced` | both | The drain hit `SHUTDOWN_TIMEOUT_MS`. Investigate: something was stuck. |
@@ -281,9 +285,38 @@ did not fire — see `isEntrypoint()` in `src/lifecycle/shutdown.js`; the usual
 `import.meta.url === file://${process.argv[1]}` idiom is false on Windows and
 fails exactly this way.
 
-**`handshake_rejected`.** The IMEI is not in the device registry. The two seeded
-devices are `356307042441013` (FMC130) and `356307042441099` (FMC920) — see
-`src/store/seed-data.js`. A real unit needs a row in `devices` first.
+**`handshake_rejected`.** The IMEI was refused. The `reason` field says which:
+`unknown_imei` — a well-formed 15-digit IMEI that is not in the device registry
+(the two seeded devices are `356307042441013` and `356307042441099` — see
+`src/store/seed-data.js`; a real unit needs a row in `devices` first); or
+`malformed_imei` — the bytes were not 15 ASCII digits at all, so the lookup was
+never attempted. Both count toward the source IP's failed-handshake budget.
+
+**`connection_refused_rate_limited` / `peer_blocked`.** A single source IP has
+exceeded its failed-handshake budget (`INGEST_HANDSHAKE_*` in `handshake-limiter.js`,
+tuned via `config.ingest.handshakeRateLimit`) and is temporarily blocked. This is
+working as designed — the IMEI handshake is the only application gate on the port
+and an IMEI is not a secret, so a scanner must not get unlimited free guesses.
+
+> **The throttle keys on the socket's `remoteAddress`.** It only isolates one
+> abusive device if that address is the *device's real IP*. In production (P4) the
+> ingestion port must sit behind a load balancer that **preserves the client source
+> IP** — an AWS **Network** Load Balancer (layer 4) does this natively for instance
+> and IP targets, which is exactly why the target architecture specifies an NLB and
+> not an ALB. Never put a connection-terminating layer-7 proxy in front without
+> forwarding the real client address: every device would then appear to share the
+> proxy's IP, so one bad actor would either get the **entire fleet** blocked or
+> could never be isolated at all. If such a proxy is ever unavoidable, the limiter
+> must be changed to key on a trusted forwarded-for value — not `remoteAddress`.
+
+**`handshake_timeout` / `idle_timeout`.** A socket was closed for silence:
+`handshake_timeout` before it ever sent a valid IMEI (deadline
+`INGEST_HANDSHAKE_TIMEOUT_MS`, default 10 s), `idle_timeout` after handshaking then
+going quiet past `INGEST_IDLE_TIMEOUT_MS` (default 10 min — set this comfortably
+above the fleet's real reporting interval, or you will cut live devices between
+packets). Either is a normal, self-healing event: the device reconnects. Set a
+timeout to `0` to disable it. A sudden surge of `handshake_timeout` from many peers
+can indicate a scanner or a broken client that connects but never speaks.
 
 **`connection_dropped` with a CRC message.** The bytes on the wire are
 malformed. Nothing was ACKed, which is correct. If it is the simulator talking to
