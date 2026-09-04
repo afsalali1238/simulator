@@ -17,14 +17,26 @@ import {
 } from '../protocol/codec.js';
 
 // Small helper: await exactly N bytes from a socket (handshake reply = 1, ACK = 4).
+// A waiter must also settle when the bytes will NEVER arrive: the server can drop
+// the socket after (or instead of) the durable write, and a bare promise would
+// then sit pending forever — the run wedges with no error, no timeout, no exit.
+// Both close and error reject every outstanding waiter, so connect() and send()
+// surface "server went away" to their caller instead of hanging.
 class ByteReader {
   constructor(socket) {
     this.buf = Buffer.alloc(0);
     this.waiters = [];
+    this.ended = null; // Error once the socket can no longer deliver bytes
     socket.on('data', (d) => {
       this.buf = Buffer.concat([this.buf, d]);
       this.#flush();
     });
+    const fail = (err) => {
+      this.ended = err;
+      for (const { reject } of this.waiters.splice(0)) reject(err);
+    };
+    socket.on('close', () => fail(new Error('connection closed before the expected reply')));
+    socket.on('error', (e) => fail(e));
   }
   #flush() {
     while (this.waiters.length && this.buf.length >= this.waiters[0].n) {
@@ -34,8 +46,9 @@ class ByteReader {
     }
   }
   read(n) {
-    return new Promise((resolve) => {
-      this.waiters.push({ n, resolve });
+    return new Promise((resolve, reject) => {
+      if (this.ended && this.buf.length < n) return reject(this.ended);
+      this.waiters.push({ n, resolve, reject });
       this.#flush();
     });
   }

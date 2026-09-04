@@ -15,6 +15,13 @@
 // an approximation built for display purposes. The one addition is
 // SimDevice's optional `onPacket` hook (see device.js), which is purely
 // observational and changes nothing about what gets sent.
+//
+// ⚠ NO AUTH, ALL INTERFACES. server.listen(port) with no host binds 0.0.0.0, and
+// CORS is `*`, so anyone who can reach this port can POST /simulate and inject
+// traffic into the ingestion server. That is fine for a laptop and deliberate —
+// the dashboard is opened straight from the filesystem — but do not run it on a
+// shared or public network, and do not deploy it. Pass a host of '127.0.0.1' to
+// server.listen below if you want it loopback-only.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import http from 'node:http';

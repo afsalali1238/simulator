@@ -109,7 +109,18 @@ import { listTestFiles, ROOT } from './test-files.js';
 //        as zero evidence) — parity with the equivalent, already-tested
 //        case on the ignition-duration basis. No production behaviour
 //        changed; this locks down what was already correct but unproven.
-const DEFAULT_MIN_TESTS = 185;
+// 190 = 185 + 5 tests for the three 2026-09-04 review findings, each of which
+//        corrupted or dropped data SILENTLY (nothing threw, nothing logged):
+//        2 in codec-hardening (a >255-record packet truncated its 1-byte count
+//        mod 256 into a CRC-valid frame declaring 0 — the server ACKed 0 and
+//        stored nothing; an AVL id >255 under Codec 8 threw a bare RangeError
+//        instead of naming the codec limit), 2 in ingestion-hardening
+//        (SimDevice.send()/connect() hung forever when the server dropped the
+//        socket without replying — no timeout, no reject, no exit), and 1 in
+//        api (positionValid/externalVoltageMv/batteryPct/unplug are decoded by
+//        normalize.js but were dropped by BOTH store adapters' read path, so no
+//        API consumer could tell a real fix from Null Island).
+const DEFAULT_MIN_TESTS = 190;
 
 const MIN_TESTS = Number(process.env.MIN_TESTS || DEFAULT_MIN_TESTS);
 

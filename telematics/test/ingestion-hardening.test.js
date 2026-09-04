@@ -23,6 +23,8 @@ import { createIngestionServer } from '../src/ingestion/server.js';
 import { createHandshakeLimiter } from '../src/ingestion/handshake-limiter.js';
 import { encodeImei } from '../src/protocol/codec.js';
 import { DEVICES } from '../src/store/seed-data.js';
+import { SimDevice } from '../src/simulator/device.js';
+import { makeScenario } from '../src/simulator/scenarios.js';
 
 const quiet = { info() {}, warn() {}, error() {} };
 
@@ -225,4 +227,44 @@ test('F4: CGNAT fix — repeating the SAME malformed IMEI does not block the sou
   );
 
   await server.close();
+});
+
+// ── SimDevice: a server that never ACKs must not wedge the device ─────────────
+// Found 2026-09-04. ByteReader.read() had no rejection path, so when the server
+// dropped the socket instead of ACKing, send() sat pending forever: the run hung
+// with no error, no timeout, and no exit. A real unit treats a lost link as a
+// failed send and reconnects — it does not block on it.
+
+test('SimDevice: send() rejects when the server drops the socket without ACKing', async () => {
+  const server = net.createServer((socket) => {
+    let handshaked = false;
+    socket.on('data', () => {
+      if (!handshaked) {
+        handshaked = true;
+        socket.write(Buffer.from([0x01])); // accept the IMEI
+      } else {
+        socket.destroy(); // an AVL packet arrived; die before ACKing
+      }
+    });
+    socket.on('error', () => {});
+  });
+  const port = await new Promise((r) => server.listen(0, '127.0.0.1', () => r(server.address().port)));
+
+  const dev = new SimDevice({ host: '127.0.0.1', port, imei: DEVICES[0].imei, codec: '8E' });
+  await dev.connect();
+  await assert.rejects(
+    () => dev.send([makeScenario({})(0)]),
+    /closed before the expected reply|ECONNRESET/,
+  );
+  dev.close();
+  await new Promise((r) => server.close(r));
+});
+
+test('SimDevice: connect() rejects when the server closes before the handshake reply', async () => {
+  const server = net.createServer((socket) => socket.destroy());
+  const port = await new Promise((r) => server.listen(0, '127.0.0.1', () => r(server.address().port)));
+
+  const dev = new SimDevice({ host: '127.0.0.1', port, imei: DEVICES[0].imei, codec: '8E' });
+  await assert.rejects(() => dev.connect(), /closed before the expected reply|ECONNRESET/);
+  await new Promise((r) => server.close(r));
 });

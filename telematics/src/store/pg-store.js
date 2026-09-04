@@ -105,13 +105,19 @@ export function createPgStore(opts = {}) {
           const res = await c.query(
             `INSERT INTO position_records
                (id, device_id, asset_id, tenant_id, ts_ms, lat, lon, speed, angle,
-                altitude, satellites, priority, ignition, movement, state, raw_frame_id)
-             VALUES (gen_random_uuid(), $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+                altitude, satellites, priority, ignition, movement, state,
+                position_valid, external_voltage_mv, battery_pct, unplug, raw_frame_id)
+             VALUES (gen_random_uuid(), $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
              ON CONFLICT (device_id, ts_ms) DO NOTHING`,
             [
               r.deviceId, r.assetId, r.tenantId, r.tsMs, r.lat, r.lon, r.speed,
               r.angle, r.altitude, r.satellites, r.priority, r.ignition,
-              r.movement, r.state, frameId,
+              r.movement, r.state,
+              // Nullish-coalesce to null, not 0/false: these are absent on a
+              // record that never carried the IO element (invariant 3).
+              r.positionValid ?? null, r.externalVoltageMv ?? null,
+              r.batteryPct ?? null, r.unplug ?? null,
+              frameId,
             ],
           );
           if (res.rowCount === 1) {
@@ -160,7 +166,10 @@ export function createPgStore(opts = {}) {
       return withTenant(tenantId, async (c) => {
         const { rows } = await c.query(
           `SELECT device_id AS "deviceId", asset_id AS "assetId", ts_ms AS "tsMs",
-                  lat, lon, speed, ignition, movement, state
+                  lat, lon, speed, ignition, movement, state,
+                  position_valid AS "positionValid",
+                  external_voltage_mv AS "externalVoltageMv",
+                  battery_pct AS "batteryPct", unplug
              FROM position_records
             WHERE ($1::uuid IS NULL OR device_id = $1) AND ts_ms >= $2
             ORDER BY ts_ms

@@ -47,6 +47,11 @@ it. `readAvlFrame` returns `null` if the whole packet hasn't arrived yet, and
 **throws** on a bad preamble, a CRC mismatch, or a `Number of Data 1 ≠ 2`. The
 ingestion server treats a throw as "drop the connection, do not ACK".
 
+Because `Number of Data` is one byte, **255 records is the hard ceiling per
+packet** — a real unit splits a longer buffered burst across packets, and
+`encodeAvlPacket` throws above it rather than let the count truncate mod 256 into
+a CRC-valid frame declaring a different number.
+
 ## 3. Server ACK
 
 ```
@@ -56,6 +61,9 @@ server → device:  [4 bytes]  = number of records accepted
 `encodeAck(count)`. The device clears the acknowledged records from its buffer.
 Our server sends this **only after the records are durably written**, so a missed
 ACK leads the device to resend — which is safe because ingest is idempotent.
+(`SimDevice.send()` rejects on a missed ACK rather than retrying by itself; the
+server-side half — the idempotent re-ingest that makes a resend safe — is what is
+implemented and tested. See the README note.)
 
 ---
 

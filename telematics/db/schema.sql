@@ -89,6 +89,14 @@ CREATE TABLE position_records (
   ignition     boolean,                            -- NULL != false (invariant 3)
   movement     boolean,
   state        text NOT NULL,
+  -- Decoded by src/decode/normalize.js. All nullable on purpose: absent is not
+  -- zero (invariant 3). position_valid is what stops a no-fix record (lat/lon
+  -- 0,0 = a real place in the Gulf of Guinea) being read as a genuine position
+  -- by the geofence rules.
+  position_valid      boolean,
+  external_voltage_mv int,
+  battery_pct         int,
+  unplug              int,
   raw_frame_id uuid NOT NULL REFERENCES raw_frames(id),
   UNIQUE (device_id, ts_ms)                        -- idempotency key (invariant 2)
 );

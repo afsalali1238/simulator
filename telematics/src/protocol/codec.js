@@ -104,6 +104,19 @@ function groupIo(elements) {
 }
 
 function writeUIntW(buf, value, offset, width) {
+  // Codec 8 writes IO ids and group counts as ONE byte, so an AVL id above 255
+  // (e.g. 318 GNSS Jamming, 449 ignition counter) simply cannot be expressed in
+  // it. Without this check Node throws a bare `RangeError: value out of range`
+  // naming only the number, which reads like a corrupt value rather than "you
+  // picked the wrong codec". Same labelling rule as decodeRecord's F5 error.
+  const max = width === 1 ? 0xff : 0xffff;
+  if (!Number.isInteger(value) || value < 0 || value > max) {
+    throw new Error(
+      `cannot encode ${value} in ${width} byte(s): Codec 8 uses 1-byte IO ids ` +
+        `and group counts (0-255) — AVL ids above 255, or more than 255 elements ` +
+        `in one size group, require Codec 8E`,
+    );
+  }
   if (width === 1) buf.writeUInt8(value, offset);
   else buf.writeUInt16BE(value, offset);
   return offset + width;
@@ -177,7 +190,21 @@ export function encodeRecord(rec, extended) {
 }
 
 // ── Encode a full AVL TCP packet (preamble..CRC) ────────────────────────────────
+// `Number of Data` is ONE byte in both codecs, so 255 records is the protocol's
+// hard ceiling per packet — a real FMC130 splits a longer buffered burst across
+// packets. Without this guard the count silently truncates mod 256: 256 records
+// encode as a CRC-VALID frame declaring 0, which the server parses as an empty
+// packet and ACKs 0 (verified end-to-end), losing all 256 with no error anywhere.
+// Fail loudly at the encoder instead — the caller must chunk.
+export const MAX_RECORDS_PER_PACKET = 255;
+
 export function encodeAvlPacket({ codecId = CODEC_8E, records }) {
+  if (records.length > MAX_RECORDS_PER_PACKET) {
+    throw new Error(
+      `${records.length} records exceeds the ${MAX_RECORDS_PER_PACKET}-record ` +
+        `limit of the 1-byte Number of Data field — split into multiple packets`,
+    );
+  }
   const extended = codecId === CODEC_8E;
   const recs = Buffer.concat(records.map((r) => encodeRecord(r, extended)));
   const n = records.length;

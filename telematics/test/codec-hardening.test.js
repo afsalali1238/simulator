@@ -152,3 +152,33 @@ test('F4: isValidImei accepts exactly 15 ASCII digits and rejects everything els
   assert.equal(isValidImei(null), false);
   assert.equal(isValidImei(356307042441013), false); // a number, not a string
 });
+
+// ── Encoder limits — the 1-byte fields the record count and Codec 8 IO ids
+// share (found 2026-09-04; both previously corrupted silently) ────────────────
+
+test('encoder: more than 255 records is refused, not silently truncated mod 256', () => {
+  const many = Array.from({ length: 256 }, (_, i) => ({
+    ...sampleRecord(),
+    timestampMs: 1735689600000 + i * 1000,
+  }));
+  // Before the guard this produced a CRC-VALID frame declaring 0 records: the
+  // server parsed it as empty and ACKed 0, losing all 256 with no error.
+  assert.throws(() => encodeAvlPacket({ codecId: CODEC_8E, records: many }), /exceeds the 255-record limit/);
+  // 255 is the ceiling, not one below it.
+  const ok = encodeAvlPacket({ codecId: CODEC_8E, records: many.slice(0, 255) });
+  assert.equal(readAvlFrame(ok).packet.records.length, 255);
+});
+
+test('encoder: an AVL id above 255 under Codec 8 throws a labelled protocol error', () => {
+  // 318 (GNSS Jamming) and 449 (ignition-on counter) do not fit a 1-byte IO id.
+  // Codec 8 cannot carry them at all; the error must say so rather than surface
+  // Node's bare "value out of range".
+  const rec = { ...sampleRecord(), io: [{ id: 318, size: 1, value: 1 }] };
+  assert.throws(
+    () => encodeAvlPacket({ codecId: CODEC_8, records: [rec] }),
+    /require Codec 8E/,
+  );
+  // The same record is fine in 8E, where IO ids are 2 bytes.
+  const io8e = readAvlFrame(encodeAvlPacket({ codecId: CODEC_8E, records: [rec] })).packet.records[0].io;
+  assert.equal(io8e[0].id, 318);
+});

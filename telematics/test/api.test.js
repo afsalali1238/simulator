@@ -107,3 +107,36 @@ test('api: an unknown route returns 404', async () => {
   assert.equal(res.status, 404);
   await api.close();
 });
+
+// Found 2026-09-04: normalize.js decodes these four, both store adapters dropped
+// them on the read path, so no API/dashboard consumer could see them.
+// positionValid is the load-bearing one — F3 exists so a no-fix record (lat/lon
+// 0,0) isn't read as a real position.
+test('api: positions expose positionValid and the power/tamper signals (invariant 3: null stays null)', async () => {
+  const store = createMemoryStore();
+  await store.init();
+  await store.persistPacket({
+    device,
+    imei: device.imei,
+    codecId: 0x8e,
+    rawFrame: Buffer.from([0]),
+    canonical: [
+      { ...canonical(1000, TENANTS.A.id, ASSETS[0].id, null), positionValid: true, externalVoltageMv: 27400, batteryPct: 98, unplug: 0 },
+      // A record whose device never sent those IO elements at all.
+      { ...canonical(2000, TENANTS.A.id, ASSETS[0].id, null), positionValid: false, externalVoltageMv: null, batteryPct: null, unplug: null },
+    ],
+  });
+  const api = createApi({ store, port: 0, logger: quiet });
+  const port = await api.listen();
+
+  const { positions } = await (await getJson(`http://127.0.0.1:${port}`, '/positions?limit=10', TENANTS.A.id)).json();
+  assert.deepEqual(
+    { p: positions[0].positionValid, v: positions[0].externalVoltageMv, b: positions[0].batteryPct, u: positions[0].unplug },
+    { p: true, v: 27400, b: 98, u: 0 },
+  );
+  assert.equal(positions[1].positionValid, false); // a real no-fix reading
+  assert.equal(positions[1].externalVoltageMv, null); // absent, not 0
+  assert.equal(positions[1].batteryPct, null);
+  assert.equal(positions[1].unplug, null);
+  await api.close();
+});

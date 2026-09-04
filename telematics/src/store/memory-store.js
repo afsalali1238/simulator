@@ -151,6 +151,15 @@ export function createMemoryStore(opts = {}) {
           ignition: p.ignition,
           movement: p.movement,
           state: p.state,
+          // Decoded by normalize.js and, until now, dropped on the way out —
+          // so an API/dashboard consumer could not tell a real fix from Null
+          // Island, nor see the power/tamper signals the rules engine fires
+          // on. Kept in the same shape as the pg adapter's SELECT (invariant 3:
+          // null stays null).
+          positionValid: p.positionValid,
+          externalVoltageMv: p.externalVoltageMv,
+          batteryPct: p.batteryPct,
+          unplug: p.unplug,
         }));
     },
 

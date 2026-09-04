@@ -225,6 +225,13 @@ broken by the environment it was run in. It now loads `config.js` in a child pro
 with every documented env var stripped, which is the claim it was always trying to
 make. Passes in both modes.
 
+**Re-verified 2026-09-04** (same Docker/`postgres:16` setup, after the 2026-09-04
+review fixes added `position_valid` / `external_voltage_mv` / `battery_pct` / `unplug`
+to `position_records`): `npm run db:reset` clean, `DB=pg npm run test:gate` →
+**196/196, floor 190, GATE PASSED**, `DB=pg npm run demo` green. The four new columns
+were round-tripped through the pg adapter's write + tenant-scoped read to confirm an
+absent signal stays `NULL` rather than becoming `0` (invariant 3).
+
 ---
 
 ## Acceptance criteria per phase (the gates)

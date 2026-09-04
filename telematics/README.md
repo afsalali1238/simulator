@@ -5,10 +5,15 @@ binary over TCP** — the exact wire protocol an FMC130/FMC920 speaks — decode
 into tenant-attributed telemetry, stores it, and serves it over a small HTTP API.
 
 We don't have a physical Teltonika unit yet, so `src/simulator/` *is* the device:
-it performs the IMEI handshake, frames records with a correct CRC, waits for the
-server's ACK, and resends on a miss — byte-for-byte what real hardware does. When
-a real unit arrives, you point it at the same ingestion port and change nothing
-on the server.
+it performs the IMEI handshake, frames records with a correct CRC, and waits for
+the server's ACK before it would clear a record — byte-for-byte what real
+hardware does. (One difference: a lost ACK makes `send()` reject rather than
+auto-resend. The *server* half of that contract — idempotent re-ingest, so a
+resend double-counts nothing — is implemented and tested; the device-side retry
+loop is not built, because nothing here needs it. `test:ingestion` proves the
+resend is safe by reconnecting and sending the same record again.) When a real
+unit arrives, you point it at the same ingestion port and change nothing on the
+server.
 
 Everything lives in this **one folder** by design, so it can be zipped and handed
 to the development team to wire into AWS (RDS, ECS/Fargate, IoT/NLB) later.
@@ -22,7 +27,7 @@ no `npm install`. The default store is an in-process memory adapter.
 
 ```bash
 npm run demo    # simulator → ingestion → store → API, end-to-end, with a proof summary
-npm test        # the full suite (185 tests in memory mode)
+npm test        # the full suite (190 tests in memory mode)
 npm run verify  # spawn the servers for real, replay a scenario, SIGTERM them
 ```
 
@@ -48,9 +53,10 @@ interchangeable adapters. Pick with the `DB` environment variable.
 
 The memory adapter faithfully models what Postgres enforces, so tests pass in both
 modes. Postgres mode is where you confirm the schema itself is correct — and it has
-been: `DB=pg npm test` is **91/91**, with `test:rls` and `test:immutability` proving
-that RLS and the immutability trigger, not application code, do the enforcing. Both
-were checked by dropping the policy/trigger and confirming the suites fail.
+been: `DB=pg npm test` is **196/196** (re-verified 2026-09-04 on `postgres:16`), with
+`test:rls` and `test:immutability` proving that RLS and the immutability trigger, not
+application code, do the enforcing. Both were checked by dropping the policy/trigger
+and confirming the suites fail.
 
 ---
 
@@ -143,7 +149,7 @@ into the registry and streamed end-to-end over real TCP (`--count`, `--records`,
 ## Testing
 
 ```bash
-npm test                 # everything, run serially (185 tests in memory mode; re-verify DB=pg count, last checked 91 before Module 8/7/5 landed)
+npm test                 # everything, run serially (190 in memory mode, 196 under DB=pg)
 npm run test:gate        # THE MERGE GATE: also fails on a dropped count or any skip
 npm run verify           # real processes, real SIGTERM, /health probes
 
